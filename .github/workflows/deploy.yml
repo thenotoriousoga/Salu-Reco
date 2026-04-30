@@ -3,6 +3,8 @@ name: Deploy to GAS
 on:
   push:
     branches: [master]
+    paths:
+      - 'src/**'
 
 jobs:
   deploy:
