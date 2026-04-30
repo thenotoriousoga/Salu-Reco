@@ -180,6 +180,8 @@ function deleteCurrentEvent() {
 // ===================================
 // メンバー管理（イベント内）
 // ===================================
+var memberQueue = []; // 追加待ちリスト
+
 function renderMemberList(members) {
   var c = document.getElementById('member-list');
   if (!members || members.length === 0) {
@@ -196,35 +198,91 @@ function renderMemberList(members) {
   }).join('');
 }
 
-function addMember() {
+function addToQueue() {
   var name = document.getElementById('m-name').value.trim();
   var years = document.getElementById('m-years').value;
   var exp = document.getElementById('m-exp').value === 'true';
   var org = document.getElementById('m-organizer').checked;
   if (!name) { showToast('名前を入力してください', true); return; }
-  showLoading();
-  google.script.run.withSuccessHandler(function(r) {
-    hideLoading();
-    if (r.success) {
-      showToast(r.message);
-      document.getElementById('m-name').value = '';
-      document.getElementById('m-years').value = '1';
-      document.getElementById('m-exp').value = 'false';
-      document.getElementById('m-organizer').checked = false;
-      openEvent(currentEventId);
-    } else showToast(r.message, true);
-  }).withFailureHandler(function(e) { hideLoading(); showToast('エラー', true); }).addEventMember(currentEventId, name, years, exp, org);
+
+  // 重複チェック（キュー内）
+  var dup = memberQueue.find(function(q) { return q.name === name; });
+  if (dup) { showToast(name + ' は既にリストにあります', true); return; }
+
+  memberQueue.push({ name: name, years: Number(years) || 1, exp: exp, org: org });
+
+  // フォームリセット（名前だけクリア、年次・経験はそのまま）
+  document.getElementById('m-name').value = '';
+  document.getElementById('m-name').focus();
+
+  renderQueue();
+  showToast(name + ' をリストに追加');
 }
 
-function bulkAddMembers() {
-  var text = document.getElementById('m-bulk').value.trim();
-  if (!text) { showToast('名前を入力してください', true); return; }
+function removeFromQueue(index) {
+  memberQueue.splice(index, 1);
+  renderQueue();
+}
+
+function renderQueue() {
+  var c = document.getElementById('member-queue');
+  var btn = document.getElementById('btn-register-all');
+
+  if (memberQueue.length === 0) {
+    c.innerHTML = '';
+    btn.style.display = 'none';
+    return;
+  }
+
+  c.innerHTML = '<div style="font-size:0.8rem;font-weight:600;color:var(--text-secondary);margin-bottom:6px;">追加待ち（' + memberQueue.length + '人）</div>' +
+    memberQueue.map(function(q, i) {
+      var expB = q.exp ? '<span class="badge badge-exp">経験あり</span>' : '<span class="badge badge-noexp">未経験</span>';
+      var orgB = q.org ? '<span class="badge badge-organizer">幹事</span>' : '';
+      var yrB = '<span class="badge badge-years">' + q.years + '年目</span>';
+      return '<div class="member-item"><div><span class="member-name">' + esc(q.name) + '</span>' +
+        '<div class="member-badges">' + yrB + expB + orgB + '</div></div>' +
+        '<button class="btn btn-sm btn-danger" onclick="removeFromQueue(' + i + ')">' + svg(IC.x, 12) + '</button></div>';
+    }).join('');
+
+  btn.style.display = 'flex';
+  btn.innerHTML = svg('<polyline points="20 6 9 17 4 12"/>', 18) + ' まとめて登録（' + memberQueue.length + '人）';
+}
+
+function registerAllMembers() {
+  if (memberQueue.length === 0) return;
   showLoading();
-  google.script.run.withSuccessHandler(function(r) {
-    hideLoading();
-    if (r.success) { showToast(r.message); document.getElementById('m-bulk').value = ''; openEvent(currentEventId); }
-    else showToast(r.message, true);
-  }).withFailureHandler(function(e) { hideLoading(); showToast('エラー', true); }).bulkAddMembers(currentEventId, text, 1);
+
+  var remaining = memberQueue.length;
+  var failed = 0;
+
+  memberQueue.forEach(function(q) {
+    google.script.run
+      .withSuccessHandler(function(r) {
+        if (!r.success) failed++;
+        remaining--;
+        if (remaining === 0) {
+          hideLoading();
+          memberQueue = [];
+          renderQueue();
+          var msg = (memberQueue.length + remaining - failed) + '人を登録しました';
+          if (failed > 0) msg += '（' + failed + '人失敗）';
+          showToast(msg, failed > 0);
+          openEvent(currentEventId);
+        }
+      })
+      .withFailureHandler(function() {
+        failed++;
+        remaining--;
+        if (remaining === 0) {
+          hideLoading();
+          memberQueue = [];
+          renderQueue();
+          showToast('一部の登録に失敗しました', true);
+          openEvent(currentEventId);
+        }
+      })
+      .addEventMember(currentEventId, q.name, q.years, q.exp, q.org);
+  });
 }
 
 function deleteMember(memberId) {
@@ -614,6 +672,15 @@ document.addEventListener('DOMContentLoaded', function() {
     var t = new Date();
     di.value = t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0');
   }
+
+  // 名前入力でEnterキー → リストに追加
+  var nameInput = document.getElementById('m-name');
+  if (nameInput) {
+    nameInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); addToQueue(); }
+    });
+  }
+
   loadRecentEvents();
 });
 </script>

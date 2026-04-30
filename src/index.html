@@ -105,7 +105,6 @@
               <svg class="section-icon" style="width:18px;height:18px;" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
               メンバー登録
             </h3>
-            <!-- 個別追加 -->
             <div class="input-group">
               <label for="m-name">名前</label>
               <input type="text" id="m-name" placeholder="名前" class="input" aria-label="名前">
@@ -128,19 +127,18 @@
                 <input type="checkbox" id="m-organizer"> 幹事
               </label>
             </div>
-            <button class="btn btn-primary" onclick="addMember()" style="width:100%;">
+            <button class="btn btn-secondary" onclick="addToQueue()" style="width:100%;">
               <svg class="btn-icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              追加
+              リストに追加
             </button>
 
-            <!-- 一括追加 -->
-            <details style="margin-top:14px;">
-              <summary style="cursor:pointer;font-size:0.85rem;font-weight:600;color:var(--text-secondary);">一括追加（改行区切り）</summary>
-              <div style="margin-top:8px;">
-                <textarea id="m-bulk" class="input" rows="5" placeholder="田中太郎&#10;鈴木花子&#10;佐藤一郎" aria-label="一括追加"></textarea>
-                <button class="btn btn-secondary" onclick="bulkAddMembers()" style="width:100%;margin-top:8px;">一括追加</button>
-              </div>
-            </details>
+            <!-- 追加待ちリスト -->
+            <div id="member-queue" style="margin-top:12px;"></div>
+
+            <button class="btn btn-primary btn-large" id="btn-register-all" onclick="registerAllMembers()" style="display:none;margin-top:10px;">
+              <svg class="btn-icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+              まとめて登録
+            </button>
           </div>
           <div class="card">
             <h3>登録済みメンバー</h3>
