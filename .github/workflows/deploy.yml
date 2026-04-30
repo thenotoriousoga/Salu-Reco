@@ -1,0 +1,28 @@
+name: Deploy to GAS
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install clasp
+        run: npm install -g @google/clasp
+
+      - name: Set clasp credentials
+        run: echo '${{ secrets.CLASPRC_JSON }}' > ~/.clasprc.json
+
+      - name: Create .clasp.json
+        run: |
+          echo '{"scriptId":"${{ secrets.SCRIPT_ID }}","rootDir":"src"}' > .clasp.json
+
+      - name: Push to GAS
+        run: clasp push --force

@@ -8,3 +8,6 @@ Thumbs.db
 
 # Kiro
 .kiro/
+
+# clasp (contains script ID)
+.clasp.json
