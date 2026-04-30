@@ -54,7 +54,7 @@ function createSurveyForm(eventId) {
 
   // イベントにフォーム情報を保存
   const ss = getSpreadsheet_();
-  const sheet = ss.getSheetByName('イベント');
+  const sheet = getSheet_('イベント', ss);
   const data = sheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === eventId) {
@@ -92,7 +92,7 @@ function fetchSurveyResponses(eventId) {
 
   // 既存回答をクリア
   const ss = getSpreadsheet_();
-  const surveySheet = ss.getSheetByName('アンケート回答');
+  const surveySheet = getSheet_('アンケート回答', ss);
   const existingData = surveySheet.getDataRange().getValues();
   for (let i = existingData.length - 1; i >= 1; i--) {
     if (existingData[i][0] === eventId) {

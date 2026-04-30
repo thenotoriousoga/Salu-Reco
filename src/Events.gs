@@ -4,7 +4,7 @@
 
 function createEvent(date, name) {
   const ss = getSpreadsheet_();
-  const sheet = ss.getSheetByName('イベント');
+  const sheet = getSheet_('イベント', ss);
   const eventId = generateId_();
   sheet.appendRow([eventId, date, name || 'フットサル', '準備中', 1, 1, '', '']);
   return { success: true, eventId: eventId, message: 'イベントを作成しました' };
@@ -32,7 +32,7 @@ function getEventDetail(eventId) {
 
 function updateEventStatus(eventId, status) {
   const ss = getSpreadsheet_();
-  const sheet = ss.getSheetByName('イベント');
+  const sheet = getSheet_('イベント', ss);
   const data = sheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === eventId) {
@@ -45,7 +45,7 @@ function updateEventStatus(eventId, status) {
 
 function updateMvpSettings(eventId, mvpCount, subMvpCount) {
   const ss = getSpreadsheet_();
-  const sheet = ss.getSheetByName('イベント');
+  const sheet = getSheet_('イベント', ss);
   const data = sheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === eventId) {
@@ -61,7 +61,7 @@ function deleteEvent(eventId) {
   const ss = getSpreadsheet_();
 
   // イベント削除
-  const eventSheet = ss.getSheetByName('イベント');
+  const eventSheet = getSheet_('イベント', ss);
   const eventData = eventSheet.getDataRange().getValues();
   for (let i = eventData.length - 1; i >= 1; i--) {
     if (eventData[i][0] === eventId) {
@@ -92,8 +92,8 @@ function deleteEvent(eventId) {
 }
 
 function deleteRowsByColumn_(ss, sheetName, colIndex, value) {
-  const sheet = ss.getSheetByName(sheetName);
-  if (!sheet || sheet.getLastRow() < 2) return;
+  const sheet = getSheet_(sheetName, ss);
+  if (sheet.getLastRow() < 2) return;
   const data = sheet.getDataRange().getValues();
   for (let i = data.length - 1; i >= 1; i--) {
     if (data[i][colIndex] === value) {

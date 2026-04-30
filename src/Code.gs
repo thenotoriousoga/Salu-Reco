@@ -23,55 +23,7 @@ function getSpreadsheet_() {
 // --- シート初期化 ---
 function initializeSheets() {
   const ss = getSpreadsheet_();
-
-  // メンバーシート
-  let membersSheet = ss.getSheetByName('メンバー');
-  if (!membersSheet) {
-    membersSheet = ss.insertSheet('メンバー');
-    membersSheet.appendRow(['ID', '名前', '年次', 'サッカー経験', '幹事', '登録日']);
-  }
-
-  // イベントシート
-  let eventsSheet = ss.getSheetByName('イベント');
-  if (!eventsSheet) {
-    eventsSheet = ss.insertSheet('イベント');
-    eventsSheet.appendRow(['イベントID', '日付', '名称', 'ステータス', 'MVP人数', '準MVP人数', 'フォームURL', 'フォームID']);
-  }
-
-  // ラウンドシート（複数回のチーム分け・試合）
-  let roundsSheet = ss.getSheetByName('ラウンド');
-  if (!roundsSheet) {
-    roundsSheet = ss.insertSheet('ラウンド');
-    roundsSheet.appendRow(['ラウンドID', 'イベントID', 'ラウンド番号', 'チームA名', 'チームB名', 'スコアA', 'スコアB', 'ステータス']);
-  }
-
-  // ラウンドメンバーシート
-  let roundMembersSheet = ss.getSheetByName('ラウンドメンバー');
-  if (!roundMembersSheet) {
-    roundMembersSheet = ss.insertSheet('ラウンドメンバー');
-    roundMembersSheet.appendRow(['ラウンドID', 'メンバーID', 'チーム']);
-  }
-
-  // 得点シート
-  let goalsSheet = ss.getSheetByName('得点');
-  if (!goalsSheet) {
-    goalsSheet = ss.insertSheet('得点');
-    goalsSheet.appendRow(['ラウンドID', 'メンバーID', '得点数']);
-  }
-
-  // アンケート回答シート
-  let surveySheet = ss.getSheetByName('アンケート回答');
-  if (!surveySheet) {
-    surveySheet = ss.insertSheet('アンケート回答');
-    surveySheet.appendRow(['イベントID', '回答者名', '対象メンバーID', '対象メンバー名', 'コメント']);
-  }
-
-  // MVP結果シート
-  let mvpSheet = ss.getSheetByName('MVP結果');
-  if (!mvpSheet) {
-    mvpSheet = ss.insertSheet('MVP結果');
-    mvpSheet.appendRow(['イベントID', 'メンバーID', '名前', '順位', '理由', '定量スコア', '定性スコア', '総合スコア']);
-  }
+  Object.keys(SHEET_DEFINITIONS_).forEach(name => getSheet_(name, ss));
 
   // デフォルトシート削除
   const defaultSheet = ss.getSheetByName('Sheet1') || ss.getSheetByName('シート1');
@@ -100,10 +52,46 @@ function generateId_() {
   return Utilities.getUuid().substring(0, 8);
 }
 
+// シート定義（シート名 → ヘッダー行）
+const SHEET_DEFINITIONS_ = {
+  'メンバー': ['ID', '名前', '年次', 'サッカー経験', '幹事', '登録日'],
+  'イベント': ['イベントID', '日付', '名称', 'ステータス', 'MVP人数', '準MVP人数', 'フォームURL', 'フォームID'],
+  'ラウンド': ['ラウンドID', 'イベントID', 'ラウンド番号', 'チームA名', 'チームB名', 'スコアA', 'スコアB', 'ステータス'],
+  'ラウンドメンバー': ['ラウンドID', 'メンバーID', 'チーム'],
+  '得点': ['ラウンドID', 'メンバーID', '得点数'],
+  'アンケート回答': ['イベントID', '回答者名', '対象メンバーID', '対象メンバー名', 'コメント'],
+  'MVP結果': ['イベントID', 'メンバーID', '名前', '順位', '理由', '定量スコア', '定性スコア', '総合スコア']
+};
+
+// シート取得（存在しなければヘッダー付きで自動作成）
+function getSheet_(sheetName, ss) {
+  ss = ss || getSpreadsheet_();
+  let sheet = ss.getSheetByName(sheetName);
+  const headers = SHEET_DEFINITIONS_[sheetName];
+
+  if (!sheet) {
+    // シートが存在しない → 作成してヘッダーを追加
+    sheet = ss.insertSheet(sheetName);
+    if (headers) {
+      sheet.appendRow(headers);
+    }
+    // デフォルトシート（Sheet1/シート1）を削除
+    const defaultSheet = ss.getSheetByName('Sheet1') || ss.getSheetByName('シート1');
+    if (defaultSheet && ss.getSheets().length > 1) {
+      ss.deleteSheet(defaultSheet);
+    }
+  } else if (headers && sheet.getLastRow() === 0) {
+    // シートは存在するがヘッダーがない → ヘッダーを追加
+    sheet.appendRow(headers);
+  }
+
+  return sheet;
+}
+
 function getSheetData_(sheetName) {
   const ss = getSpreadsheet_();
-  const sheet = ss.getSheetByName(sheetName);
-  if (!sheet || sheet.getLastRow() < 2) return [];
+  const sheet = getSheet_(sheetName, ss);
+  if (sheet.getLastRow() < 2) return [];
   const data = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   return data.map(row => {

@@ -9,7 +9,7 @@ function getMembers() {
 function addMember(name, years, experience, isOrganizer) {
   if (!name || !name.trim()) return { success: false, message: '名前を入力してください' };
   const ss = getSpreadsheet_();
-  const sheet = ss.getSheetByName('メンバー');
+  const sheet = getSheet_('メンバー', ss);
   const id = generateId_();
   const now = new Date();
   sheet.appendRow([
@@ -25,7 +25,7 @@ function addMember(name, years, experience, isOrganizer) {
 
 function updateMember(memberId, name, years, experience, isOrganizer) {
   const ss = getSpreadsheet_();
-  const sheet = ss.getSheetByName('メンバー');
+  const sheet = getSheet_('メンバー', ss);
   const data = sheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === memberId) {
@@ -41,7 +41,7 @@ function updateMember(memberId, name, years, experience, isOrganizer) {
 
 function deleteMember(memberId) {
   const ss = getSpreadsheet_();
-  const sheet = ss.getSheetByName('メンバー');
+  const sheet = getSheet_('メンバー', ss);
   const data = sheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === memberId) {

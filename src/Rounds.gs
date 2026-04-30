@@ -107,7 +107,7 @@ function createRound(eventId, teamAName, teamBName, teamAMembers, teamBMembers) 
   const roundId = generateId_();
   const roundNumber = getNextRoundNumber_(eventId);
 
-  const roundsSheet = ss.getSheetByName('ラウンド');
+  const roundsSheet = getSheet_('ラウンド', ss);
   roundsSheet.appendRow([
     roundId, eventId, roundNumber,
     teamAName || '第' + roundNumber + '試合 チームA',
@@ -115,7 +115,7 @@ function createRound(eventId, teamAName, teamBName, teamAMembers, teamBMembers) 
     0, 0, '進行中'
   ]);
 
-  const rmSheet = ss.getSheetByName('ラウンドメンバー');
+  const rmSheet = getSheet_('ラウンドメンバー', ss);
   teamAMembers.forEach(mId => { rmSheet.appendRow([roundId, mId, 'A']); });
   teamBMembers.forEach(mId => { rmSheet.appendRow([roundId, mId, 'B']); });
 
@@ -128,7 +128,7 @@ function createRound(eventId, teamAName, teamBName, teamAMembers, teamBMembers) 
 // --- スコア更新 ---
 function updateRoundScore(roundId, scoreA, scoreB) {
   const ss = getSpreadsheet_();
-  const sheet = ss.getSheetByName('ラウンド');
+  const sheet = getSheet_('ラウンド', ss);
   const data = sheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === roundId) {
@@ -143,7 +143,7 @@ function updateRoundScore(roundId, scoreA, scoreB) {
 // --- 得点記録 ---
 function recordGoal(roundId, memberId, goalCount) {
   const ss = getSpreadsheet_();
-  const sheet = ss.getSheetByName('得点');
+  const sheet = getSheet_('得点', ss);
   const data = sheet.getDataRange().getValues();
 
   for (let i = 1; i < data.length; i++) {
@@ -159,7 +159,7 @@ function recordGoal(roundId, memberId, goalCount) {
 // --- ラウンド終了 ---
 function endRound(roundId) {
   const ss = getSpreadsheet_();
-  const sheet = ss.getSheetByName('ラウンド');
+  const sheet = getSheet_('ラウンド', ss);
   const data = sheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] === roundId) {
@@ -175,7 +175,7 @@ function deleteRound(roundId) {
   const ss = getSpreadsheet_();
 
   // ラウンド削除
-  const roundSheet = ss.getSheetByName('ラウンド');
+  const roundSheet = getSheet_('ラウンド', ss);
   const roundData = roundSheet.getDataRange().getValues();
   for (let i = roundData.length - 1; i >= 1; i--) {
     if (roundData[i][0] === roundId) {

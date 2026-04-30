@@ -155,7 +155,7 @@ function selectMVP(eventId) {
 
   // --- 結果をシートに保存 ---
   const ss = getSpreadsheet_();
-  const mvpSheet = ss.getSheetByName('MVP結果');
+  const mvpSheet = getSheet_('MVP結果', ss);
 
   // 既存結果をクリア
   const existingData = mvpSheet.getDataRange().getValues();
