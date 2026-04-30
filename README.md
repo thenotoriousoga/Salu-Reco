@@ -84,6 +84,68 @@ Apps Script エディタで：
 | 定量評価（50%） | 得点数×3pt、勝利×2pt | 経験なし+30%、若手+15%ボーナス |
 | 定性評価（50%） | コメント数×2pt、ポジティブワード+1pt | 長文コメント+1〜2pt |
 
+## CI/CD（GitHub → GAS 自動デプロイ）
+
+`master` ブランチにpushすると、GitHub Actions 経由で自動的にGASプロジェクトへデプロイされます。
+
+### 仕組み
+
+- [clasp](https://github.com/google/clasp)（Google Apps Script CLI）を使用
+- GitHub Actions が `clasp push --force` を実行し、GAS側のコードを更新
+
+### 初回セットアップ手順
+
+#### 1. Apps Script API を有効化
+
+https://script.google.com/home/usersettings にアクセスし、Google Apps Script API をオンにする。
+
+#### 2. clasp をインストール & ログイン
+
+```bash
+npm install -g @google/clasp
+clasp login
+```
+
+ブラウザが開くので、GASを管理しているGoogleアカウントで認証する。
+
+#### 3. GitHub Secrets を登録
+
+リポジトリの **Settings → Secrets and variables → Actions** で以下を登録：
+
+| Secret名 | 値 | 説明 |
+|---|---|---|
+| `SCRIPT_ID` | GASのスクリプトID | GASエディタ →「プロジェクトの設定」→「スクリプトID」 |
+| `CLASPRC_JSON` | `~/.clasprc.json` の中身全体 | `clasp login` で生成される認証情報（JSON） |
+
+CLI で登録する場合：
+
+```bash
+gh secret set SCRIPT_ID
+# プロンプトにスクリプトIDを入力
+
+# Windows (PowerShell)
+Get-Content ~/.clasprc.json | gh secret set CLASPRC_JSON
+
+# macOS / Linux
+gh secret set CLASPRC_JSON < ~/.clasprc.json
+```
+
+#### 4. ローカル開発用の設定（任意）
+
+プロジェクトルートに `.clasp.json` を作成（`.gitignore` で除外済み）：
+
+```json
+{
+  "scriptId": "あなたのスクリプトID",
+  "rootDir": "src"
+}
+```
+
+### デプロイの確認方法
+
+- **GitHub Actions**: https://github.com/thenotoriousoga/Salu-Reco/actions でpushごとの実行結果を確認
+- **GASエディタ**: https://script.google.com でプロジェクトを開き、コードが更新されていることを確認
+
 ## 技術構成
 
 - **バックエンド**: Google Apps Script（7ファイル）
