@@ -9,6 +9,10 @@ function getEvents() {
 function createNewEvent(date, name) {
   var ss = getSpreadsheet_();
   var sheet = ss.getSheetByName('イベント');
+  if (!sheet) {
+    sheet = ss.insertSheet('イベント');
+    sheet.appendRow(['イベントID', '日付', '名称', 'ステータス', 'MVP人数', '準MVP人数', 'フォームURL', 'フォームID']);
+  }
   var eventId = generateId_();
   sheet.appendRow([eventId, date, name || 'フットサル', '準備中', 1, 1, '', '']);
   return { success: true, eventId: eventId, message: 'イベントを作成しました' };

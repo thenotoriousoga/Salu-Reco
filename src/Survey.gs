@@ -82,20 +82,24 @@ function fetchSurveyResponses(eventId) {
     var itemResponses = response.getItemResponses();
     var voterName = '';
 
-    if (itemResponses.length > 0) {
-      voterName = String(itemResponses[0].getResponse());
-    }
+    // 投票者名を探す（タイトルで判定）
+    itemResponses.forEach(function(ir) {
+      if (ir.getItem().getTitle() === 'あなたの名前') {
+        voterName = String(ir.getResponse());
+      }
+    });
 
-    for (var j = 1; j < itemResponses.length; j++) {
-      var comment = String(itemResponses[j].getResponse() || '').trim();
+    itemResponses.forEach(function(ir) {
+      var title = ir.getItem().getTitle();
+      if (title === 'あなたの名前') return;
+      var comment = String(ir.getResponse() || '').trim();
       if (comment) {
-        var title = itemResponses[j].getItem().getTitle();
         var targetName = title.replace(' へのコメント', '');
         var targetId = nameToId[targetName] || '';
         surveySheet.appendRow([eventId, voterName, targetId, targetName, comment]);
         totalComments++;
       }
-    }
+    });
   });
 
   return {

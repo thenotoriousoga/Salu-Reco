@@ -109,7 +109,14 @@ function getSheetData_(sheetName) {
   var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   return data.map(function(row) {
     var obj = {};
-    headers.forEach(function(h, i) { obj[h] = row[i]; });
+    headers.forEach(function(h, i) {
+      var val = row[i];
+      // Dateオブジェクトはクライアントにシリアライズできないため文字列に変換
+      if (val instanceof Date) {
+        val = Utilities.formatDate(val, Session.getScriptTimeZone(), 'yyyy/MM/dd');
+      }
+      obj[h] = val;
+    });
     return obj;
   });
 }
