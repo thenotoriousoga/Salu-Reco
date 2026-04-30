@@ -2,52 +2,58 @@
 // イベント管理
 // ===================================
 
+function getEvents() {
+  return getSheetData_('イベント').reverse();
+}
+
 function createEvent(date, name) {
-  const ss = getSpreadsheet_();
-  const sheet = getSheet_('イベント', ss);
-  const eventId = generateId_();
+  var ss = getSpreadsheet_();
+  var sheet = ss.getSheetByName('イベント');
+  var eventId = generateId_();
   sheet.appendRow([eventId, date, name || 'フットサル', '準備中', 1, 1, '', '']);
   return { success: true, eventId: eventId, message: 'イベントを作成しました' };
 }
 
-function getEvents() {
-  const events = getSheetData_('イベント');
-  return events.reverse();
-}
-
 function getEventDetail(eventId) {
-  const events = getSheetData_('イベント');
-  const event = events.find(e => e['イベントID'] === eventId);
+  var events = getSheetData_('イベント');
+  var event = events.find(function(e) { return e['イベントID'] === eventId; });
   if (!event) return null;
 
-  const rounds = getRounds(eventId);
-  const members = getMembers();
+  var members = getEventMembers(eventId);
+  var rounds = getRounds(eventId);
+  var mvpResults = getMvpResults(eventId);
 
   return {
     event: event,
+    members: members,
     rounds: rounds,
-    members: members
+    mvpResults: mvpResults
   };
 }
 
-function updateEventStatus(eventId, status) {
-  const ss = getSpreadsheet_();
-  const sheet = getSheet_('イベント', ss);
-  const data = sheet.getDataRange().getValues();
-  for (let i = 1; i < data.length; i++) {
+function updateEventField_(eventId, colIndex, value) {
+  var ss = getSpreadsheet_();
+  var sheet = ss.getSheetByName('イベント');
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
     if (data[i][0] === eventId) {
-      sheet.getRange(i + 1, 4).setValue(status);
-      return { success: true };
+      sheet.getRange(i + 1, colIndex).setValue(value);
+      return true;
     }
   }
-  return { success: false, message: 'イベントが見つかりません' };
+  return false;
+}
+
+function updateEventStatus(eventId, status) {
+  updateEventField_(eventId, 4, status);
+  return { success: true };
 }
 
 function updateMvpSettings(eventId, mvpCount, subMvpCount) {
-  const ss = getSpreadsheet_();
-  const sheet = getSheet_('イベント', ss);
-  const data = sheet.getDataRange().getValues();
-  for (let i = 1; i < data.length; i++) {
+  var ss = getSpreadsheet_();
+  var sheet = ss.getSheetByName('イベント');
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
     if (data[i][0] === eventId) {
       sheet.getRange(i + 1, 5).setValue(Number(mvpCount) || 1);
       sheet.getRange(i + 1, 6).setValue(Number(subMvpCount) || 1);
@@ -58,46 +64,21 @@ function updateMvpSettings(eventId, mvpCount, subMvpCount) {
 }
 
 function deleteEvent(eventId) {
-  const ss = getSpreadsheet_();
+  // 関連ラウンドID取得
+  var roundIds = getSheetData_('ラウンド')
+    .filter(function(r) { return r['イベントID'] === eventId; })
+    .map(function(r) { return r['ラウンドID']; });
 
-  // イベント削除
-  const eventSheet = getSheet_('イベント', ss);
-  const eventData = eventSheet.getDataRange().getValues();
-  for (let i = eventData.length - 1; i >= 1; i--) {
-    if (eventData[i][0] === eventId) {
-      eventSheet.deleteRow(i + 1);
-      break;
-    }
-  }
-
-  // 関連ラウンド取得
-  const roundIds = getSheetData_('ラウンド')
-    .filter(r => r['イベントID'] === eventId)
-    .map(r => r['ラウンドID']);
-
-  // ラウンド削除
-  deleteRowsByColumn_(ss, 'ラウンド', 1, eventId);
-
-  // ラウンドメンバー・得点削除
-  roundIds.forEach(rId => {
-    deleteRowsByColumn_(ss, 'ラウンドメンバー', 0, rId);
-    deleteRowsByColumn_(ss, '得点', 0, rId);
+  // 関連データ削除
+  roundIds.forEach(function(rId) {
+    deleteRowsByMatch_('ラウンドメンバー', 0, rId);
+    deleteRowsByMatch_('得点', 0, rId);
   });
-
-  // アンケート・MVP結果削除
-  deleteRowsByColumn_(ss, 'アンケート回答', 0, eventId);
-  deleteRowsByColumn_(ss, 'MVP結果', 0, eventId);
+  deleteRowsByMatch_('ラウンド', 1, eventId);
+  deleteRowsByMatch_('メンバー', 1, eventId);
+  deleteRowsByMatch_('アンケート回答', 0, eventId);
+  deleteRowsByMatch_('MVP結果', 0, eventId);
+  deleteRowsByMatch_('イベント', 0, eventId);
 
   return { success: true, message: 'イベントを削除しました' };
-}
-
-function deleteRowsByColumn_(ss, sheetName, colIndex, value) {
-  const sheet = getSheet_(sheetName, ss);
-  if (sheet.getLastRow() < 2) return;
-  const data = sheet.getDataRange().getValues();
-  for (let i = data.length - 1; i >= 1; i--) {
-    if (data[i][colIndex] === value) {
-      sheet.deleteRow(i + 1);
-    }
-  }
 }

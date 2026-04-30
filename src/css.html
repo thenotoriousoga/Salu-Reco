@@ -1058,6 +1058,50 @@ body {
 .badge-organizer { background: #FFFBEB; color: var(--accent-dark); }
 .badge-years { background: var(--bg-surface); color: var(--text-secondary); }
 
+/* --- タブバー --- */
+.tab-bar {
+  display: flex;
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  margin-bottom: 12px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  border: 1px solid var(--border-light);
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 12px 8px;
+  border: none;
+  background: none;
+  font-family: 'Fira Sans', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition);
+  border-bottom: 3px solid transparent;
+}
+
+.tab-btn:hover {
+  color: var(--primary);
+  background: var(--bg-surface);
+}
+
+.tab-btn.active {
+  color: var(--primary);
+  background: var(--bg-surface);
+  border-bottom-color: var(--primary);
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
 /* --- フォーカス（キーボードナビゲーション） --- */
 .btn:focus-visible,
 .input:focus-visible,
