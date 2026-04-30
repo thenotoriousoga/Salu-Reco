@@ -2,17 +2,23 @@
 // フットサル試合管理システム - メインスクリプト
 // ===================================
 
-const SPREADSHEET_ID = ''; // デプロイ後にスプレッドシートIDを設定（空の場合は自動作成）
-
 function getSpreadsheet_() {
-  if (SPREADSHEET_ID) {
-    return SpreadsheetApp.openById(SPREADSHEET_ID);
+  // 1. スクリプトプロパティから取得
+  var props = PropertiesService.getScriptProperties();
+  var ssId = props.getProperty('SPREADSHEET_ID');
+  if (ssId) {
+    return SpreadsheetApp.openById(ssId);
   }
+
+  // 2. コンテナバインドスクリプトの場合
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   if (ss) return ss;
-  var newSs = SpreadsheetApp.create('フットサル管理システム');
-  Logger.log('新しいスプレッドシートを作成しました: ' + newSs.getUrl());
-  return newSs;
+
+  // 3. どちらもない場合はエラー
+  throw new Error(
+    'スプレッドシートが見つかりません。スクリプトプロパティに SPREADSHEET_ID を設定してください。' +
+    '（Apps Script エディタ → プロジェクトの設定 → スクリプトプロパティ）'
+  );
 }
 
 // --- シート初期化 ---
