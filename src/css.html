@@ -1,0 +1,1070 @@
+<style>
+/* ===================================
+   フットサル管理システム - Design System
+   Style: Vibrant & Block-based
+   Colors: Team Red + Championship Gold
+   Typography: Fira Sans / Fira Code
+   =================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap');
+
+/* --- リセット・ベース --- */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --primary: #DC2626;
+  --primary-dark: #B91C1C;
+  --secondary: #EF4444;
+  --accent: #FBBF24;
+  --accent-dark: #D97706;
+  --bg: #FEF2F2;
+  --bg-card: #FFFFFF;
+  --bg-surface: #FFF5F5;
+  --text: #7F1D1D;
+  --text-secondary: #991B1B;
+  --text-muted: #B45309;
+  --border: #FECACA;
+  --border-light: #FEE2E2;
+  --team-a: #2563EB;
+  --team-a-bg: #DBEAFE;
+  --team-a-border: #93C5FD;
+  --team-b: #DB2777;
+  --team-b-bg: #FCE7F3;
+  --team-b-border: #F9A8D4;
+  --success: #059669;
+  --success-bg: #D1FAE5;
+  --danger: #DC2626;
+  --shadow-sm: 0 1px 3px rgba(127, 29, 29, 0.08);
+  --shadow-md: 0 4px 12px rgba(127, 29, 29, 0.1);
+  --shadow-lg: 0 8px 24px rgba(127, 29, 29, 0.12);
+  --radius: 16px;
+  --radius-sm: 10px;
+  --radius-xs: 6px;
+  --transition: 200ms ease;
+}
+
+body {
+  font-family: 'Fira Sans', -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding-bottom: 80px;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.6;
+}
+
+/* --- ヘッダー --- */
+.header {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 50%, var(--accent) 100%);
+  color: white;
+  padding: 18px 20px;
+  text-align: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 4px 20px rgba(220, 38, 38, 0.3);
+}
+
+.header h1 {
+  font-family: 'Fira Code', monospace;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.header-icon {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* --- ナビゲーション --- */
+.nav {
+  display: flex;
+  background: var(--bg-card);
+  border-bottom: 2px solid var(--border-light);
+  position: sticky;
+  top: 56px;
+  z-index: 99;
+  overflow-x: auto;
+  padding: 0 4px;
+}
+
+.nav-btn {
+  flex: 1;
+  padding: 12px 8px;
+  border: none;
+  background: none;
+  font-family: 'Fira Sans', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition);
+  border-bottom: 3px solid transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  position: relative;
+}
+
+.nav-btn:hover {
+  color: var(--primary);
+  background: var(--bg-surface);
+}
+
+.nav-btn.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+  font-weight: 700;
+}
+
+.nav-btn .nav-icon {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* --- コンテンツ --- */
+.content {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 16px 12px;
+}
+
+.page { display: none; }
+.page.active { display: block; }
+
+/* --- カード --- */
+.card {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border-light);
+  transition: box-shadow var(--transition);
+}
+
+.card h2 {
+  font-family: 'Fira Code', monospace;
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card h2 .section-icon {
+  width: 22px;
+  height: 22px;
+  stroke: var(--primary);
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+
+.card h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* --- ボタン --- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: 'Fira Sans', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+  text-align: center;
+  line-height: 1.4;
+}
+
+.btn:active { transform: scale(0.97); }
+
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+}
+.btn-primary:hover {
+  background: var(--primary-dark);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
+}
+
+.btn-secondary {
+  background: var(--border-light);
+  color: var(--text);
+}
+.btn-secondary:hover {
+  background: var(--border);
+}
+
+.btn-accent {
+  background: var(--accent);
+  color: var(--text);
+  box-shadow: 0 2px 8px rgba(251, 191, 36, 0.3);
+}
+.btn-accent:hover {
+  background: var(--accent-dark);
+  color: white;
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
+}
+
+.btn-danger {
+  background: transparent;
+  color: var(--danger);
+  border: 1.5px solid var(--danger);
+  padding: 6px 12px;
+}
+.btn-danger:hover {
+  background: var(--danger);
+  color: white;
+}
+
+.btn-large {
+  display: flex;
+  width: 100%;
+  padding: 14px 20px;
+  font-size: 1rem;
+  margin-bottom: 10px;
+  border-radius: var(--radius);
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  border-radius: var(--radius-xs);
+}
+
+.btn .btn-icon {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+
+/* --- 入力 --- */
+.input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: 'Fira Sans', sans-serif;
+  font-size: 0.95rem;
+  color: var(--text);
+  background: var(--bg-card);
+  transition: border-color var(--transition), box-shadow var(--transition);
+  -webkit-appearance: none;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+}
+
+.input-group {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  align-items: center;
+}
+
+.input-group label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  min-width: 80px;
+  color: var(--text-secondary);
+}
+
+.input-group .input {
+  flex: 1;
+}
+
+/* --- ホームメニュー --- */
+.home-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+/* --- メンバーリスト --- */
+.member-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-light);
+  transition: background var(--transition);
+}
+
+.member-item:last-child { border-bottom: none; }
+
+.member-name {
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+/* --- チェックボックスグリッド --- */
+.checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-sm);
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.checkbox-item:hover {
+  background: var(--border-light);
+}
+
+.checkbox-item:has(input:checked) {
+  background: var(--success-bg);
+  border-color: var(--success);
+}
+
+.checkbox-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--success);
+  cursor: pointer;
+}
+
+.checkbox-item label {
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+/* --- ステップ --- */
+.step-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.step-nav {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.step-nav .btn { flex: 1; }
+
+/* --- チーム分け --- */
+.team-name-inputs {
+  margin-bottom: 14px;
+}
+
+.teams-preview {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.team-box {
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  min-height: 100px;
+}
+
+.team-box h4 {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+  text-align: center;
+  letter-spacing: -0.01em;
+}
+
+.team-a {
+  background: var(--team-a-bg);
+  border: 2px solid var(--team-a-border);
+}
+
+.team-b {
+  background: var(--team-b-bg);
+  border: 2px solid var(--team-b-border);
+}
+
+.team-member {
+  padding: 4px 0;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+/* --- スコアボード --- */
+.scoreboard {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px 0;
+  margin-bottom: 20px;
+  background: linear-gradient(135deg, var(--bg-surface) 0%, var(--border-light) 100%);
+  border-radius: var(--radius);
+  border: 2px solid var(--border);
+}
+
+.score-team {
+  text-align: center;
+  flex: 1;
+}
+
+.team-label {
+  display: block;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.score {
+  display: block;
+  font-family: 'Fira Code', monospace;
+  font-size: 3.5rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+  margin-bottom: 10px;
+}
+
+.score-vs {
+  font-family: 'Fira Code', monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--primary);
+  background: var(--bg-card);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-sm);
+  border: 2px solid var(--border);
+  flex-shrink: 0;
+}
+
+.score-btns {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+
+/* --- 得点者セクション --- */
+.goal-section {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+}
+
+.goal-section h3 .section-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.goal-player {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.goal-player:last-child { border-bottom: none; }
+
+.goal-player-name {
+  font-size: 0.85rem;
+  font-weight: 500;
+  flex: 1;
+}
+
+.goal-player-team {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  margin-right: 10px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.goal-player-team.team-a-badge {
+  background: var(--team-a-bg);
+  color: var(--team-a);
+  border: 1px solid var(--team-a-border);
+}
+
+.goal-player-team.team-b-badge {
+  background: var(--team-b-bg);
+  color: var(--team-b);
+  border: 1px solid var(--team-b-border);
+}
+
+.goal-count {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.goal-count span {
+  font-family: 'Fira Code', monospace;
+  font-weight: 700;
+  min-width: 24px;
+  text-align: center;
+  font-size: 1rem;
+}
+
+/* --- MVP --- */
+.mvp-candidate {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  margin: 8px 0;
+  background: var(--bg-surface);
+  border-radius: var(--radius-sm);
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.mvp-candidate:hover {
+  background: var(--border-light);
+  border-color: var(--border);
+}
+
+.mvp-candidate.selected {
+  background: #FFFBEB;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.2);
+}
+
+.mvp-result-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.mvp-result-item:first-child {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.mvp-votes {
+  font-family: 'Fira Code', monospace;
+  background: var(--accent);
+  color: var(--text);
+  padding: 3px 12px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+/* --- 試合履歴 --- */
+.match-history-item {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.match-history-item:last-child { border-bottom: none; }
+
+.match-date {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.match-score-line {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.match-status {
+  display: inline-block;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 20px;
+  margin-left: 10px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.status-ongoing {
+  background: var(--success-bg);
+  color: var(--success);
+  border: 1px solid var(--success);
+}
+
+.status-ended {
+  background: var(--border-light);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+/* --- 成績 --- */
+.stats-sort {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.stats-sort .input {
+  width: auto;
+  flex: 1;
+}
+
+.stats-card {
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-sm);
+  border-left: 5px solid var(--primary);
+  transition: box-shadow var(--transition);
+}
+
+.stats-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.stats-card:nth-child(1) {
+  border-left-color: var(--accent);
+  background: #FFFBEB;
+}
+
+.stats-card:nth-child(2) {
+  border-left-color: #94A3B8;
+  background: #F8FAFC;
+}
+
+.stats-card:nth-child(3) {
+  border-left-color: #CD7F32;
+  background: #FFF7ED;
+}
+
+.stats-name {
+  font-family: 'Fira Code', monospace;
+  font-weight: 700;
+  font-size: 1rem;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stats-rank {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-right: 4px;
+  font-weight: 700;
+}
+
+.stats-details {
+  display: flex;
+  gap: 14px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  flex-wrap: wrap;
+}
+
+.stats-details span {
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.stats-details .stat-icon,
+.stat-icon {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  display: inline;
+  vertical-align: middle;
+}
+
+/* --- ローディング --- */
+.loading {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(254, 242, 242, 0.85);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.spinner {
+  width: 44px;
+  height: 44px;
+  border: 4px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* --- トースト --- */
+.toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: var(--text);
+  color: white;
+  padding: 12px 24px;
+  border-radius: var(--radius-sm);
+  font-family: 'Fira Sans', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 500;
+  opacity: 0;
+  transition: all 300ms ease;
+  z-index: 1001;
+  max-width: 90%;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.toast.error {
+  background: var(--danger);
+}
+
+/* --- 空状態 --- */
+.empty-state {
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* --- アニメーション --- */
+@media (prefers-reduced-motion: no-preference) {
+  .card {
+    animation: fadeUp 300ms ease both;
+  }
+
+  @keyframes fadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/* --- レスポンシブ --- */
+@media (max-width: 374px) {
+  .checkbox-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .teams-preview {
+    grid-template-columns: 1fr;
+  }
+
+  .scoreboard {
+    gap: 8px;
+    padding: 16px 8px;
+  }
+
+  .score {
+    font-size: 2.5rem;
+  }
+}
+
+/* --- 入力行（横並び） --- */
+.input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.input-row .input-group {
+  margin-bottom: 10px;
+}
+
+/* --- チェックボックスラベル --- */
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+/* --- 分割ボタン --- */
+.split-buttons {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+/* --- ラウンドカード --- */
+.round-card {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
+}
+
+.round-card .round-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.round-card .round-title {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* --- イベントリストアイテム --- */
+.event-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border-light);
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.event-item:last-child { border-bottom: none; }
+
+.event-item:hover {
+  background: var(--bg-surface);
+  margin: 0 -16px;
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+}
+
+.event-info {
+  flex: 1;
+}
+
+.event-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 2px;
+}
+
+.event-date {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.event-status-badge {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.badge-preparing { background: var(--team-a-bg); color: var(--team-a); border: 1px solid var(--team-a-border); }
+.badge-ongoing { background: var(--success-bg); color: var(--success); border: 1px solid var(--success); }
+.badge-done { background: var(--border-light); color: var(--text-muted); border: 1px solid var(--border); }
+
+/* --- MVP結果カード --- */
+.mvp-result-card {
+  padding: 16px;
+  margin-bottom: 10px;
+  border-radius: var(--radius-sm);
+  border-left: 5px solid var(--primary);
+  background: var(--bg-surface);
+}
+
+.mvp-result-card.rank-mvp {
+  border-left-color: var(--accent);
+  background: #FFFBEB;
+}
+
+.mvp-result-card.rank-sub {
+  border-left-color: #94A3B8;
+  background: #F8FAFC;
+}
+
+.mvp-result-name {
+  font-family: 'Fira Code', monospace;
+  font-weight: 700;
+  font-size: 1rem;
+  margin-bottom: 4px;
+}
+
+.mvp-result-rank {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-left: 8px;
+}
+
+.mvp-result-reason {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.mvp-result-scores {
+  display: flex;
+  gap: 12px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+/* --- アンケートリンク --- */
+.survey-link {
+  display: block;
+  padding: 12px;
+  background: var(--team-a-bg);
+  border: 2px solid var(--team-a-border);
+  border-radius: var(--radius-sm);
+  text-align: center;
+  color: var(--team-a);
+  font-weight: 600;
+  text-decoration: none;
+  margin: 10px 0;
+  transition: all var(--transition);
+  word-break: break-all;
+}
+
+.survey-link:hover {
+  background: var(--team-a);
+  color: white;
+}
+
+/* --- メンバー属性バッジ --- */
+.member-badges {
+  display: flex;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.badge {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
+}
+
+.badge-exp { background: var(--success-bg); color: var(--success); }
+.badge-noexp { background: var(--border-light); color: var(--text-muted); }
+.badge-organizer { background: #FFFBEB; color: var(--accent-dark); }
+.badge-years { background: var(--bg-surface); color: var(--text-secondary); }
+
+/* --- フォーカス（キーボードナビゲーション） --- */
+.btn:focus-visible,
+.input:focus-visible,
+.nav-btn:focus-visible,
+.checkbox-item input:focus-visible,
+.mvp-candidate:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+</style>
