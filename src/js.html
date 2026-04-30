@@ -94,7 +94,7 @@ function createNewEvent() {
     hideLoading();
     if (r.success) { showToast(r.message); openEvent(r.eventId); }
     else showToast(r.message, true);
-  }).withFailureHandler(function(e) { hideLoading(); showToast('エラー', true); }).createEvent(date, name);
+  }).withFailureHandler(function(e) { hideLoading(); showToast('エラー', true); }).createNewEvent(date, name);
 }
 
 function loadRecentEvents() {

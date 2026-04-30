@@ -6,7 +6,7 @@ function getEvents() {
   return getSheetData_('イベント').reverse();
 }
 
-function createEvent(date, name) {
+function createNewEvent(date, name) {
   var ss = getSpreadsheet_();
   var sheet = ss.getSheetByName('イベント');
   var eventId = generateId_();
