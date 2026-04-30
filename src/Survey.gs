@@ -3,8 +3,7 @@
 // ===================================
 
 function createSurveyForm(eventId) {
-  var events = getSheetData_('イベント');
-  var event = events.find(function(e) { return e['イベントID'] === eventId; });
+  var event = findEvent_(eventId);
   if (!event) return { success: false, message: 'イベントが見つかりません' };
 
   // イベントのメンバー取得
@@ -44,21 +43,17 @@ function createSurveyForm(eventId) {
   // イベントにフォーム情報を保存
   var ss = getSpreadsheet_();
   var sheet = ss.getSheetByName('イベント');
-  var data = sheet.getDataRange().getValues();
-  for (var i = 1; i < data.length; i++) {
-    if (data[i][0] === eventId) {
-      sheet.getRange(i + 1, 7).setValue(formUrl);
-      sheet.getRange(i + 1, 8).setValue(formId);
-      break;
-    }
+  var rowIndex = findRowIndex_(sheet, 0, eventId);
+  if (rowIndex !== -1) {
+    sheet.getRange(rowIndex, 7).setValue(formUrl);
+    sheet.getRange(rowIndex, 8).setValue(formId);
   }
 
   return { success: true, formUrl: formUrl, message: 'アンケートフォームを作成しました' };
 }
 
 function fetchSurveyResponses(eventId) {
-  var events = getSheetData_('イベント');
-  var event = events.find(function(e) { return e['イベントID'] === eventId; });
+  var event = findEvent_(eventId);
   if (!event || !event['フォームID']) {
     return { success: false, message: 'アンケートフォームが見つかりません' };
   }

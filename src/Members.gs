@@ -27,17 +27,15 @@ function addEventMember(eventId, name, years, experience, isOrganizer) {
 function updateEventMember(memberId, name, years, experience, isOrganizer) {
   var ss = getSpreadsheet_();
   var sheet = ss.getSheetByName('メンバー');
-  var data = sheet.getDataRange().getValues();
-  for (var i = 1; i < data.length; i++) {
-    if (data[i][0] === memberId) {
-      sheet.getRange(i + 1, 3).setValue(name.trim());
-      sheet.getRange(i + 1, 4).setValue(Number(years) || 1);
-      sheet.getRange(i + 1, 5).setValue(experience ? 'あり' : 'なし');
-      sheet.getRange(i + 1, 6).setValue(isOrganizer ? 'はい' : 'いいえ');
-      return { success: true, message: '更新しました' };
-    }
+  var rowIndex = findRowIndex_(sheet, 0, memberId);
+  if (rowIndex === -1) {
+    return { success: false, message: 'メンバーが見つかりません' };
   }
-  return { success: false, message: 'メンバーが見つかりません' };
+  sheet.getRange(rowIndex, 3).setValue(name.trim());
+  sheet.getRange(rowIndex, 4).setValue(Number(years) || 1);
+  sheet.getRange(rowIndex, 5).setValue(experience ? 'あり' : 'なし');
+  sheet.getRange(rowIndex, 6).setValue(isOrganizer ? 'はい' : 'いいえ');
+  return { success: true, message: '更新しました' };
 }
 
 function deleteEventMember(memberId) {

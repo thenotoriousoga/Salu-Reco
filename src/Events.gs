@@ -8,19 +8,24 @@ function getEvents() {
 
 function createNewEvent(date, name) {
   var ss = getSpreadsheet_();
-  var sheet = ss.getSheetByName('イベント');
-  if (!sheet) {
-    sheet = ss.insertSheet('イベント');
-    sheet.appendRow(['イベントID', '日付', '名称', 'ステータス', 'MVP人数', '準MVP人数', 'フォームURL', 'フォームID']);
-  }
+  var sheet = ensureSheet_(ss, 'イベント');
   var eventId = generateId_();
   sheet.appendRow([eventId, date, name || 'フットサル', '準備中', 1, 1, '', '']);
   return { success: true, eventId: eventId, message: 'イベントを作成しました' };
 }
 
-function getEventDetail(eventId) {
+/**
+ * イベントIDでイベントデータを検索する
+ * @param {string} eventId - イベントID
+ * @return {Object|null} イベントオブジェクト、見つからない場合はnull
+ */
+function findEvent_(eventId) {
   var events = getSheetData_('イベント');
-  var event = events.find(function(e) { return e['イベントID'] === eventId; });
+  return events.find(function(e) { return e['イベントID'] === eventId; }) || null;
+}
+
+function getEventDetail(eventId) {
+  var event = findEvent_(eventId);
   if (!event) return null;
 
   var members = getEventMembers(eventId);
@@ -38,14 +43,10 @@ function getEventDetail(eventId) {
 function updateEventField_(eventId, colIndex, value) {
   var ss = getSpreadsheet_();
   var sheet = ss.getSheetByName('イベント');
-  var data = sheet.getDataRange().getValues();
-  for (var i = 1; i < data.length; i++) {
-    if (data[i][0] === eventId) {
-      sheet.getRange(i + 1, colIndex).setValue(value);
-      return true;
-    }
-  }
-  return false;
+  var rowIndex = findRowIndex_(sheet, 0, eventId);
+  if (rowIndex === -1) return false;
+  sheet.getRange(rowIndex, colIndex).setValue(value);
+  return true;
 }
 
 function updateEventStatus(eventId, status) {
@@ -56,15 +57,13 @@ function updateEventStatus(eventId, status) {
 function updateMvpSettings(eventId, mvpCount, subMvpCount) {
   var ss = getSpreadsheet_();
   var sheet = ss.getSheetByName('イベント');
-  var data = sheet.getDataRange().getValues();
-  for (var i = 1; i < data.length; i++) {
-    if (data[i][0] === eventId) {
-      sheet.getRange(i + 1, 5).setValue(Number(mvpCount) || 1);
-      sheet.getRange(i + 1, 6).setValue(Number(subMvpCount) || 1);
-      return { success: true, message: 'MVP設定を更新しました' };
-    }
+  var rowIndex = findRowIndex_(sheet, 0, eventId);
+  if (rowIndex === -1) {
+    return { success: false, message: 'イベントが見つかりません' };
   }
-  return { success: false, message: 'イベントが見つかりません' };
+  sheet.getRange(rowIndex, 5).setValue(Number(mvpCount) || 1);
+  sheet.getRange(rowIndex, 6).setValue(Number(subMvpCount) || 1);
+  return { success: true, message: 'MVP設定を更新しました' };
 }
 
 function deleteEvent(eventId) {

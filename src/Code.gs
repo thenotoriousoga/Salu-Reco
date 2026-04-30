@@ -2,6 +2,20 @@
 // フットサル試合管理システム - メインスクリプト
 // ===================================
 
+/**
+ * 各シートのヘッダー定義
+ * シート初期化やデータ取得時に参照する
+ */
+var SHEET_HEADERS_ = {
+  'イベント': ['イベントID', '日付', '名称', 'ステータス', 'MVP人数', '準MVP人数', 'フォームURL', 'フォームID'],
+  'メンバー': ['メンバーID', 'イベントID', '名前', '年次', 'サッカー経験', '幹事'],
+  'ラウンド': ['ラウンドID', 'イベントID', 'ラウンド番号', 'チームA名', 'チームB名', 'スコアA', 'スコアB', 'ステータス'],
+  'ラウンドメンバー': ['ラウンドID', 'メンバーID', 'チーム'],
+  '得点': ['ラウンドID', 'メンバーID', '得点数'],
+  'アンケート回答': ['イベントID', '回答者名', '対象メンバーID', '対象メンバー名', 'コメント'],
+  'MVP結果': ['イベントID', 'メンバーID', '名前', '順位', '理由', '定量スコア', '定性スコア', '総合スコア']
+};
+
 function getSpreadsheet_() {
   // 1. スクリプトプロパティから取得
   var props = PropertiesService.getScriptProperties();
@@ -21,58 +35,33 @@ function getSpreadsheet_() {
   );
 }
 
+/**
+ * シートが存在しなければ作成してヘッダーを設定する
+ * @param {Spreadsheet} ss - スプレッドシート
+ * @param {string} sheetName - シート名
+ * @return {Sheet} 作成済みまたは既存のシート
+ */
+function ensureSheet_(ss, sheetName) {
+  var sheet = ss.getSheetByName(sheetName);
+  if (!sheet) {
+    sheet = ss.insertSheet(sheetName);
+    var headers = SHEET_HEADERS_[sheetName];
+    if (headers) {
+      sheet.appendRow(headers);
+    }
+  }
+  return sheet;
+}
+
 // --- シート初期化 ---
 function initializeSheets() {
   var ss = getSpreadsheet_();
 
-  // イベント
-  if (!ss.getSheetByName('イベント')) {
-    ss.insertSheet('イベント').appendRow([
-      'イベントID', '日付', '名称', 'ステータス', 'MVP人数', '準MVP人数', 'フォームURL', 'フォームID'
-    ]);
-  }
-
-  // メンバー（イベントに紐づく）
-  if (!ss.getSheetByName('メンバー')) {
-    ss.insertSheet('メンバー').appendRow([
-      'メンバーID', 'イベントID', '名前', '年次', 'サッカー経験', '幹事'
-    ]);
-  }
-
-  // ラウンド
-  if (!ss.getSheetByName('ラウンド')) {
-    ss.insertSheet('ラウンド').appendRow([
-      'ラウンドID', 'イベントID', 'ラウンド番号', 'チームA名', 'チームB名', 'スコアA', 'スコアB', 'ステータス'
-    ]);
-  }
-
-  // ラウンドメンバー
-  if (!ss.getSheetByName('ラウンドメンバー')) {
-    ss.insertSheet('ラウンドメンバー').appendRow([
-      'ラウンドID', 'メンバーID', 'チーム'
-    ]);
-  }
-
-  // 得点
-  if (!ss.getSheetByName('得点')) {
-    ss.insertSheet('得点').appendRow([
-      'ラウンドID', 'メンバーID', '得点数'
-    ]);
-  }
-
-  // アンケート回答
-  if (!ss.getSheetByName('アンケート回答')) {
-    ss.insertSheet('アンケート回答').appendRow([
-      'イベントID', '回答者名', '対象メンバーID', '対象メンバー名', 'コメント'
-    ]);
-  }
-
-  // MVP結果
-  if (!ss.getSheetByName('MVP結果')) {
-    ss.insertSheet('MVP結果').appendRow([
-      'イベントID', 'メンバーID', '名前', '順位', '理由', '定量スコア', '定性スコア', '総合スコア'
-    ]);
-  }
+  // 全シートを作成
+  var sheetNames = Object.keys(SHEET_HEADERS_);
+  sheetNames.forEach(function(name) {
+    ensureSheet_(ss, name);
+  });
 
   // デフォルトシート削除
   var defaultSheet = ss.getSheetByName('Sheet1') || ss.getSheetByName('シート1');
@@ -131,4 +120,36 @@ function deleteRowsByMatch_(sheetName, colIndex, value) {
       sheet.deleteRow(i + 1);
     }
   }
+}
+
+/**
+ * 指定シートで特定列の値が一致する行を検索し、行インデックス（1始まり）を返す
+ * 見つからない場合は -1 を返す
+ * @param {Sheet} sheet - 対象シート
+ * @param {number} colIndex - 検索対象の列インデックス（0始まり）
+ * @param {string} value - 検索値
+ * @return {number} 行インデックス（1始まり）、見つからない場合は -1
+ */
+function findRowIndex_(sheet, colIndex, value) {
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][colIndex] === value) {
+      return i + 1;
+    }
+  }
+  return -1;
+}
+
+/**
+ * 配列からIDをキーにしたマップを作成する
+ * @param {Object[]} items - オブジェクトの配列
+ * @param {string} idKey - キーとして使うプロパティ名
+ * @return {Object} IDをキーにしたマップ
+ */
+function buildMap_(items, idKey) {
+  var map = {};
+  items.forEach(function(item) {
+    map[item[idKey]] = item;
+  });
+  return map;
 }

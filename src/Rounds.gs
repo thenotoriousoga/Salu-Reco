@@ -8,8 +8,7 @@ function getRounds(eventId) {
   var goals = getSheetData_('得点');
   var members = getSheetData_('メンバー');
 
-  var memberMap = {};
-  members.forEach(function(m) { memberMap[m['メンバーID']] = m; });
+  var memberMap = buildMap_(members, 'メンバーID');
 
   return rounds.map(function(round) {
     var rId = round['ラウンドID'];
@@ -44,6 +43,23 @@ function getRounds(eventId) {
   }).sort(function(a, b) { return a.roundNumber - b.roundNumber; });
 }
 
+/**
+ * メンバーにスコアを付与する（チーム分け用）
+ * @param {string[]} memberIds - メンバーIDの配列
+ * @param {Object} memberMap - メンバーマップ
+ * @return {Object[]} スコア付きメンバー配列（スコア降順）
+ */
+function scoreMembersForSplit_(memberIds, memberMap) {
+  var scored = memberIds.map(function(id) {
+    var m = memberMap[id] || {};
+    var expScore = (m['サッカー経験'] === 'あり') ? 2 : 0;
+    var yearScore = Math.min(Number(m['年次']) || 1, 10) / 10;
+    return { id: id, score: expScore + yearScore };
+  });
+  scored.sort(function(a, b) { return b.score - a.score; });
+  return scored;
+}
+
 // --- AI自動チーム分け（経験・年次考慮） ---
 function autoSplitTeams(eventId, memberIds) {
   if (!memberIds || memberIds.length < 4) {
@@ -51,19 +67,9 @@ function autoSplitTeams(eventId, memberIds) {
   }
 
   var members = getSheetData_('メンバー');
-  var memberMap = {};
-  members.forEach(function(m) { memberMap[m['メンバーID']] = m; });
+  var memberMap = buildMap_(members, 'メンバーID');
 
-  // スコア付与（経験者は高スコア）
-  var scored = memberIds.map(function(id) {
-    var m = memberMap[id] || {};
-    var expScore = (m['サッカー経験'] === 'あり') ? 2 : 0;
-    var yearScore = Math.min(Number(m['年次']) || 1, 10) / 10;
-    return { id: id, score: expScore + yearScore };
-  });
-
-  // スコア降順ソート
-  scored.sort(function(a, b) { return b.score - a.score; });
+  var scored = scoreMembersForSplit_(memberIds, memberMap);
 
   // 蛇行ドラフト方式で分配
   var teamA = [];
@@ -120,15 +126,11 @@ function createRound(eventId, teamAName, teamBName, teamAMembers, teamBMembers) 
 function updateRoundScore(roundId, scoreA, scoreB) {
   var ss = getSpreadsheet_();
   var sheet = ss.getSheetByName('ラウンド');
-  var data = sheet.getDataRange().getValues();
-  for (var i = 1; i < data.length; i++) {
-    if (data[i][0] === roundId) {
-      sheet.getRange(i + 1, 6).setValue(Number(scoreA));
-      sheet.getRange(i + 1, 7).setValue(Number(scoreB));
-      return { success: true };
-    }
-  }
-  return { success: false };
+  var rowIndex = findRowIndex_(sheet, 0, roundId);
+  if (rowIndex === -1) return { success: false };
+  sheet.getRange(rowIndex, 6).setValue(Number(scoreA));
+  sheet.getRange(rowIndex, 7).setValue(Number(scoreB));
+  return { success: true };
 }
 
 // --- 得点記録 ---
@@ -150,14 +152,10 @@ function recordGoal(roundId, memberId, goalCount) {
 function endRound(roundId) {
   var ss = getSpreadsheet_();
   var sheet = ss.getSheetByName('ラウンド');
-  var data = sheet.getDataRange().getValues();
-  for (var i = 1; i < data.length; i++) {
-    if (data[i][0] === roundId) {
-      sheet.getRange(i + 1, 8).setValue('終了');
-      return { success: true, message: '試合を終了しました' };
-    }
-  }
-  return { success: false };
+  var rowIndex = findRowIndex_(sheet, 0, roundId);
+  if (rowIndex === -1) return { success: false };
+  sheet.getRange(rowIndex, 8).setValue('終了');
+  return { success: true, message: '試合を終了しました' };
 }
 
 // --- ラウンド削除 ---

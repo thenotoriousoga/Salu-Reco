@@ -2,26 +2,24 @@
 // MVP選出（AI評価）
 // ===================================
 
-function selectMVP(eventId) {
-  var events = getSheetData_('イベント');
-  var event = events.find(function(e) { return e['イベントID'] === eventId; });
-  if (!event) return { success: false, message: 'イベントが見つかりません' };
+/**
+ * 定性評価で使用するポジティブワードリスト
+ */
+var POSITIVE_WORDS_ = [
+  'すごい', 'うまい', '上手', 'ナイス', 'いい', '良い', 'よかった',
+  '活躍', 'MVP', '最高', 'かっこいい', '頑張', 'がんば',
+  'アシスト', 'セーブ', 'ディフェンス', '守備', '攻撃',
+  '盛り上', '楽し', 'ありがとう', '感謝', '助か',
+  'パス', 'シュート', 'ドリブル', '走', '速'
+];
 
-  var mvpCount = Number(event['MVP人数']) || 1;
-  var subMvpCount = Number(event['準MVP人数']) || 1;
-
-  // データ収集
-  var members = getEventMembers(eventId);
-  var memberMap = {};
-  members.forEach(function(m) { memberMap[m['メンバーID']] = m; });
-
-  var rounds = getSheetData_('ラウンド').filter(function(r) { return r['イベントID'] === eventId; });
-  var roundIds = rounds.map(function(r) { return r['ラウンドID']; });
-  var roundMembers = getSheetData_('ラウンドメンバー');
-  var goals = getSheetData_('得点');
-  var surveyComments = getSheetData_('アンケート回答').filter(function(c) { return c['イベントID'] === eventId; });
-
-  // 参加メンバーID（ラウンドに出場した人）
+/**
+ * ラウンドに出場した参加メンバーIDの一覧を取得する（重複なし）
+ * @param {Object[]} roundMembers - ラウンドメンバーデータ
+ * @param {string[]} roundIds - 対象ラウンドIDの配列
+ * @return {string[]} 参加メンバーIDの配列
+ */
+function getParticipantIds_(roundMembers, roundIds) {
   var participantIds = [];
   var seen = {};
   roundMembers.forEach(function(rm) {
@@ -30,12 +28,20 @@ function selectMVP(eventId) {
       seen[rm['メンバーID']] = true;
     }
   });
+  return participantIds;
+}
 
-  if (participantIds.length === 0) {
-    return { success: false, message: '参加メンバーがいません' };
-  }
-
-  // --- 定量評価 ---
+/**
+ * 各メンバーの定量スコアを計算する
+ * @param {string[]} participantIds - 参加メンバーIDの配列
+ * @param {Object} memberMap - メンバーIDをキーにしたマップ
+ * @param {Object[]} goals - 得点データ
+ * @param {Object[]} rounds - ラウンドデータ
+ * @param {Object[]} roundMembers - ラウンドメンバーデータ
+ * @param {string[]} roundIds - 対象ラウンドIDの配列
+ * @return {Object} メンバーIDをキーにした定量スコアのマップ
+ */
+function calcQuantScores_(participantIds, memberMap, goals, rounds, roundMembers, roundIds) {
   var quantScores = {};
   participantIds.forEach(function(mId) {
     var m = memberMap[mId] || {};
@@ -73,24 +79,24 @@ function selectMVP(eventId) {
 
     quantScores[mId] = Math.round(score * 10) / 10;
   });
+  return quantScores;
+}
 
-  // --- 定性評価 ---
+/**
+ * 各メンバーの定性スコアを計算する
+ * @param {string[]} participantIds - 参加メンバーIDの配列
+ * @param {Object[]} surveyComments - アンケート回答データ（イベントでフィルタ済み）
+ * @return {Object} メンバーIDをキーにした定性スコアのマップ
+ */
+function calcQualScores_(participantIds, surveyComments) {
   var qualScores = {};
-  var positiveWords = [
-    'すごい', 'うまい', '上手', 'ナイス', 'いい', '良い', 'よかった',
-    '活躍', 'MVP', '最高', 'かっこいい', '頑張', 'がんば',
-    'アシスト', 'セーブ', 'ディフェンス', '守備', '攻撃',
-    '盛り上', '楽し', 'ありがとう', '感謝', '助か',
-    'パス', 'シュート', 'ドリブル', '走', '速'
-  ];
-
   participantIds.forEach(function(mId) {
     var comments = surveyComments.filter(function(c) { return c['対象メンバーID'] === mId; });
     var score = comments.length * 2;
 
     comments.forEach(function(c) {
       var text = c['コメント'] || '';
-      positiveWords.forEach(function(word) {
+      POSITIVE_WORDS_.forEach(function(word) {
         if (text.indexOf(word) >= 0) score += 1;
       });
       if (text.length > 30) score += 1;
@@ -99,8 +105,18 @@ function selectMVP(eventId) {
 
     qualScores[mId] = score;
   });
+  return qualScores;
+}
 
-  // --- 総合スコア ---
+/**
+ * 定量・定性スコアを正規化して総合スコアを算出し、ランキングを作成する
+ * @param {string[]} participantIds - 参加メンバーIDの配列
+ * @param {Object} quantScores - 定量スコアマップ
+ * @param {Object} qualScores - 定性スコアマップ
+ * @param {Object} memberMap - メンバーマップ
+ * @return {Object[]} 総合スコア降順のランキング配列
+ */
+function buildRanking_(participantIds, quantScores, qualScores, memberMap) {
   var maxQuant = Math.max.apply(null, participantIds.map(function(id) { return quantScores[id] || 0; }).concat([1]));
   var maxQual = Math.max.apply(null, participantIds.map(function(id) { return qualScores[id] || 0; }).concat([1]));
 
@@ -118,6 +134,39 @@ function selectMVP(eventId) {
   });
 
   totalScores.sort(function(a, b) { return b.totalScore - a.totalScore; });
+  return totalScores;
+}
+
+function selectMVP(eventId) {
+  var event = findEvent_(eventId);
+  if (!event) return { success: false, message: 'イベントが見つかりません' };
+
+  var mvpCount = Number(event['MVP人数']) || 1;
+  var subMvpCount = Number(event['準MVP人数']) || 1;
+
+  // データ収集
+  var members = getEventMembers(eventId);
+  var memberMap = buildMap_(members, 'メンバーID');
+
+  var rounds = getSheetData_('ラウンド').filter(function(r) { return r['イベントID'] === eventId; });
+  var roundIds = rounds.map(function(r) { return r['ラウンドID']; });
+  var roundMembers = getSheetData_('ラウンドメンバー');
+  var goals = getSheetData_('得点');
+  var surveyComments = getSheetData_('アンケート回答').filter(function(c) { return c['イベントID'] === eventId; });
+
+  // 参加メンバーID（ラウンドに出場した人）
+  var participantIds = getParticipantIds_(roundMembers, roundIds);
+
+  if (participantIds.length === 0) {
+    return { success: false, message: '参加メンバーがいません' };
+  }
+
+  // スコア計算
+  var quantScores = calcQuantScores_(participantIds, memberMap, goals, rounds, roundMembers, roundIds);
+  var qualScores = calcQualScores_(participantIds, surveyComments);
+
+  // ランキング作成
+  var totalScores = buildRanking_(participantIds, quantScores, qualScores, memberMap);
 
   // 順位付け・理由生成
   var results = totalScores.map(function(s, i) {
