@@ -3,12 +3,15 @@
 // ===================================
 
 // --- 定数 ---
-const SPREADSHEET_ID = ''; // デプロイ後にスプレッドシートIDを設定（空の場合は自動作成）
+// スプレッドシートIDはスクリプトプロパティ「SPREADSHEET_ID」から取得
+// GASエディタ →「プロジェクトの設定」→「スクリプトプロパティ」で設定
 
 // --- スプレッドシート取得 ---
 function getSpreadsheet_() {
-  if (SPREADSHEET_ID) {
-    return SpreadsheetApp.openById(SPREADSHEET_ID);
+  const scriptProps = PropertiesService.getScriptProperties();
+  const ssId = scriptProps.getProperty('SPREADSHEET_ID');
+  if (ssId) {
+    return SpreadsheetApp.openById(ssId);
   }
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   if (ss) return ss;
