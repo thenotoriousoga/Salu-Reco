@@ -8,7 +8,7 @@ function getEventMembers(eventId) {
   });
 }
 
-function addEventMember(eventId, name, years, experience, isOrganizer) {
+function addEventMember(eventId, name, years, experience, isOrganizer, note) {
   if (!name || !name.trim()) return { success: false, message: '名前を入力してください' };
   var ss = getSpreadsheet_();
   var sheet = ss.getSheetByName('メンバー');
@@ -19,12 +19,13 @@ function addEventMember(eventId, name, years, experience, isOrganizer) {
     name.trim(),
     Number(years) || 1,
     experience ? 'あり' : 'なし',
-    isOrganizer ? 'はい' : 'いいえ'
+    isOrganizer ? 'はい' : 'いいえ',
+    (note || '').trim()
   ]);
   return { success: true, message: name.trim() + ' を登録しました', id: id };
 }
 
-function updateEventMember(memberId, name, years, experience, isOrganizer) {
+function updateEventMember(memberId, name, years, experience, isOrganizer, note) {
   var ss = getSpreadsheet_();
   var sheet = ss.getSheetByName('メンバー');
   var rowIndex = findRowIndex_(sheet, 0, memberId);
@@ -35,6 +36,7 @@ function updateEventMember(memberId, name, years, experience, isOrganizer) {
   sheet.getRange(rowIndex, 4).setValue(Number(years) || 1);
   sheet.getRange(rowIndex, 5).setValue(experience ? 'あり' : 'なし');
   sheet.getRange(rowIndex, 6).setValue(isOrganizer ? 'はい' : 'いいえ');
+  sheet.getRange(rowIndex, 7).setValue((note || '').trim());
   return { success: true, message: '更新しました' };
 }
 
@@ -53,7 +55,7 @@ function bulkAddMembers(eventId, nameList, defaultYears) {
   var count = 0;
   names.forEach(function(name) {
     var id = generateId_();
-    sheet.appendRow([id, eventId, name, Number(defaultYears) || 1, 'なし', 'いいえ']);
+    sheet.appendRow([id, eventId, name, Number(defaultYears) || 1, 'なし', 'いいえ', '']);
     count++;
   });
   return { success: true, message: count + '人を登録しました' };
@@ -63,7 +65,7 @@ function bulkAddMembers(eventId, nameList, defaultYears) {
  * メンバーをまとめて一括登録する（キュー方式用）
  * @param {string} eventId - イベントID
  * @param {Object[]} memberDataList - メンバーデータの配列
- *   各要素: { name: string, years: number, exp: boolean, org: boolean }
+ *   各要素: { name: string, years: number, exp: boolean, org: boolean, note: string }
  * @return {{ success: boolean, message: string }}
  */
 function bulkAddMembersFromQueue(eventId, memberDataList) {
@@ -83,7 +85,8 @@ function bulkAddMembersFromQueue(eventId, memberDataList) {
       m.name.trim(),
       Number(m.years) || 1,
       m.exp ? 'あり' : 'なし',
-      m.org ? 'はい' : 'いいえ'
+      m.org ? 'はい' : 'いいえ',
+      (m.note || '').trim()
     ]);
     count++;
   });

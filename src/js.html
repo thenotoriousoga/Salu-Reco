@@ -185,19 +185,23 @@ function memberBadgesHtml(m, isQueue) {
   var years = isQueue ? m.years : m['年次'];
   var expLabel = isQueue ? (m.exp ? 'あり' : 'なし') : m['サッカー経験'];
   var orgLabel = isQueue ? (m.org ? 'はい' : 'いいえ') : m['幹事'];
+  var note = isQueue ? (m.note || '') : (m['備考'] || '');
   var expB = expLabel === 'あり' ? '<span class="badge badge-exp">経験あり</span>' : '<span class="badge badge-noexp">未経験</span>';
   var orgB = orgLabel === 'はい' ? '<span class="badge badge-organizer">幹事</span>' : '';
-  return '<span class="badge badge-years">' + years + '年目</span>' + expB + orgB;
+  var noteB = note ? '<span class="badge" style="background:var(--border-light);color:var(--text-muted);">' + esc(note) + '</span>' : '';
+  return '<span class="badge badge-years">' + years + '年目</span>' + expB + orgB + noteB;
 }
 function addToQueue() {
   var name = document.getElementById('m-name').value.trim();
   var years = document.getElementById('m-years').value;
   var exp = document.getElementById('m-exp').value === 'true';
   var org = document.getElementById('m-organizer').checked;
+  var note = document.getElementById('m-note').value.trim();
   if (!name) { showToast('名前を入力してください', true); return; }
   if (memberQueue.find(function(q) { return q.name === name; })) { showToast(name + ' は既にリストにあります', true); return; }
-  memberQueue.push({ name: name, years: Number(years) || 1, exp: exp, org: org });
+  memberQueue.push({ name: name, years: Number(years) || 1, exp: exp, org: org, note: note });
   document.getElementById('m-name').value = '';
+  document.getElementById('m-note').value = '';
   document.getElementById('m-name').focus();
   renderQueue();
   showToast(name + ' をリストに追加');
@@ -218,7 +222,7 @@ function renderQueue() {
 }
 function registerAllMembers() {
   if (memberQueue.length === 0) return;
-  var dataList = memberQueue.map(function(q) { return { name: q.name, years: q.years, exp: q.exp, org: q.org }; });
+  var dataList = memberQueue.map(function(q) { return { name: q.name, years: q.years, exp: q.exp, org: q.org, note: q.note }; });
   callServer('bulkAddMembersFromQueue', [currentEventId, dataList], function(r) {
     memberQueue = []; renderQueue(); showToast(r.message, !r.success); if (r.success) openEvent(currentEventId);
   }, '登録に失敗しました');
