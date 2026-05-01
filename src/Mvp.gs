@@ -59,21 +59,9 @@ function calcQuantScores_(participantIds, memberMap, goals, rounds, roundMembers
       if (!rm) return;
       var round = rounds.find(function(r) { return r['ラウンドID'] === rId; });
       if (!round || round['ステータス'] !== '終了') return;
-
-      // Nチーム対応: スコアJSONからチームラベルに対応するスコアを取得
-      var scores = [];
-      try { scores = JSON.parse(round['スコアJSON']); } catch (e) { scores = []; }
-      var teamNames = [];
-      try { teamNames = JSON.parse(round['チーム名JSON']); } catch (e) { teamNames = []; }
-
-      var myTeamLabel = rm['チーム'];
-      var myTeamIdx = myTeamLabel.charCodeAt(0) - 65; // A=0, B=1, C=2...
-      var myScore = Number(scores[myTeamIdx]) || 0;
-
-      // 自分のチームが最高スコアかつ単独トップなら勝利
-      var maxScore = Math.max.apply(null, scores.map(function(s) { return Number(s) || 0; }));
-      var topCount = scores.filter(function(s) { return (Number(s) || 0) === maxScore; }).length;
-      if (myScore === maxScore && topCount === 1) {
+      var sA = Number(round['スコアA']);
+      var sB = Number(round['スコアB']);
+      if ((rm['チーム'] === 'A' && sA > sB) || (rm['チーム'] === 'B' && sB > sA)) {
         score += 2;
       }
     });

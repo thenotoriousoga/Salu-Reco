@@ -30,63 +30,35 @@ function getRounds(eventId) {
 
   return rounds.map(function(round) {
     var rId = round['ラウンドID'];
-
-    // チーム名・スコアをJSONからパース
-    var teamNames = parseJson_(round['チーム名JSON'], ['チームA', 'チームB']);
-    var scores = parseJson_(round['スコアJSON'], [0, 0]);
-
-    // チーム数分のチームデータを構築
-    var teams = teamNames.map(function(name, idx) {
-      var label = teamLabel_(idx);
-      var memberIds = roundMembers
-        .filter(function(rm) { return rm['ラウンドID'] === rId && rm['チーム'] === label; })
-        .map(function(rm) { return rm['メンバーID']; });
-      return {
-        label: label,
-        name: name,
-        score: Number(scores[idx]) || 0,
-        members: memberIds.map(function(id) {
-          var m = memberMap[id] || {};
-          return { id: id, name: m['名前'] || '不明', experience: m['サッカー経験'] || 'なし' };
-        })
-      };
-    });
-
+    var teamAIds = roundMembers
+      .filter(function(rm) { return rm['ラウンドID'] === rId && rm['チーム'] === 'A'; })
+      .map(function(rm) { return rm['メンバーID']; });
+    var teamBIds = roundMembers
+      .filter(function(rm) { return rm['ラウンドID'] === rId && rm['チーム'] === 'B'; })
+      .map(function(rm) { return rm['メンバーID']; });
     var roundGoals = goals.filter(function(g) { return g['ラウンドID'] === rId; });
 
     return {
       id: rId,
       roundNumber: round['ラウンド番号'],
-      teamCount: teamNames.length,
-      teams: teams,
-      // 後方互換用（2チームの場合）
-      teamAName: teamNames[0] || 'チームA',
-      teamBName: teamNames[1] || 'チームB',
-      scoreA: Number(scores[0]) || 0,
-      scoreB: Number(scores[1]) || 0,
-      teamA: teams[0] ? teams[0].members : [],
-      teamB: teams[1] ? teams[1].members : [],
+      teamAName: round['チームA名'],
+      teamBName: round['チームB名'],
+      scoreA: round['スコアA'],
+      scoreB: round['スコアB'],
       status: round['ステータス'],
+      teamA: teamAIds.map(function(id) {
+        var m = memberMap[id] || {};
+        return { id: id, name: m['名前'] || '不明', experience: m['サッカー経験'] || 'なし' };
+      }),
+      teamB: teamBIds.map(function(id) {
+        var m = memberMap[id] || {};
+        return { id: id, name: m['名前'] || '不明', experience: m['サッカー経験'] || 'なし' };
+      }),
       goals: roundGoals.map(function(g) {
         return { memberId: g['メンバーID'], name: (memberMap[g['メンバーID']] || {})['名前'] || '不明', count: g['得点数'] };
       })
     };
   }).sort(function(a, b) { return a.roundNumber - b.roundNumber; });
-}
-
-/**
- * JSON文字列をパースする。失敗時はデフォルト値を返す
- * @param {string} jsonStr - JSON文字列
- * @param {*} defaultVal - デフォルト値
- * @return {*} パース結果
- */
-function parseJson_(jsonStr, defaultVal) {
-  if (!jsonStr) return defaultVal;
-  try {
-    return JSON.parse(jsonStr);
-  } catch (e) {
-    return defaultVal;
-  }
 }
 
 /**
@@ -112,15 +84,15 @@ function scoreMembersForSplit_(memberIds, memberMap) {
  * @param {string} eventId - イベントID
  * @param {string[]} memberIds - メンバーIDの配列
  * @param {number} [teamCount] - チーム数（省略時は2）
- * @return {Object} 結果オブジェクト
+ * @return {Object} 結果オブジェクト { success, teams: string[][] }
  */
 function autoSplitTeams(eventId, memberIds, teamCount) {
   teamCount = Number(teamCount) || 2;
-  if (!memberIds || memberIds.length < teamCount * 2) {
-    return { success: false, message: teamCount + 'チームには最低' + (teamCount * 2) + '人必要です' };
-  }
-  if (memberIds.length < 4) {
+  if (!memberIds || memberIds.length < 4) {
     return { success: false, message: '4人以上のメンバーを選択してください' };
+  }
+  if (memberIds.length < teamCount * 2) {
+    return { success: false, message: teamCount + 'チームには最低' + (teamCount * 2) + '人必要です' };
   }
 
   var maxT = maxTeamCount_(memberIds.length);
@@ -150,15 +122,15 @@ function autoSplitTeams(eventId, memberIds, teamCount) {
  * ランダムチーム分け（Nチーム対応）
  * @param {string[]} memberIds - メンバーIDの配列
  * @param {number} [teamCount] - チーム数（省略時は2）
- * @return {Object} 結果オブジェクト
+ * @return {Object} 結果オブジェクト { success, teams: string[][] }
  */
 function randomSplitTeams(memberIds, teamCount) {
   teamCount = Number(teamCount) || 2;
-  if (!memberIds || memberIds.length < teamCount * 2) {
-    return { success: false, message: teamCount + 'チームには最低' + (teamCount * 2) + '人必要です' };
-  }
-  if (memberIds.length < 4) {
+  if (!memberIds || memberIds.length < 4) {
     return { success: false, message: '4人以上のメンバーを選択してください' };
+  }
+  if (memberIds.length < teamCount * 2) {
+    return { success: false, message: teamCount + 'チームには最低' + (teamCount * 2) + '人必要です' };
   }
 
   var maxT = maxTeamCount_(memberIds.length);
@@ -184,52 +156,43 @@ function randomSplitTeams(memberIds, teamCount) {
 }
 
 /**
- * ラウンド作成（Nチーム対応）
+ * ラウンド作成（常に2チーム対戦）
  * @param {string} eventId - イベントID
- * @param {string[]} teamNames - チーム名の配列
- * @param {string[][]} teamMembers - チームごとのメンバーID配列の配列
+ * @param {string} teamAName - チームA名
+ * @param {string} teamBName - チームB名
+ * @param {string[]} teamAMembers - チームAのメンバーID配列
+ * @param {string[]} teamBMembers - チームBのメンバーID配列
  * @return {Object} 結果オブジェクト
  */
-function createRound(eventId, teamNames, teamMembers) {
+function createRound(eventId, teamAName, teamBName, teamAMembers, teamBMembers) {
   var ss = getSpreadsheet_();
   var roundId = generateId_();
   var existingRounds = getSheetData_('ラウンド').filter(function(r) { return r['イベントID'] === eventId; });
   var roundNumber = existingRounds.length + 1;
 
-  var teamCount = teamNames.length;
-  var scores = [];
-  for (var i = 0; i < teamCount; i++) { scores.push(0); }
-
   ss.getSheetByName('ラウンド').appendRow([
     roundId, eventId, roundNumber,
-    JSON.stringify(teamNames),
-    JSON.stringify(scores),
-    '進行中'
+    teamAName || 'チームA', teamBName || 'チームB',
+    0, 0, '進行中'
   ]);
 
   var rmSheet = ss.getSheetByName('ラウンドメンバー');
-  teamMembers.forEach(function(members, idx) {
-    var label = teamLabel_(idx);
-    members.forEach(function(mId) { rmSheet.appendRow([roundId, mId, label]); });
-  });
+  teamAMembers.forEach(function(mId) { rmSheet.appendRow([roundId, mId, 'A']); });
+  teamBMembers.forEach(function(mId) { rmSheet.appendRow([roundId, mId, 'B']); });
 
   updateEventStatus(eventId, '進行中');
 
   return { success: true, roundId: roundId, roundNumber: roundNumber, message: '第' + roundNumber + '試合を作成しました' };
 }
 
-/**
- * スコア更新（Nチーム対応）
- * @param {string} roundId - ラウンドID
- * @param {number[]} scores - スコアの配列
- * @return {Object} 結果オブジェクト
- */
-function updateRoundScore(roundId, scores) {
+// --- スコア更新 ---
+function updateRoundScore(roundId, scoreA, scoreB) {
   var ss = getSpreadsheet_();
   var sheet = ss.getSheetByName('ラウンド');
   var rowIndex = findRowIndex_(sheet, 0, roundId);
   if (rowIndex === -1) return { success: false };
-  sheet.getRange(rowIndex, 5).setValue(JSON.stringify(scores));
+  sheet.getRange(rowIndex, 6).setValue(Number(scoreA));
+  sheet.getRange(rowIndex, 7).setValue(Number(scoreB));
   return { success: true };
 }
 
@@ -254,7 +217,7 @@ function endRound(roundId) {
   var sheet = ss.getSheetByName('ラウンド');
   var rowIndex = findRowIndex_(sheet, 0, roundId);
   if (rowIndex === -1) return { success: false };
-  sheet.getRange(rowIndex, 6).setValue('終了');
+  sheet.getRange(rowIndex, 8).setValue('終了');
   return { success: true, message: '試合を終了しました' };
 }
 
