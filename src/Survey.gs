@@ -61,6 +61,10 @@ function fetchSurveyResponses(eventId) {
   var form = FormApp.openById(event['フォームID']);
   var responses = form.getResponses();
 
+  if (responses.length === 0) {
+    return { success: true, message: 'まだ回答がありません', responseCount: 0, commentCount: 0 };
+  }
+
   // メンバー名→IDマップ
   var members = getEventMembers(eventId);
   var nameToId = {};
@@ -70,7 +74,7 @@ function fetchSurveyResponses(eventId) {
   deleteRowsByMatch_('アンケート回答', 0, eventId);
 
   var ss = getSpreadsheet_();
-  var surveySheet = ss.getSheetByName('アンケート回答');
+  var surveySheet = ensureSheet_(ss, 'アンケート回答');
   var totalComments = 0;
 
   responses.forEach(function(response) {
