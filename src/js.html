@@ -146,6 +146,14 @@ function openEvent(eventId) {
     if (!d) { showToast('イベントが見つかりません', true); return; }
     currentMembers = d.members;
     cachedRounds = d.rounds;
+    // サーバーから保存済みチーム分け結果を復元
+    if (d.savedSplit && d.savedSplit.teams && d.savedSplit.teams.length > 0) {
+      previewTeams = d.savedSplit.teams;
+      previewNames = d.savedSplit.names || [];
+    } else {
+      previewTeams = [];
+      previewNames = [];
+    }
     renderEventDetail(d);
   }, 'エラー');
 }
@@ -365,6 +373,8 @@ function handleSplitResult(r, toastMsg) {
   if (r.success) {
     previewTeams = r.teams;
     previewNames = getTeamNames();
+    // サーバーにチーム分け結果を保存
+    google.script.run.saveTeamSplit(currentEventId, previewNames, previewTeams);
     renderTeamPreview();
     showToast(toastMsg);
   } else {
@@ -485,6 +495,7 @@ function createRound() {
       if (previewTeams.length <= 2) {
         previewTeams = [];
         previewNames = [];
+        google.script.run.clearTeamSplit(currentEventId);
       } else {
         // 対戦選択をリセット（次の対戦を選べるように）
         selectedMatchA = -1;

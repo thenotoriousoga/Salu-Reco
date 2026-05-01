@@ -10,7 +10,7 @@ function createNewEvent(date, name) {
   var ss = getSpreadsheet_();
   var sheet = ensureSheet_(ss, 'イベント');
   var eventId = generateId_();
-  sheet.appendRow([eventId, date, name || 'フットサル', '準備中', 1, 1, '', '']);
+  sheet.appendRow([eventId, date, name || 'フットサル', '準備中', 1, 1, '', '', '']);
   return { success: true, eventId: eventId, message: 'イベントを作成しました' };
 }
 
@@ -32,11 +32,18 @@ function getEventDetail(eventId) {
   var rounds = getRounds(eventId);
   var mvpResults = getMvpResults(eventId);
 
+  // チーム分け結果を復元
+  var savedSplit = null;
+  if (event['チーム分けJSON']) {
+    try { savedSplit = JSON.parse(event['チーム分けJSON']); } catch (e) { savedSplit = null; }
+  }
+
   return {
     event: event,
     members: members,
     rounds: rounds,
-    mvpResults: mvpResults
+    mvpResults: mvpResults,
+    savedSplit: savedSplit
   };
 }
 
@@ -84,4 +91,28 @@ function deleteEvent(eventId) {
   deleteRowsByMatch_('イベント', 0, eventId);
 
   return { success: true, message: 'イベントを削除しました' };
+}
+
+/**
+ * チーム分け結果をイベントに保存する
+ * @param {string} eventId - イベントID
+ * @param {string[]} teamNames - チーム名の配列
+ * @param {string[][]} teams - チームごとのメンバーID配列の配列
+ * @return {Object} 結果オブジェクト
+ */
+function saveTeamSplit(eventId, teamNames, teams) {
+  var data = JSON.stringify({ names: teamNames, teams: teams });
+  var ok = updateEventField_(eventId, 9, data);
+  if (!ok) return { success: false, message: 'イベントが見つかりません' };
+  return { success: true };
+}
+
+/**
+ * チーム分け結果をクリアする
+ * @param {string} eventId - イベントID
+ * @return {Object} 結果オブジェクト
+ */
+function clearTeamSplit(eventId) {
+  updateEventField_(eventId, 9, '');
+  return { success: true };
 }
