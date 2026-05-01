@@ -169,21 +169,20 @@ function buildRanking_(participantIds, quantScores, qualScores, memberMap) {
 // ===================================
 
 /**
- * Gemini AI を使ってMVP/準MVPの選出理由を生成する
+ * Gemini AI を使って全メンバーの評価コメントを生成する
+ * MVP/準MVPには選出理由、それ以外のメンバーには評価コメントを作成する
  * @param {Object[]} rankedResults - ランキング済みの結果配列（rank付き）
  * @param {Object} memberMap - メンバーIDをキーにしたマップ
  * @param {Object[]} surveyComments - アンケート回答データ
  * @param {Object[]} goals - 得点データ
  * @param {string[]} matchIds - 対象マッチIDの配列
- * @return {Object} メンバーIDをキーにした選出理由のマップ
+ * @return {Object} メンバーIDをキーにした評価コメントのマップ
  */
 function generateReasonsAI_(rankedResults, memberMap, surveyComments, goals, matchIds) {
-  // MVP/準MVPのみ対象
-  var targets = rankedResults.filter(function(r) { return r.rank === 'MVP' || r.rank === '準MVP'; });
-  if (targets.length === 0) return {};
+  if (rankedResults.length === 0) return {};
 
-  // 各対象者の情報を組み立て
-  var targetLines = targets.map(function(r) {
+  // 各メンバーの情報を組み立て
+  var targetLines = rankedResults.map(function(r) {
     var m = memberMap[r.memberId] || {};
     var totalGoals = goals
       .filter(function(g) { return matchIds.indexOf(g['マッチID']) >= 0 && g['メンバーID'] === r.memberId; })
@@ -194,7 +193,7 @@ function generateReasonsAI_(rankedResults, memberMap, surveyComments, goals, mat
 
     return '- memberId: "' + r.memberId + '"\n' +
       '  名前: ' + r.name + '\n' +
-      '  順位: ' + r.rank + '\n' +
+      '  順位: ' + (r.rank || 'なし') + '\n' +
       '  サッカー経験: ' + (m['サッカー経験'] || '不明') + '\n' +
       '  年次: ' + (m['年次'] || '不明') + '\n' +
       '  得点数: ' + totalGoals + '\n' +
@@ -204,21 +203,24 @@ function generateReasonsAI_(rankedResults, memberMap, surveyComments, goals, mat
       '  チームメイトからのコメント: ' + (comments.length > 0 ? comments.map(function(c) { return '「' + c + '」'; }).join(', ') : 'なし');
   });
 
-  var prompt = 'あなたはフットサルイベントのMVP選出理由を作成するライターです。\n' +
-    '以下の各メンバーについて、定量データ（得点・勝利）とチームメイトからのコメントを踏まえた選出理由を作成してください。\n\n' +
+  var prompt = 'あなたはフットサルイベントの評価コメントを作成するライターです。\n' +
+    '以下の全メンバーについて、定量データ（得点・勝利）とチームメイトからのコメントを踏まえた評価コメントを作成してください。\n\n' +
     '【ルール】\n' +
     '- 1人あたり50〜80文字程度の自然な日本語で書いてください\n' +
-    '- 「MVP選出理由: 」「準MVP選出理由: 」のプレフィックスは不要です\n' +
+    '- 「MVP選出理由: 」などのプレフィックスは不要です\n' +
     '- 得点やコメント内容など具体的な事実を盛り込んでください\n' +
     '- サッカー未経験者の場合はその頑張りに触れてください\n' +
-    '- 堅すぎず、フットサルの楽しい雰囲気に合ったトーンで書いてください\n\n' +
-    '【対象メンバー】\n' + targetLines.join('\n\n') + '\n\n' +
+    '- 堅すぎず、フットサルの楽しい雰囲気に合ったトーンで書いてください\n' +
+    '- 順位が「MVP」「準MVP」のメンバーは選出理由として書いてください\n' +
+    '- 順位が「なし」のメンバーも、良かった点や印象に残ったプレーなどポジティブな評価コメントを書いてください\n\n' +
+    '【メンバー一覧】\n' + targetLines.join('\n\n') + '\n\n' +
     '以下のJSON配列形式で返してください（他のテキストは不要）:\n' +
-    '[{"memberId": "xxx", "reason": "選出理由テキスト"}, ...]';
+    '[{"memberId": "xxx", "reason": "評価コメント"}, ...]\n' +
+    '全メンバー分を必ず含めてください。';
 
   var responseText = callGemini_(prompt);
   if (!responseText) {
-    return { success: false, message: 'AI選出理由の生成に失敗しました。GEMINI_API_KEY の設定とAPIの状態を確認してください。' };
+    return { success: false, message: 'AI評価コメントの生成に失敗しました。GEMINI_API_KEY の設定とAPIの状態を確認してください。' };
   }
 
   try {
@@ -231,7 +233,7 @@ function generateReasonsAI_(rankedResults, memberMap, surveyComments, goals, mat
     });
     return reasons;
   } catch (e) {
-    return { success: false, message: 'AI選出理由のレスポンス解析に失敗しました: ' + e.message };
+    return { success: false, message: 'AI評価コメントのレスポンス解析に失敗しました: ' + e.message };
   }
 }
 
@@ -285,15 +287,13 @@ function selectMVP(eventId) {
     return { memberId: s.memberId, name: s.name, rank: rank, reason: '', quantScore: s.quantScore, qualScore: s.qualScore, totalScore: s.totalScore };
   });
 
-  // 選出理由生成（AI）
+  // 評価コメント生成（AI・全メンバー対象）
   var aiReasons = generateReasonsAI_(results, memberMap, surveyComments, goals, matchIds);
   if (aiReasons.success === false) {
     return aiReasons;
   }
   results.forEach(function(r) {
-    if (r.rank === 'MVP' || r.rank === '準MVP') {
-      r.reason = aiReasons[r.memberId] || '';
-    }
+    r.reason = aiReasons[r.memberId] || '';
   });
 
   // 結果をスプレッドシートに保存
