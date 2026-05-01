@@ -27,6 +27,7 @@ erDiagram
         number 年次 "1〜"
         string サッカー経験 "あり / なし"
         string 幹事 "はい / いいえ"
+        string 備考 "自由入力テキスト"
     }
 
     ラウンド {
