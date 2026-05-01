@@ -295,39 +295,17 @@ function renderQueue() {
 
 function registerAllMembers() {
   if (memberQueue.length === 0) return;
-  showLoading();
 
-  var remaining = memberQueue.length;
-  var failed = 0;
-
-  memberQueue.forEach(function(q) {
-    google.script.run
-      .withSuccessHandler(function(r) {
-        if (!r.success) failed++;
-        remaining--;
-        if (remaining === 0) {
-          hideLoading();
-          memberQueue = [];
-          renderQueue();
-          var msg = (memberQueue.length + remaining - failed) + '人を登録しました';
-          if (failed > 0) msg += '（' + failed + '人失敗）';
-          showToast(msg, failed > 0);
-          openEvent(currentEventId);
-        }
-      })
-      .withFailureHandler(function() {
-        failed++;
-        remaining--;
-        if (remaining === 0) {
-          hideLoading();
-          memberQueue = [];
-          renderQueue();
-          showToast('一部の登録に失敗しました', true);
-          openEvent(currentEventId);
-        }
-      })
-      .addEventMember(currentEventId, q.name, q.years, q.exp, q.org);
+  var dataList = memberQueue.map(function(q) {
+    return { name: q.name, years: q.years, exp: q.exp, org: q.org };
   });
+
+  callServer('bulkAddMembersFromQueue', [currentEventId, dataList], function(r) {
+    memberQueue = [];
+    renderQueue();
+    showToast(r.message, !r.success);
+    if (r.success) openEvent(currentEventId);
+  }, '登録に失敗しました');
 }
 
 function deleteMember(memberId) {
