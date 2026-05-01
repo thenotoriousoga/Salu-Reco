@@ -6,12 +6,13 @@
 // --- 状態 ---
 var currentEventId = null;
 var currentMembers = [];
-var previewTeams = [];   // チーム分け結果: [ [id,...], [id,...], ... ]
-var previewNames = [];   // チーム名: [ 'チームA', 'チームB', ... ]
-var selectedMatchA = -1; // 対戦選択: チームAのインデックス
-var selectedMatchB = -1; // 対戦選択: チームBのインデックス
+var cachedRounds = [];    // ラウンド一覧（マッチ含む）
+var previewTeams = [];    // チーム分けプレビュー: [ [id,...], ... ]
+var previewNames = [];    // チーム名: [ 'チームA', ... ]
+var selectedMatchA = -1;
+var selectedMatchB = -1;
+var currentRoundId = null; // 現在操作中のラウンドID
 var goalCounts = {};
-var cachedRounds = [];
 
 // --- チームカラーマッピング ---
 var TEAM_CLASSES_ = ['a', 'b', 'c', 'd', 'e'];
@@ -45,24 +46,14 @@ function showToast(msg, err) {
   setTimeout(function() { t.className = 'toast'; }, 2500);
 }
 
-/**
- * サーバー関数を呼び出す共通ラッパー
- */
 function callServer(funcName, args, onSuccess, errorMsg) {
   showLoading();
   var runner = google.script.run
-    .withSuccessHandler(function(result) {
-      hideLoading();
-      onSuccess(result);
-    })
-    .withFailureHandler(function(e) {
-      hideLoading();
-      showToast(errorMsg || 'エラー', true);
-    });
+    .withSuccessHandler(function(result) { hideLoading(); onSuccess(result); })
+    .withFailureHandler(function(e) { hideLoading(); showToast(errorMsg || 'エラー', true); });
   runner[funcName].apply(runner, args);
 }
 
-// --- ページ切り替え ---
 function showPage(page) {
   document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
   document.querySelectorAll('.nav-btn').forEach(function(b) { b.classList.remove('active'); });
@@ -73,7 +64,6 @@ function showPage(page) {
   if (page === 'events') loadEventList();
 }
 
-// --- タブ切り替え ---
 function switchTab(tabId) {
   document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
   document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
@@ -83,9 +73,6 @@ function switchTab(tabId) {
   if (tabId === 'tab-results') renderEventStats();
 }
 
-// ===================================
-// イベントステータスバッジ生成（共通）
-// ===================================
 function statusBadgeHtml(status) {
   var s = status || '準備中';
   var bc = s === '完了' ? 'badge-done' : (s === '進行中' ? 'badge-ongoing' : 'badge-preparing');
@@ -102,29 +89,17 @@ function eventItemHtml(ev, onclickExpr) {
 // ===================================
 // イベント一覧
 // ===================================
-function loadEventList() {
-  callServer('getEvents', [], function(events) {
-    renderEventList(events);
-  }, '読み込みエラー');
-}
-
+function loadEventList() { callServer('getEvents', [], function(events) { renderEventList(events); }, '読み込みエラー'); }
 function renderEventList(events) {
   var c = document.getElementById('event-list');
   if (!events || events.length === 0) { c.innerHTML = '<div class="empty-state">イベントがありません</div>'; return; }
-  c.innerHTML = events.map(function(ev) {
-    return eventItemHtml(ev, "openEvent('" + ev['イベントID'] + "')");
-  }).join('');
+  c.innerHTML = events.map(function(ev) { return eventItemHtml(ev, "openEvent('" + ev['イベントID'] + "')"); }).join('');
 }
-
 function createNewEvent() {
   var name = document.getElementById('ev-name').value.trim() || 'フットサル';
   var date = document.getElementById('ev-date').value || new Date().toLocaleDateString('ja-JP');
-  callServer('createNewEvent', [date, name], function(r) {
-    if (r.success) { showToast(r.message); openEvent(r.eventId); }
-    else showToast(r.message, true);
-  });
+  callServer('createNewEvent', [date, name], function(r) { if (r.success) { showToast(r.message); openEvent(r.eventId); } else showToast(r.message, true); });
 }
-
 function loadRecentEvents() {
   google.script.run.withSuccessHandler(function(events) {
     var c = document.getElementById('recent-events');
@@ -132,9 +107,7 @@ function loadRecentEvents() {
     c.innerHTML = events.slice(0, 5).map(function(ev) {
       return eventItemHtml(ev, "showPage('events');setTimeout(function(){openEvent('" + ev['イベントID'] + "')},200);");
     }).join('');
-  }).withFailureHandler(function() {
-    document.getElementById('recent-events').innerHTML = '<div class="empty-state">読み込みエラー</div>';
-  }).getEvents();
+  }).withFailureHandler(function() { document.getElementById('recent-events').innerHTML = '<div class="empty-state">読み込みエラー</div>'; }).getEvents();
 }
 
 // ===================================
@@ -146,14 +119,9 @@ function openEvent(eventId, activeTab) {
     if (!d) { showToast('イベントが見つかりません', true); return; }
     currentMembers = d.members;
     cachedRounds = d.rounds;
-    // サーバーから保存済みチーム分け結果を復元
-    if (d.savedSplit && d.savedSplit.teams && d.savedSplit.teams.length > 0) {
-      previewTeams = d.savedSplit.teams;
-      previewNames = d.savedSplit.names || [];
-    } else if (previewTeams.length === 0) {
-      previewTeams = [];
-      previewNames = [];
-    }
+    previewTeams = [];
+    previewNames = [];
+    currentRoundId = null;
     renderEventDetail(d, activeTab);
   }, 'エラー');
 }
@@ -161,41 +129,25 @@ function openEvent(eventId, activeTab) {
 function renderEventDetail(d, activeTab) {
   document.getElementById('event-list-view').style.display = 'none';
   document.getElementById('event-detail-view').style.display = 'block';
-
   var ev = d.event;
   document.getElementById('ev-detail-title').innerHTML =
     '<svg class="section-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>' +
     '<line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> ' +
     esc(ev['名称'] || '') + ' <span class="event-date" style="margin-left:8px;">' + esc(String(ev['日付'] || '')) + '</span>';
-
   document.getElementById('ev-detail-status').innerHTML =
     statusBadgeHtml(ev['ステータス']) +
     ' <button class="btn btn-sm btn-danger" onclick="deleteCurrentEvent()" style="margin-left:8px;">' + svg(IC.trash, 14) + '</button>';
-
   renderMemberList(d.members);
   renderParticipantCB(d.members);
   renderRoundsList(d.rounds);
   renderPostMatch(ev, d.rounds, d.mvpResults);
-
-  // プレビュー: 既存のチーム分け結果があれば保持して再描画
-  if (previewTeams.length > 0 && previewNames.length > 0) {
-    renderTeamPreview();
-  } else {
-    previewTeams = [];
-    previewNames = [];
-    selectedMatchA = -1;
-    selectedMatchB = -1;
-    document.getElementById('teams-preview').style.display = 'none';
-    document.getElementById('teams-preview').innerHTML = '';
-    document.getElementById('match-selector').style.display = 'none';
-    document.getElementById('match-selector').innerHTML = '';
-    document.getElementById('btn-create-round').style.display = 'none';
-  }
-
-  // チーム数セレクトを更新
+  // チーム分けプレビューリセット
+  document.getElementById('teams-preview').style.display = 'none';
+  document.getElementById('teams-preview').innerHTML = '';
+  document.getElementById('match-selector').style.display = 'none';
+  document.getElementById('match-selector').innerHTML = '';
+  document.getElementById('btn-create-round').style.display = 'none';
   updateTeamCountOptions();
-
-  // タブ切り替え（指定があればそのタブ、なければメンバータブ）
   switchTab(activeTab || 'tab-members');
 }
 
@@ -208,67 +160,44 @@ function backToEventList() {
 
 function deleteCurrentEvent() {
   if (!confirm('このイベントと全データを削除しますか？')) return;
-  callServer('deleteEvent', [currentEventId], function(r) {
-    showToast(r.message, !r.success);
-    if (r.success) backToEventList();
-  });
+  callServer('deleteEvent', [currentEventId], function(r) { showToast(r.message, !r.success); if (r.success) backToEventList(); });
 }
 
 // ===================================
-// メンバー管理（イベント内）
+// メンバー管理
 // ===================================
 var memberQueue = [];
-
 function renderMemberList(members) {
   var c = document.getElementById('member-list');
-  if (!members || members.length === 0) {
-    c.innerHTML = '<div class="empty-state">メンバーがいません。追加してください。</div>';
-    return;
-  }
+  if (!members || members.length === 0) { c.innerHTML = '<div class="empty-state">メンバーがいません。追加してください。</div>'; return; }
   c.innerHTML = members.map(function(m) {
     return '<div class="member-item"><div><span class="member-name">' + esc(m['名前']) + '</span>' +
       '<div class="member-badges">' + memberBadgesHtml(m) + '</div></div>' +
       '<button class="btn btn-sm btn-danger" onclick="deleteMember(\'' + m['メンバーID'] + '\')">' + svg(IC.trash, 14) + '</button></div>';
   }).join('');
 }
-
 function memberBadgesHtml(m, isQueue) {
-  var years, expLabel, orgLabel;
-  if (isQueue) {
-    years = m.years;
-    expLabel = m.exp ? 'あり' : 'なし';
-    orgLabel = m.org ? 'はい' : 'いいえ';
-  } else {
-    years = m['年次'];
-    expLabel = m['サッカー経験'];
-    orgLabel = m['幹事'];
-  }
+  var years = isQueue ? m.years : m['年次'];
+  var expLabel = isQueue ? (m.exp ? 'あり' : 'なし') : m['サッカー経験'];
+  var orgLabel = isQueue ? (m.org ? 'はい' : 'いいえ') : m['幹事'];
   var expB = expLabel === 'あり' ? '<span class="badge badge-exp">経験あり</span>' : '<span class="badge badge-noexp">未経験</span>';
   var orgB = orgLabel === 'はい' ? '<span class="badge badge-organizer">幹事</span>' : '';
-  var yrB = '<span class="badge badge-years">' + years + '年目</span>';
-  return yrB + expB + orgB;
+  return '<span class="badge badge-years">' + years + '年目</span>' + expB + orgB;
 }
-
 function addToQueue() {
   var name = document.getElementById('m-name').value.trim();
   var years = document.getElementById('m-years').value;
   var exp = document.getElementById('m-exp').value === 'true';
   var org = document.getElementById('m-organizer').checked;
   if (!name) { showToast('名前を入力してください', true); return; }
-  var dup = memberQueue.find(function(q) { return q.name === name; });
-  if (dup) { showToast(name + ' は既にリストにあります', true); return; }
+  if (memberQueue.find(function(q) { return q.name === name; })) { showToast(name + ' は既にリストにあります', true); return; }
   memberQueue.push({ name: name, years: Number(years) || 1, exp: exp, org: org });
   document.getElementById('m-name').value = '';
   document.getElementById('m-name').focus();
   renderQueue();
   showToast(name + ' をリストに追加');
 }
-
-function removeFromQueue(index) {
-  memberQueue.splice(index, 1);
-  renderQueue();
-}
-
+function removeFromQueue(index) { memberQueue.splice(index, 1); renderQueue(); }
 function renderQueue() {
   var c = document.getElementById('member-queue');
   var btn = document.getElementById('btn-register-all');
@@ -282,36 +211,24 @@ function renderQueue() {
   btn.style.display = 'flex';
   btn.innerHTML = svg('<polyline points="20 6 9 17 4 12"/>', 18) + ' まとめて登録（' + memberQueue.length + '人）';
 }
-
 function registerAllMembers() {
   if (memberQueue.length === 0) return;
-  var dataList = memberQueue.map(function(q) {
-    return { name: q.name, years: q.years, exp: q.exp, org: q.org };
-  });
+  var dataList = memberQueue.map(function(q) { return { name: q.name, years: q.years, exp: q.exp, org: q.org }; });
   callServer('bulkAddMembersFromQueue', [currentEventId, dataList], function(r) {
-    memberQueue = [];
-    renderQueue();
-    showToast(r.message, !r.success);
-    if (r.success) openEvent(currentEventId);
+    memberQueue = []; renderQueue(); showToast(r.message, !r.success); if (r.success) openEvent(currentEventId);
   }, '登録に失敗しました');
 }
-
 function deleteMember(memberId) {
   if (!confirm('このメンバーを削除しますか？')) return;
-  callServer('deleteEventMember', [memberId], function(r) {
-    showToast(r.message, !r.success);
-    if (r.success) openEvent(currentEventId);
-  });
+  callServer('deleteEventMember', [memberId], function(r) { showToast(r.message, !r.success); if (r.success) openEvent(currentEventId); });
 }
 
 // ===================================
-// チーム分け（Nチーム分け → 2チーム対戦選択）
+// チーム分け → ラウンド作成
 // ===================================
 function renderParticipantCB(members) {
   var c = document.getElementById('p-checkboxes');
-  if (!members || members.length === 0) {
-    c.innerHTML = '<div class="empty-state">先にメンバーを登録してください。</div>'; return;
-  }
+  if (!members || members.length === 0) { c.innerHTML = '<div class="empty-state">先にメンバーを登録してください。</div>'; return; }
   c.innerHTML = '<div class="checkbox-grid">' + members.map(function(m) {
     var exp = m['サッカー経験'] === 'あり' ? ' *' : '';
     return '<div class="checkbox-item"><input type="checkbox" id="pcb-' + m['メンバーID'] + '" value="' + m['メンバーID'] + '" checked onchange="updateTeamCountOptions()">' +
@@ -319,28 +236,19 @@ function renderParticipantCB(members) {
   }).join('') + '</div><div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">* = サッカー経験あり</div>';
   updateTeamCountOptions();
 }
-
 function selectAllP() { document.querySelectorAll('#p-checkboxes input[type="checkbox"]').forEach(function(cb) { cb.checked = true; }); updateTeamCountOptions(); }
 function deselectAllP() { document.querySelectorAll('#p-checkboxes input[type="checkbox"]').forEach(function(cb) { cb.checked = false; }); updateTeamCountOptions(); }
 function getSelectedIds() { return Array.from(document.querySelectorAll('#p-checkboxes input:checked')).map(function(cb) { return cb.value; }); }
-
 function updateTeamCountOptions() {
   var ids = getSelectedIds();
   var maxT = Math.max(2, Math.floor(ids.length / 3));
   var sel = document.getElementById('r-team-count');
   var cur = Number(sel.value) || 2;
   sel.innerHTML = '';
-  for (var i = 2; i <= maxT; i++) {
-    var opt = document.createElement('option');
-    opt.value = i;
-    opt.textContent = i + 'チーム';
-    if (i === cur) opt.selected = true;
-    sel.appendChild(opt);
-  }
+  for (var i = 2; i <= maxT; i++) { var opt = document.createElement('option'); opt.value = i; opt.textContent = i + 'チーム'; if (i === cur) opt.selected = true; sel.appendChild(opt); }
   if (cur > maxT) sel.value = maxT;
   updateTeamNameInputs();
 }
-
 function updateTeamNameInputs() {
   var count = Number(document.getElementById('r-team-count').value) || 2;
   var labels = ['A', 'B', 'C', 'D', 'E'];
@@ -348,256 +256,230 @@ function updateTeamNameInputs() {
   c.innerHTML = '';
   for (var i = 0; i < count; i++) {
     var label = labels[i] || String.fromCharCode(65 + i);
-    c.innerHTML += '<div class="input-group">' +
-      '<label for="r-team-' + i + '">チーム' + label + '</label>' +
-      '<input type="text" id="r-team-' + i + '" value="チーム' + label + '" class="input">' +
-      '</div>';
+    c.innerHTML += '<div class="input-group"><label for="r-team-' + i + '">チーム' + label + '</label>' +
+      '<input type="text" id="r-team-' + i + '" value="チーム' + label + '" class="input"></div>';
   }
 }
-
-function getTeamCount() {
-  return Number(document.getElementById('r-team-count').value) || 2;
-}
-
+function getTeamCount() { return Number(document.getElementById('r-team-count').value) || 2; }
 function getTeamNames() {
-  var count = getTeamCount();
-  var names = [];
-  for (var i = 0; i < count; i++) {
-    var el = document.getElementById('r-team-' + i);
-    names.push(el ? el.value : ('チーム' + String.fromCharCode(65 + i)));
-  }
+  var count = getTeamCount(); var names = [];
+  for (var i = 0; i < count; i++) { var el = document.getElementById('r-team-' + i); names.push(el ? el.value : ('チーム' + String.fromCharCode(65 + i))); }
   return names;
 }
-
 function handleSplitResult(r, toastMsg) {
-  if (r.success) {
-    previewTeams = r.teams;
-    previewNames = getTeamNames();
-    // サーバーにチーム分け結果を保存
-    google.script.run.saveTeamSplit(currentEventId, previewNames, previewTeams);
-    renderTeamPreview();
-    showToast(toastMsg);
-  } else {
-    showToast(r.message, true);
-  }
+  if (r.success) { previewTeams = r.teams; previewNames = getTeamNames(); renderTeamPreview(); showToast(toastMsg); }
+  else showToast(r.message, true);
 }
-
 function doAutoSplit() {
-  var ids = getSelectedIds();
-  var teamCount = getTeamCount();
+  var ids = getSelectedIds(); var tc = getTeamCount();
   if (ids.length < 4) { showToast('4人以上選択してください', true); return; }
-  callServer('autoSplitTeams', [currentEventId, ids, teamCount], function(r) {
-    handleSplitResult(r, 'AI分け完了');
-  });
+  callServer('autoSplitTeams', [currentEventId, ids, tc], function(r) { handleSplitResult(r, 'AI分け完了'); });
 }
-
 function doRandomSplit() {
-  var ids = getSelectedIds();
-  var teamCount = getTeamCount();
+  var ids = getSelectedIds(); var tc = getTeamCount();
   if (ids.length < 4) { showToast('4人以上選択してください', true); return; }
-  callServer('randomSplitTeams', [ids, teamCount], function(r) {
-    handleSplitResult(r, 'ランダム分け完了');
-  });
+  callServer('randomSplitTeams', [ids, tc], function(r) { handleSplitResult(r, 'ランダム分け完了'); });
 }
-
 function teamMemberHtml(id, memberMap) {
   var m = memberMap[id] || {};
   return '<div class="team-member">' + esc(m['名前'] || '?') + (m['サッカー経験'] === 'あり' ? ' *' : '') + '</div>';
 }
-
-/**
- * チーム分け結果のプレビューを表示する
- * Nチーム全てを表示し、その下に対戦カード選択UIを出す
- */
 function renderTeamPreview() {
-  var mm = {};
-  currentMembers.forEach(function(m) { mm[m['メンバーID']] = m; });
+  var mm = {}; currentMembers.forEach(function(m) { mm[m['メンバーID']] = m; });
   var c = document.getElementById('teams-preview');
-
   c.innerHTML = '<div class="teams-preview">' + previewTeams.map(function(team, idx) {
     var cls = TEAM_CLASSES_[idx] || 'a';
     var name = previewNames[idx] || ('チーム' + String.fromCharCode(65 + idx));
-    return '<div class="team-box team-' + cls + '">' +
-      '<h4>' + esc(name) + '</h4>' +
-      team.map(function(id) { return teamMemberHtml(id, mm); }).join('') +
-      '</div>';
+    return '<div class="team-box team-' + cls + '"><h4>' + esc(name) + '</h4>' +
+      team.map(function(id) { return teamMemberHtml(id, mm); }).join('') + '</div>';
   }).join('') + '</div>';
   c.style.display = 'block';
-
-  // 2チームの場合は対戦選択不要、そのまま試合作成
-  if (previewTeams.length === 2) {
-    selectedMatchA = 0;
-    selectedMatchB = 1;
-    document.getElementById('match-selector').style.display = 'none';
-    document.getElementById('match-selector').innerHTML = '';
-    document.getElementById('btn-create-round').style.display = 'flex';
-  } else {
-    // 3チーム以上: 対戦カード選択UIを表示
-    selectedMatchA = -1;
-    selectedMatchB = -1;
-    renderMatchSelector();
-    document.getElementById('btn-create-round').style.display = 'none';
-  }
+  // ラウンド作成ボタンを表示
+  document.getElementById('match-selector').style.display = 'none';
+  document.getElementById('btn-create-round').style.display = 'flex';
+  document.getElementById('btn-create-round').innerHTML =
+    svg('<polygon points="5 3 19 12 5 21 5 3"/>', 18) + ' このチーム分けでラウンド作成';
 }
 
-/**
- * 対戦カード選択UIを描画する（3チーム以上の場合）
- */
-function renderMatchSelector() {
-  var c = document.getElementById('match-selector');
-  var h = '<div style="margin-top:12px;padding:12px;background:var(--bg-surface);border-radius:var(--radius-sm);border:1px solid var(--border-light);">' +
-    '<div style="font-size:0.85rem;font-weight:600;color:var(--text-secondary);margin-bottom:8px;">対戦カードを選択</div>' +
+/** ラウンドを作成する（チーム分け結果をサーバーに保存） */
+function doCreateRound() {
+  if (previewTeams.length === 0) { showToast('先にチーム分けを行ってください', true); return; }
+  callServer('createRound', [currentEventId, previewNames, previewTeams], function(r) {
+    if (r.success) { showToast(r.message); previewTeams = []; previewNames = []; openEvent(currentEventId, 'tab-rounds'); }
+    else showToast(r.message, true);
+  });
+}
+
+// ===================================
+// ラウンド一覧 → マッチ管理
+// ===================================
+function renderRoundsList(rounds) {
+  var c = document.getElementById('rounds-list');
+  if (!rounds || rounds.length === 0) { c.innerHTML = ''; return; }
+  var mm = {}; currentMembers.forEach(function(m) { mm[m['メンバーID']] = m; });
+
+  c.innerHTML = rounds.map(function(round) {
+    var sd = round.splitData || { names: [], teams: [] };
+    // チーム分け結果表示
+    var teamsH = '<div class="teams-preview" style="margin:0 0 8px 0;">' +
+      (sd.teams || []).map(function(team, idx) {
+        var cls = TEAM_CLASSES_[idx] || 'a';
+        var name = (sd.names || [])[idx] || ('チーム' + String.fromCharCode(65 + idx));
+        return '<div class="team-box team-' + cls + '"><h4>' + esc(name) + '</h4>' +
+          team.map(function(id) { return teamMemberHtml(id, mm); }).join('') + '</div>';
+      }).join('') + '</div>';
+
+    // マッチ一覧
+    var matchesH = '';
+    if (round.matches && round.matches.length > 0) {
+      matchesH = round.matches.map(function(m) {
+        var ongoing = m.status !== '終了';
+        var badge = ongoing
+          ? '<span class="event-status-badge badge-ongoing">進行中</span>'
+          : '<span class="event-status-badge badge-done">終了</span>';
+        var scoreH = ongoing ? ongoingMatchHtml(m) : endedMatchHtml(m);
+        return '<div class="round-card" style="margin-left:0;"><div class="round-header"><span class="round-title">第' + m.matchNumber + '試合</span>' + badge + '</div>' + scoreH + '</div>';
+      }).join('');
+    }
+
+    // 対戦カード追加UI
+    var addMatchH = '';
+    if (sd.teams && sd.teams.length >= 2) {
+      addMatchH = '<div style="margin-top:8px;">' +
+        '<button class="btn btn-sm btn-primary" onclick="showAddMatch(\'' + round.id + '\')">' +
+        svg('<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>', 14) + ' 試合を追加</button>' +
+        '<div id="add-match-' + round.id + '" style="display:none;"></div></div>';
+    }
+
+    return '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
+      '<h3 style="margin:0;">ラウンド' + round.roundNumber + '</h3>' +
+      '<div>' + statusBadgeHtml(round.status) +
+      ' <button class="btn btn-sm btn-danger" onclick="delRound(\'' + round.id + '\')" style="margin-left:4px;">' + svg(IC.trash, 14) + '</button></div></div>' +
+      teamsH + matchesH + addMatchH + '</div>';
+  }).join('');
+
+  // ゴールカウント初期化
+  goalCounts = {};
+  rounds.forEach(function(round) {
+    round.matches.forEach(function(m) {
+      if (m.goals) m.goals.forEach(function(g) { goalCounts[m.id + '-' + g.memberId] = g.count; });
+    });
+  });
+}
+
+/** 試合追加UIを表示する */
+function showAddMatch(roundId) {
+  var c = document.getElementById('add-match-' + roundId);
+  if (c.style.display === 'block') { c.style.display = 'none'; return; }
+  var round = cachedRounds.find(function(r) { return r.id === roundId; });
+  if (!round || !round.splitData) return;
+  var names = round.splitData.names || [];
+  var h = '<div style="margin-top:8px;padding:12px;background:var(--bg-surface);border-radius:var(--radius-sm);border:1px solid var(--border-light);">' +
     '<div class="input-row">' +
-    '<div class="input-group" style="flex:1;"><label>ホーム</label><select id="match-team-a" class="input" onchange="onMatchSelect()">' +
+    '<div class="input-group" style="flex:1;"><label>ホーム</label><select id="am-a-' + roundId + '" class="input">' +
     '<option value="-1">選択...</option>';
-  previewNames.forEach(function(name, idx) {
-    h += '<option value="' + idx + '">' + esc(name) + '</option>';
-  });
-  h += '</select></div>' +
-    '<div style="display:flex;align-items:center;padding:0 4px;font-weight:700;color:var(--primary);">VS</div>' +
-    '<div class="input-group" style="flex:1;"><label>アウェイ</label><select id="match-team-b" class="input" onchange="onMatchSelect()">' +
+  names.forEach(function(name, idx) { h += '<option value="' + idx + '">' + esc(name) + '</option>'; });
+  h += '</select></div><div style="display:flex;align-items:center;padding:0 4px;font-weight:700;color:var(--primary);">VS</div>' +
+    '<div class="input-group" style="flex:1;"><label>アウェイ</label><select id="am-b-' + roundId + '" class="input">' +
     '<option value="-1">選択...</option>';
-  previewNames.forEach(function(name, idx) {
-    h += '<option value="' + idx + '">' + esc(name) + '</option>';
-  });
-  h += '</select></div></div></div>';
+  names.forEach(function(name, idx) { h += '<option value="' + idx + '">' + esc(name) + '</option>'; });
+  h += '</select></div></div>' +
+    '<button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="doCreateMatch(\'' + roundId + '\')">' +
+    svg('<polygon points="5 3 19 12 5 21 5 3"/>', 16) + ' 試合開始</button></div>';
   c.innerHTML = h;
   c.style.display = 'block';
 }
 
-function onMatchSelect() {
-  var a = parseInt(document.getElementById('match-team-a').value);
-  var b = parseInt(document.getElementById('match-team-b').value);
-  selectedMatchA = a;
-  selectedMatchB = b;
-  if (a >= 0 && b >= 0 && a !== b) {
-    document.getElementById('btn-create-round').style.display = 'flex';
-  } else {
-    document.getElementById('btn-create-round').style.display = 'none';
-  }
-}
-
-// ===================================
-// ラウンド管理（常に2チーム対戦）
-// ===================================
-function createRound() {
-  if (selectedMatchA < 0 || selectedMatchB < 0 || selectedMatchA === selectedMatchB) {
-    showToast('対戦する2チームを選択してください', true); return;
-  }
-  var aN = previewNames[selectedMatchA] || 'チームA';
-  var bN = previewNames[selectedMatchB] || 'チームB';
-  var aM = previewTeams[selectedMatchA];
-  var bM = previewTeams[selectedMatchB];
-  callServer('createRound', [currentEventId, aN, bN, aM, bM], function(r) {
-    if (r.success) {
-      showToast(r.message);
-      // 2チームの場合はプレビューをクリア、3チーム以上は残す（別の対戦も作れるように）
-      if (previewTeams.length <= 2) {
-        previewTeams = [];
-        previewNames = [];
-        google.script.run.clearTeamSplit(currentEventId);
-      } else {
-        // 対戦選択をリセット（次の対戦を選べるように）
-        selectedMatchA = -1;
-        selectedMatchB = -1;
-      }
-      openEvent(currentEventId, 'tab-rounds');
-    } else {
-      showToast(r.message, true);
-    }
+/** マッチを作成する */
+function doCreateMatch(roundId) {
+  var round = cachedRounds.find(function(r) { return r.id === roundId; });
+  if (!round || !round.splitData) return;
+  var aIdx = parseInt(document.getElementById('am-a-' + roundId).value);
+  var bIdx = parseInt(document.getElementById('am-b-' + roundId).value);
+  if (aIdx < 0 || bIdx < 0 || aIdx === bIdx) { showToast('異なる2チームを選択してください', true); return; }
+  var names = round.splitData.names;
+  var teams = round.splitData.teams;
+  callServer('createMatch', [roundId, names[aIdx], names[bIdx], teams[aIdx], teams[bIdx]], function(r) {
+    if (r.success) { showToast(r.message); openEvent(currentEventId, 'tab-rounds'); }
+    else showToast(r.message, true);
   });
 }
 
-function goalsSummaryHtml(goals) {
-  if (!goals) return '';
-  var scorers = goals.filter(function(g) { return g.count > 0; });
-  if (scorers.length === 0) return '';
-  return '<div style="font-size:0.8rem;color:var(--text-secondary);margin-top:8px;">' + svg(IC.goal, 14) + ' 得点: ' +
-    scorers.map(function(g) { return esc(g.name) + '(' + g.count + ')'; }).join(', ') + '</div>';
+function delRound(roundId) {
+  if (!confirm('このラウンドと全試合を削除しますか？')) return;
+  callServer('deleteRound', [roundId], function(r) { showToast(r.message, !r.success); if (r.success) openEvent(currentEventId, 'tab-rounds'); });
 }
 
-function ongoingRoundHtml(r) {
+// ===================================
+// マッチ進行（2チーム対戦）
+// ===================================
+function ongoingMatchHtml(m) {
   var h = '<div class="scoreboard" style="margin:12px 0;">' +
-    '<div class="score-team"><span class="team-label">' + esc(r.teamAName) + '</span>' +
-    '<span class="score" id="sa-' + r.id + '">' + r.scoreA + '</span>' +
-    '<div class="score-btns"><button class="btn btn-sm btn-primary" onclick="chScore(\'' + r.id + '\',\'A\',1)">+1</button>' +
-    '<button class="btn btn-sm btn-secondary" onclick="chScore(\'' + r.id + '\',\'A\',-1)">-1</button></div></div>' +
+    '<div class="score-team"><span class="team-label">' + esc(m.teamAName) + '</span>' +
+    '<span class="score" id="sa-' + m.id + '">' + m.scoreA + '</span>' +
+    '<div class="score-btns"><button class="btn btn-sm btn-primary" onclick="chScore(\'' + m.id + '\',\'A\',1)">+1</button>' +
+    '<button class="btn btn-sm btn-secondary" onclick="chScore(\'' + m.id + '\',\'A\',-1)">-1</button></div></div>' +
     '<div class="score-vs">VS</div>' +
-    '<div class="score-team"><span class="team-label">' + esc(r.teamBName) + '</span>' +
-    '<span class="score" id="sb-' + r.id + '">' + r.scoreB + '</span>' +
-    '<div class="score-btns"><button class="btn btn-sm btn-primary" onclick="chScore(\'' + r.id + '\',\'B\',1)">+1</button>' +
-    '<button class="btn btn-sm btn-secondary" onclick="chScore(\'' + r.id + '\',\'B\',-1)">-1</button></div></div></div>';
+    '<div class="score-team"><span class="team-label">' + esc(m.teamBName) + '</span>' +
+    '<span class="score" id="sb-' + m.id + '">' + m.scoreB + '</span>' +
+    '<div class="score-btns"><button class="btn btn-sm btn-primary" onclick="chScore(\'' + m.id + '\',\'B\',1)">+1</button>' +
+    '<button class="btn btn-sm btn-secondary" onclick="chScore(\'' + m.id + '\',\'B\',-1)">-1</button></div></div></div>';
 
-  var allP = r.teamA.map(function(p) { return { id: p.id, name: p.name, team: 'A', tn: r.teamAName }; })
-    .concat(r.teamB.map(function(p) { return { id: p.id, name: p.name, team: 'B', tn: r.teamBName }; }));
+  var allP = m.teamA.map(function(p) { return { id: p.id, name: p.name, team: 'A', tn: m.teamAName }; })
+    .concat(m.teamB.map(function(p) { return { id: p.id, name: p.name, team: 'B', tn: m.teamBName }; }));
 
   h += '<div class="goal-section"><h3 style="font-size:0.85rem;">' + svg(IC.goal, 16) + ' 得点者を記録</h3>' +
     allP.map(function(p) {
       var bc = p.team === 'A' ? 'team-a-badge' : 'team-b-badge';
       var cur = 0;
-      if (r.goals) { var f = r.goals.find(function(g) { return g.memberId === p.id; }); if (f) cur = f.count; }
+      if (m.goals) { var f = m.goals.find(function(g) { return g.memberId === p.id; }); if (f) cur = f.count; }
       return '<div class="goal-player"><span class="goal-player-team ' + bc + '">' + esc(p.tn) + '</span>' +
         '<span class="goal-player-name">' + esc(p.name) + '</span>' +
-        '<div class="goal-count"><button class="btn btn-sm btn-secondary" onclick="chGoal(\'' + r.id + '\',\'' + p.id + '\',\'' + p.team + '\',-1)">-</button>' +
-        '<span id="g-' + r.id + '-' + p.id + '">' + cur + '</span>' +
-        '<button class="btn btn-sm btn-primary" onclick="chGoal(\'' + r.id + '\',\'' + p.id + '\',\'' + p.team + '\',1)">+</button></div></div>';
+        '<div class="goal-count"><button class="btn btn-sm btn-secondary" onclick="chGoal(\'' + m.id + '\',\'' + p.id + '\',\'' + p.team + '\',-1)">-</button>' +
+        '<span id="g-' + m.id + '-' + p.id + '">' + cur + '</span>' +
+        '<button class="btn btn-sm btn-primary" onclick="chGoal(\'' + m.id + '\',\'' + p.id + '\',\'' + p.team + '\',1)">+</button></div></div>';
     }).join('') + '</div>';
 
   h += '<div style="display:flex;gap:8px;margin-top:12px;">' +
-    '<button class="btn btn-accent" style="flex:1;" onclick="endRound(\'' + r.id + '\')">' + svg(IC.flag, 16) + ' 試合終了</button>' +
-    '<button class="btn btn-sm btn-danger" onclick="delRound(\'' + r.id + '\')">' + svg(IC.trash, 14) + '</button></div>';
+    '<button class="btn btn-accent" style="flex:1;" onclick="endMatch(\'' + m.id + '\')">' + svg(IC.flag, 16) + ' 試合終了</button>' +
+    '<button class="btn btn-sm btn-danger" onclick="delMatch(\'' + m.id + '\')">' + svg(IC.trash, 14) + '</button></div>';
   return h;
 }
 
-function endedRoundHtml(r) {
+function endedMatchHtml(m) {
+  var goalsSummary = '';
+  if (m.goals) {
+    var scorers = m.goals.filter(function(g) { return g.count > 0; });
+    if (scorers.length > 0) {
+      goalsSummary = '<div style="font-size:0.8rem;color:var(--text-secondary);margin-top:8px;">' + svg(IC.goal, 14) + ' 得点: ' +
+        scorers.map(function(g) { return esc(g.name) + '(' + g.count + ')'; }).join(', ') + '</div>';
+    }
+  }
   return '<div style="text-align:center;padding:8px 0;font-family:\'Fira Code\',monospace;font-size:1.2rem;font-weight:700;">' +
-    esc(r.teamAName) + ' ' + r.scoreA + ' - ' + r.scoreB + ' ' + esc(r.teamBName) + '</div>' + goalsSummaryHtml(r.goals);
+    esc(m.teamAName) + ' ' + m.scoreA + ' - ' + m.scoreB + ' ' + esc(m.teamBName) + '</div>' + goalsSummary;
 }
 
-function renderRoundsList(rounds) {
-  var c = document.getElementById('rounds-list');
-  if (!rounds || rounds.length === 0) { c.innerHTML = ''; return; }
-
-  c.innerHTML = rounds.map(function(r) {
-    var ongoing = r.status !== '終了';
-    var statusBadge = ongoing
-      ? '<span class="event-status-badge badge-ongoing">進行中</span>'
-      : '<span class="event-status-badge badge-done">終了</span>';
-
-    var scoreH = ongoing ? ongoingRoundHtml(r) : endedRoundHtml(r);
-
-    return '<div class="round-card"><div class="round-header"><span class="round-title">第' + r.roundNumber + '試合</span>' + statusBadge + '</div>' +
-      scoreH + '</div>';
-  }).join('');
-
-  goalCounts = {};
-  rounds.forEach(function(r) { if (r.goals) r.goals.forEach(function(g) { goalCounts[r.id + '-' + g.memberId] = g.count; }); });
-}
-
-// ===================================
-// 試合進行（2チーム対戦）
-// ===================================
-function chScore(rId, team, delta) {
-  var el = document.getElementById('s' + team.toLowerCase() + '-' + rId);
+function chScore(matchId, team, delta) {
+  var el = document.getElementById('s' + team.toLowerCase() + '-' + matchId);
   var v = Math.max(0, (parseInt(el.textContent) || 0) + delta);
   el.textContent = v;
-  var a = parseInt(document.getElementById('sa-' + rId).textContent) || 0;
-  var b = parseInt(document.getElementById('sb-' + rId).textContent) || 0;
-  google.script.run.updateRoundScore(rId, a, b);
+  var a = parseInt(document.getElementById('sa-' + matchId).textContent) || 0;
+  var b = parseInt(document.getElementById('sb-' + matchId).textContent) || 0;
+  google.script.run.updateMatchScore(matchId, a, b);
 }
 
-function chGoal(rId, mId, team, delta) {
-  var key = rId + '-' + mId;
+function chGoal(matchId, mId, team, delta) {
+  var key = matchId + '-' + mId;
   goalCounts[key] = Math.max(0, (goalCounts[key] || 0) + delta);
-  var el = document.getElementById('g-' + rId + '-' + mId);
+  var el = document.getElementById('g-' + matchId + '-' + mId);
   if (el) el.textContent = goalCounts[key];
-  google.script.run.recordGoal(rId, mId, goalCounts[key]);
-  recalcScores(rId);
+  google.script.run.recordGoal(matchId, mId, goalCounts[key]);
+  recalcScores(matchId);
 }
 
-function recalcScores(rId) {
+function recalcScores(matchId) {
   var sA = 0, sB = 0;
-  document.querySelectorAll('[id^="g-' + rId + '-"]').forEach(function(el) {
+  document.querySelectorAll('[id^="g-' + matchId + '-"]').forEach(function(el) {
     var cnt = parseInt(el.textContent) || 0;
     var row = el.closest('.goal-player');
     if (row) {
@@ -605,26 +487,21 @@ function recalcScores(rId) {
       if (badge && badge.classList.contains('team-a-badge')) sA += cnt; else sB += cnt;
     }
   });
-  var eA = document.getElementById('sa-' + rId);
-  var eB = document.getElementById('sb-' + rId);
+  var eA = document.getElementById('sa-' + matchId);
+  var eB = document.getElementById('sb-' + matchId);
   if (eA) eA.textContent = sA;
   if (eB) eB.textContent = sB;
-  google.script.run.updateRoundScore(rId, sA, sB);
+  google.script.run.updateMatchScore(matchId, sA, sB);
 }
 
-function endRound(rId) {
+function endMatch(matchId) {
   if (!confirm('この試合を終了しますか？')) return;
-  callServer('endRound', [rId], function(r) {
-    if (r.success) { showToast(r.message); openEvent(currentEventId, 'tab-rounds'); }
-  });
+  callServer('endMatch', [matchId], function(r) { if (r.success) { showToast(r.message); openEvent(currentEventId, 'tab-rounds'); } });
 }
 
-function delRound(rId) {
-  if (!confirm('このラウンドを削除しますか？')) return;
-  callServer('deleteRound', [rId], function(r) {
-    showToast(r.message, !r.success);
-    if (r.success) { openEvent(currentEventId, 'tab-rounds'); }
-  });
+function delMatch(matchId) {
+  if (!confirm('この試合を削除しますか？')) return;
+  callServer('deleteMatch', [matchId], function(r) { showToast(r.message, !r.success); if (r.success) openEvent(currentEventId, 'tab-rounds'); });
 }
 
 // ===================================
@@ -634,61 +511,45 @@ function renderEventStats() {
   var c = document.getElementById('event-stats');
   var rounds = cachedRounds;
   var members = currentMembers;
+  if (!members || members.length === 0 || !rounds || rounds.length === 0) { c.innerHTML = '<div class="empty-state">試合データがありません</div>'; return; }
 
-  if (!members || members.length === 0 || !rounds || rounds.length === 0) {
-    c.innerHTML = '<div class="empty-state">試合データがありません</div>';
-    return;
-  }
+  // 全マッチをフラットに収集
+  var allMatches = [];
+  rounds.forEach(function(r) { if (r.matches) r.matches.forEach(function(m) { allMatches.push(m); }); });
+  if (allMatches.length === 0) { c.innerHTML = '<div class="empty-state">試合データがありません</div>'; return; }
 
   var stats = members.map(function(m) {
     var mId = m['メンバーID'];
     var wins = 0, losses = 0, draws = 0, played = 0, totalGoals = 0;
-
-    rounds.forEach(function(r) {
-      var inA = r.teamA.find(function(p) { return p.id === mId; });
-      var inB = r.teamB.find(function(p) { return p.id === mId; });
+    allMatches.forEach(function(match) {
+      var inA = match.teamA.find(function(p) { return p.id === mId; });
+      var inB = match.teamB.find(function(p) { return p.id === mId; });
       if (!inA && !inB) return;
       played++;
-
-      if (r.status === '終了') {
-        var sA = Number(r.scoreA), sB = Number(r.scoreB);
+      if (match.status === '終了') {
+        var sA = Number(match.scoreA), sB = Number(match.scoreB);
         if (sA === sB) draws++;
         else if ((inA && sA > sB) || (inB && sB > sA)) wins++;
         else losses++;
       }
-
-      if (r.goals) {
-        var g = r.goals.find(function(g) { return g.memberId === mId; });
+      if (match.goals) {
+        var g = match.goals.find(function(g) { return g.memberId === mId; });
         if (g) totalGoals += Number(g.count);
       }
     });
-
-    return {
-      name: m['名前'],
-      experience: m['サッカー経験'],
-      years: m['年次'],
-      played: played,
-      wins: wins,
-      losses: losses,
-      draws: draws,
-      goals: totalGoals
-    };
+    return { name: m['名前'], experience: m['サッカー経験'], played: played, wins: wins, losses: losses, draws: draws, goals: totalGoals };
   });
-
   stats.sort(function(a, b) { return b.goals - a.goals || b.wins - a.wins; });
-
   c.innerHTML = stats.map(function(s, i) {
     if (s.played === 0) return '';
     var expB = s.experience === 'あり' ? '<span class="badge badge-exp">経験あり</span>' : '<span class="badge badge-noexp">未経験</span>';
-    return '<div class="stats-card"><div class="stats-name"><span class="stats-rank">#' + (i + 1) + '</span>' +
-      esc(s.name) + ' ' + expB + '</div>' +
+    return '<div class="stats-card"><div class="stats-name"><span class="stats-rank">#' + (i + 1) + '</span>' + esc(s.name) + ' ' + expB + '</div>' +
       '<div class="stats-details">' +
       '<span>' + svg(IC.goal, 14) + ' ' + s.goals + '点</span>' +
       '<span>' + svg(IC.check, 14) + ' ' + s.wins + '勝</span>' +
       '<span>' + svg(IC.x, 14) + ' ' + s.losses + '敗</span>' +
       '<span>' + svg(IC.minus, 14) + ' ' + s.draws + '分</span>' +
-      '<span>' + svg(IC.file, 14) + ' ' + s.played + '試合</span>' +
-      '</div></div>';
+      '<span>' + svg(IC.file, 14) + ' ' + s.played + '試合</span></div></div>';
   }).join('');
 }
 
@@ -697,23 +558,15 @@ function renderEventStats() {
 // ===================================
 function renderPostMatch(event, rounds, mvpResults) {
   var c = document.getElementById('post-match-content');
-  var ended = rounds.filter(function(r) { return r.status === '終了'; });
+  var allMatches = [];
+  rounds.forEach(function(r) { if (r.matches) r.matches.forEach(function(m) { allMatches.push(m); }); });
+  var ended = allMatches.filter(function(m) { return m.status === '終了'; });
   var formUrl = event['フォームURL'] || '';
-
-  if (ended.length === 0) {
-    c.innerHTML = '<div class="empty-state">試合が終了するとアンケート・MVP選出が利用できます</div>';
-    return;
-  }
-
-  var h = '';
-
-  h += '<div style="margin-bottom:14px;">' +
-    '<div class="input-group"><label for="mvp-count">MVP人数</label>' +
-    '<input type="number" id="mvp-count" value="' + (event['MVP人数'] || 1) + '" min="1" max="5" class="input" style="width:80px;"></div>' +
-    '<div class="input-group"><label for="sub-mvp-count">準MVP人数</label>' +
-    '<input type="number" id="sub-mvp-count" value="' + (event['準MVP人数'] || 1) + '" min="0" max="5" class="input" style="width:80px;"></div>' +
+  if (ended.length === 0) { c.innerHTML = '<div class="empty-state">試合が終了するとアンケート・MVP選出が利用できます</div>'; return; }
+  var h = '<div style="margin-bottom:14px;">' +
+    '<div class="input-group"><label for="mvp-count">MVP人数</label><input type="number" id="mvp-count" value="' + (event['MVP人数'] || 1) + '" min="1" max="5" class="input" style="width:80px;"></div>' +
+    '<div class="input-group"><label for="sub-mvp-count">準MVP人数</label><input type="number" id="sub-mvp-count" value="' + (event['準MVP人数'] || 1) + '" min="0" max="5" class="input" style="width:80px;"></div>' +
     '<button class="btn btn-sm btn-secondary" onclick="saveMvpSettings()">設定を保存</button></div>';
-
   h += '<div style="margin-bottom:14px;">';
   if (formUrl) {
     h += '<p style="font-size:0.85rem;margin-bottom:8px;">アンケートフォーム作成済み:</p>' +
@@ -724,60 +577,32 @@ function renderPostMatch(event, rounds, mvpResults) {
     h += '<button class="btn btn-accent btn-large" onclick="createSurvey()">' + svg(IC.file, 18) + ' アンケートフォームを作成</button>';
   }
   h += '</div>';
-
   h += '<button class="btn btn-primary btn-large" onclick="runMvp()">' + svg(IC.trophy, 18) + ' MVP選出を実行</button>';
   h += '<div id="mvp-results-area"></div>';
-
   c.innerHTML = h;
-
   if (mvpResults && mvpResults.length > 0) renderMvpResults(mvpResults);
 }
-
 function saveMvpSettings() {
-  var mc = document.getElementById('mvp-count').value;
-  var sc = document.getElementById('sub-mvp-count').value;
-  callServer('updateMvpSettings', [currentEventId, mc, sc], function(r) {
-    showToast(r.message, !r.success);
-  });
+  var mc = document.getElementById('mvp-count').value; var sc = document.getElementById('sub-mvp-count').value;
+  callServer('updateMvpSettings', [currentEventId, mc, sc], function(r) { showToast(r.message, !r.success); });
 }
-
-function createSurvey() {
-  callServer('createSurveyForm', [currentEventId], function(r) {
-    if (r.success) { showToast(r.message); openEvent(currentEventId, 'tab-results'); }
-    else showToast(r.message, true);
-  });
-}
-
-function fetchSurvey() {
-  callServer('fetchSurveyResponses', [currentEventId], function(r) {
-    showToast(r.message, !r.success);
-  });
-}
-
+function createSurvey() { callServer('createSurveyForm', [currentEventId], function(r) { if (r.success) { showToast(r.message); openEvent(currentEventId, 'tab-results'); } else showToast(r.message, true); }); }
+function fetchSurvey() { callServer('fetchSurveyResponses', [currentEventId], function(r) { showToast(r.message, !r.success); }); }
 function runMvp() {
   if (!confirm('MVP選出を実行しますか？\n（定量評価 + アンケートの定性評価で判定します）')) return;
-  callServer('selectMVP', [currentEventId], function(r) {
-    if (r.success) { showToast(r.message); renderMvpResults(r.results); }
-    else showToast(r.message, true);
-  });
+  callServer('selectMVP', [currentEventId], function(r) { if (r.success) { showToast(r.message); renderMvpResults(r.results); } else showToast(r.message, true); });
 }
-
 function renderMvpResults(results) {
   var c = document.getElementById('mvp-results-area');
   if (!results || results.length === 0) { c.innerHTML = ''; return; }
-
   var h = '<h3 style="margin-top:16px;margin-bottom:10px;">' + svg(IC.trophy, 18) + ' MVP選出結果</h3>';
   h += results.map(function(r) {
-    var rank = r['順位'] || r.rank || '';
-    var name = r['名前'] || r.name || '';
-    var reason = r['理由'] || r.reason || '';
-    var qs = r['定量スコア'] || r.quantScore || 0;
-    var ls = r['定性スコア'] || r.qualScore || 0;
-    var ts = r['総合スコア'] || r.totalScore || 0;
+    var rank = r['順位'] || r.rank || ''; var name = r['名前'] || r.name || '';
+    var reason = r['理由'] || r.reason || ''; var qs = r['定量スコア'] || r.quantScore || 0;
+    var ls = r['定性スコア'] || r.qualScore || 0; var ts = r['総合スコア'] || r.totalScore || 0;
     if (!rank) return '';
     var cc = rank === 'MVP' ? 'rank-mvp' : 'rank-sub';
-    var rb = rank === 'MVP'
-      ? '<span class="mvp-result-rank" style="background:var(--accent);color:var(--text);">MVP</span>'
+    var rb = rank === 'MVP' ? '<span class="mvp-result-rank" style="background:var(--accent);color:var(--text);">MVP</span>'
       : '<span class="mvp-result-rank" style="background:#94A3B8;color:white;">準MVP</span>';
     return '<div class="mvp-result-card ' + cc + '"><div class="mvp-result-name">' + esc(name) + rb + '</div>' +
       '<div class="mvp-result-reason">' + esc(reason) + '</div>' +
@@ -791,18 +616,9 @@ function renderMvpResults(results) {
 // ===================================
 document.addEventListener('DOMContentLoaded', function() {
   var di = document.getElementById('ev-date');
-  if (di) {
-    var t = new Date();
-    di.value = t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0');
-  }
-
+  if (di) { var t = new Date(); di.value = t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); }
   var nameInput = document.getElementById('m-name');
-  if (nameInput) {
-    nameInput.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') { e.preventDefault(); addToQueue(); }
-    });
-  }
-
+  if (nameInput) { nameInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); addToQueue(); } }); }
   loadRecentEvents();
 });
 </script>
