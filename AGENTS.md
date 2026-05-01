@@ -31,6 +31,8 @@
 ├── .kiro/
 │   ├── steering/              AIエージェント向けステアリングルール
 │   └── skills/                AIエージェント向けスキル定義
+├── docs/
+│   └── er-diagram.md          ER図（Mermaid記法、テーブル定義・リレーション詳細）
 └── src/                       GASプロジェクトのソースコード（clasp rootDir）
     ├── appsscript.json        GASプロジェクト設定（タイムゾーン: Asia/Tokyo, webapp設定）
     ├── Code.gs                共通処理（スプレッドシート取得、シート初期化、ユーティリティ関数）
@@ -74,6 +76,7 @@
 - マッチはラウンドIDで紐づく
 - マッチメンバー・得点はマッチIDで紐づく
 - IDは `Utilities.getUuid().substring(0, 8)` で生成（8文字のUUID先頭部分）
+- 各テーブルのカラム定義・リレーション・カスケード削除の詳細は [ER図](docs/er-diagram.md) を参照
 
 ## コーディング規約
 
