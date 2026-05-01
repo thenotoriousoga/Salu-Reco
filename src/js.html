@@ -149,6 +149,9 @@ function renderEventDetail(d, activeTab) {
   document.getElementById('match-selector').style.display = 'none';
   document.getElementById('match-selector').innerHTML = '';
   document.getElementById('btn-create-round').style.display = 'none';
+  // 進行中ラウンドがあればチーム分けUIを非表示
+  var hasOngoing = (d.rounds || []).some(function(r) { return r.status !== '終了'; });
+  document.getElementById('round-create-section').style.display = hasOngoing ? 'none' : '';
   updateTeamCountOptions();
   switchTab(activeTab || 'tab-members');
 }
