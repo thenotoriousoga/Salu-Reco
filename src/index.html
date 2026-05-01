@@ -161,12 +161,20 @@
             <div id="p-checkboxes">読み込み中...</div>
             <div class="team-name-inputs" style="margin-top:12px;">
               <div class="input-group">
-                <label for="r-team-a">チームA</label>
-                <input type="text" id="r-team-a" value="チームA" class="input">
+                <label for="r-team-count">チーム数</label>
+                <select id="r-team-count" class="input" onchange="updateTeamNameInputs()">
+                  <option value="2">2チーム</option>
+                </select>
               </div>
-              <div class="input-group">
-                <label for="r-team-b">チームB</label>
-                <input type="text" id="r-team-b" value="チームB" class="input">
+              <div id="team-name-fields">
+                <div class="input-group">
+                  <label for="r-team-0">チームA</label>
+                  <input type="text" id="r-team-0" value="チームA" class="input">
+                </div>
+                <div class="input-group">
+                  <label for="r-team-1">チームB</label>
+                  <input type="text" id="r-team-1" value="チームB" class="input">
+                </div>
               </div>
             </div>
             <div class="split-buttons">
@@ -179,16 +187,7 @@
                 ランダム
               </button>
             </div>
-            <div class="teams-preview" id="teams-preview" style="display:none;">
-              <div class="team-box team-a">
-                <h4 id="preview-a-name">チームA</h4>
-                <div id="preview-a-list"></div>
-              </div>
-              <div class="team-box team-b">
-                <h4 id="preview-b-name">チームB</h4>
-                <div id="preview-b-list"></div>
-              </div>
-            </div>
+            <div id="teams-preview" style="display:none;"></div>
             <button class="btn btn-primary btn-large" id="btn-create-round" onclick="createRound()" style="display:none;margin-top:12px;">
               <svg class="btn-icon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
               この組み合わせで試合開始

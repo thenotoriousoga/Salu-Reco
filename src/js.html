@@ -6,10 +6,12 @@
 // --- 状態 ---
 var currentEventId = null;
 var currentMembers = [];
-var previewTeamA = [];
-var previewTeamB = [];
+var previewTeams = [];
 var goalCounts = {};
 var cachedRounds = [];
+
+// --- チームカラーマッピング ---
+var TEAM_CLASSES_ = ['a', 'b', 'c', 'd', 'e'];
 
 // --- SVGアイコンヘルパー ---
 function svg(paths, size) {
@@ -182,9 +184,13 @@ function renderEventDetail(d) {
   renderPostMatch(ev, d.rounds, d.mvpResults);
 
   // プレビューリセット
-  previewTeamA = []; previewTeamB = [];
+  previewTeams = [];
   document.getElementById('teams-preview').style.display = 'none';
+  document.getElementById('teams-preview').innerHTML = '';
   document.getElementById('btn-create-round').style.display = 'none';
+
+  // チーム数セレクトを更新
+  updateTeamCountOptions();
 
   // デフォルトタブ
   switchTab('tab-members');
@@ -326,13 +332,14 @@ function renderParticipantCB(members) {
   }
   c.innerHTML = '<div class="checkbox-grid">' + members.map(function(m) {
     var exp = m['サッカー経験'] === 'あり' ? ' *' : '';
-    return '<div class="checkbox-item"><input type="checkbox" id="pcb-' + m['メンバーID'] + '" value="' + m['メンバーID'] + '" checked>' +
+    return '<div class="checkbox-item"><input type="checkbox" id="pcb-' + m['メンバーID'] + '" value="' + m['メンバーID'] + '" checked onchange="updateTeamCountOptions()">' +
       '<label for="pcb-' + m['メンバーID'] + '">' + esc(m['名前']) + exp + '</label></div>';
   }).join('') + '</div><div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">* = サッカー経験あり</div>';
+  updateTeamCountOptions();
 }
 
-function selectAllP() { document.querySelectorAll('#p-checkboxes input[type="checkbox"]').forEach(function(cb) { cb.checked = true; }); }
-function deselectAllP() { document.querySelectorAll('#p-checkboxes input[type="checkbox"]').forEach(function(cb) { cb.checked = false; }); }
+function selectAllP() { document.querySelectorAll('#p-checkboxes input[type="checkbox"]').forEach(function(cb) { cb.checked = true; }); updateTeamCountOptions(); }
+function deselectAllP() { document.querySelectorAll('#p-checkboxes input[type="checkbox"]').forEach(function(cb) { cb.checked = false; }); updateTeamCountOptions(); }
 function getSelectedIds() { return Array.from(document.querySelectorAll('#p-checkboxes input:checked')).map(function(cb) { return cb.value; }); }
 
 /**
@@ -342,8 +349,7 @@ function getSelectedIds() { return Array.from(document.querySelectorAll('#p-chec
  */
 function handleSplitResult(r, toastMsg) {
   if (r.success) {
-    previewTeamA = r.teamA;
-    previewTeamB = r.teamB;
+    previewTeams = r.teams;
     renderTeamPreview();
     showToast(toastMsg);
   } else {
@@ -351,18 +357,71 @@ function handleSplitResult(r, toastMsg) {
   }
 }
 
+/**
+ * 選択人数に応じてチーム数セレクトの選択肢を更新する
+ */
+function updateTeamCountOptions() {
+  var ids = getSelectedIds();
+  var maxT = Math.max(2, Math.floor(ids.length / 3));
+  var sel = document.getElementById('r-team-count');
+  var cur = Number(sel.value) || 2;
+  sel.innerHTML = '';
+  for (var i = 2; i <= maxT; i++) {
+    var opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = i + 'チーム';
+    if (i === cur) opt.selected = true;
+    sel.appendChild(opt);
+  }
+  if (cur > maxT) sel.value = maxT;
+  updateTeamNameInputs();
+}
+
+/**
+ * チーム数に応じてチーム名入力フィールドを動的に生成する
+ */
+function updateTeamNameInputs() {
+  var count = Number(document.getElementById('r-team-count').value) || 2;
+  var labels = ['A', 'B', 'C', 'D', 'E'];
+  var c = document.getElementById('team-name-fields');
+  c.innerHTML = '';
+  for (var i = 0; i < count; i++) {
+    var label = labels[i] || String.fromCharCode(65 + i);
+    c.innerHTML += '<div class="input-group">' +
+      '<label for="r-team-' + i + '">チーム' + label + '</label>' +
+      '<input type="text" id="r-team-' + i + '" value="チーム' + label + '" class="input">' +
+      '</div>';
+  }
+}
+
+function getTeamCount() {
+  return Number(document.getElementById('r-team-count').value) || 2;
+}
+
+function getTeamNames() {
+  var count = getTeamCount();
+  var names = [];
+  for (var i = 0; i < count; i++) {
+    var el = document.getElementById('r-team-' + i);
+    names.push(el ? el.value : ('チーム' + String.fromCharCode(65 + i)));
+  }
+  return names;
+}
+
 function doAutoSplit() {
   var ids = getSelectedIds();
+  var teamCount = getTeamCount();
   if (ids.length < 4) { showToast('4人以上選択してください', true); return; }
-  callServer('autoSplitTeams', [currentEventId, ids], function(r) {
+  callServer('autoSplitTeams', [currentEventId, ids, teamCount], function(r) {
     handleSplitResult(r, 'AI分け完了');
   });
 }
 
 function doRandomSplit() {
   var ids = getSelectedIds();
+  var teamCount = getTeamCount();
   if (ids.length < 4) { showToast('4人以上選択してください', true); return; }
-  callServer('randomSplitTeams', [ids], function(r) {
+  callServer('randomSplitTeams', [ids, teamCount], function(r) {
     handleSplitResult(r, 'ランダム分け完了');
   });
 }
@@ -381,13 +440,19 @@ function teamMemberHtml(id, memberMap) {
 function renderTeamPreview() {
   var mm = {};
   currentMembers.forEach(function(m) { mm[m['メンバーID']] = m; });
-  var aN = document.getElementById('r-team-a').value || 'チームA';
-  var bN = document.getElementById('r-team-b').value || 'チームB';
-  document.getElementById('preview-a-name').textContent = aN;
-  document.getElementById('preview-b-name').textContent = bN;
-  document.getElementById('preview-a-list').innerHTML = previewTeamA.map(function(id) { return teamMemberHtml(id, mm); }).join('');
-  document.getElementById('preview-b-list').innerHTML = previewTeamB.map(function(id) { return teamMemberHtml(id, mm); }).join('');
-  document.getElementById('teams-preview').style.display = 'grid';
+  var names = getTeamNames();
+  var c = document.getElementById('teams-preview');
+
+  c.innerHTML = '<div class="teams-preview">' + previewTeams.map(function(team, idx) {
+    var cls = TEAM_CLASSES_[idx] || 'a';
+    var name = names[idx] || ('チーム' + String.fromCharCode(65 + idx));
+    return '<div class="team-box team-' + cls + '">' +
+      '<h4>' + esc(name) + '</h4>' +
+      team.map(function(id) { return teamMemberHtml(id, mm); }).join('') +
+      '</div>';
+  }).join('') + '</div>';
+
+  c.style.display = 'block';
   document.getElementById('btn-create-round').style.display = 'flex';
 }
 
@@ -395,15 +460,15 @@ function renderTeamPreview() {
 // ラウンド管理
 // ===================================
 function createRound() {
-  if (previewTeamA.length === 0) { showToast('先にチーム分けを行ってください', true); return; }
-  var aN = document.getElementById('r-team-a').value || 'チームA';
-  var bN = document.getElementById('r-team-b').value || 'チームB';
-  callServer('createRound', [currentEventId, aN, bN, previewTeamA, previewTeamB], function(r) {
-    if (r.success) { showToast(r.message); previewTeamA = []; previewTeamB = []; openEvent(currentEventId); switchTab('tab-rounds'); }
+  if (previewTeams.length === 0) { showToast('先にチーム分けを行ってください', true); return; }
+  var names = getTeamNames();
+  callServer('createRound', [currentEventId, names, previewTeams], function(r) {
+    if (r.success) { showToast(r.message); previewTeams = []; openEvent(currentEventId); switchTab('tab-rounds'); }
     else showToast(r.message, true);
   });
 }
 
+/**
 /**
  * ラウンド内のチームメンバーHTMLを生成する
  * @param {Object[]} teamPlayers - チームメンバーの配列
@@ -429,37 +494,42 @@ function goalsSummaryHtml(goals) {
 }
 
 /**
- * 進行中ラウンドのスコアボード・得点者入力HTMLを生成する
+ * 進行中ラウンドのスコアボード・得点者入力HTMLを生成する（Nチーム対応）
  * @param {Object} r - ラウンドオブジェクト
  * @return {string} スコアボードのHTML
  */
 function ongoingRoundHtml(r) {
+  var teams = r.teams || [];
+
   // スコアボード
-  var h = '<div class="scoreboard" style="margin:12px 0;">' +
-    '<div class="score-team"><span class="team-label">' + esc(r.teamAName) + '</span>' +
-    '<span class="score" id="sa-' + r.id + '">' + r.scoreA + '</span>' +
-    '<div class="score-btns"><button class="btn btn-sm btn-primary" onclick="chScore(\'' + r.id + '\',\'A\',1)">+1</button>' +
-    '<button class="btn btn-sm btn-secondary" onclick="chScore(\'' + r.id + '\',\'A\',-1)">-1</button></div></div>' +
-    '<div class="score-vs">VS</div>' +
-    '<div class="score-team"><span class="team-label">' + esc(r.teamBName) + '</span>' +
-    '<span class="score" id="sb-' + r.id + '">' + r.scoreB + '</span>' +
-    '<div class="score-btns"><button class="btn btn-sm btn-primary" onclick="chScore(\'' + r.id + '\',\'B\',1)">+1</button>' +
-    '<button class="btn btn-sm btn-secondary" onclick="chScore(\'' + r.id + '\',\'B\',-1)">-1</button></div></div></div>';
+  var h = '<div class="scoreboard" style="margin:12px 0;flex-wrap:wrap;">';
+  teams.forEach(function(t, idx) {
+    if (idx > 0) h += '<div class="score-vs">VS</div>';
+    h += '<div class="score-team"><span class="team-label">' + esc(t.name) + '</span>' +
+      '<span class="score" id="s-' + r.id + '-' + idx + '">' + t.score + '</span>' +
+      '<div class="score-btns"><button class="btn btn-sm btn-primary" onclick="chScore(\'' + r.id + '\',' + idx + ',1)">+1</button>' +
+      '<button class="btn btn-sm btn-secondary" onclick="chScore(\'' + r.id + '\',' + idx + ',-1)">-1</button></div></div>';
+  });
+  h += '</div>';
 
   // 得点者入力
-  var allP = r.teamA.map(function(p) { return { id: p.id, name: p.name, team: 'A', tn: r.teamAName }; })
-    .concat(r.teamB.map(function(p) { return { id: p.id, name: p.name, team: 'B', tn: r.teamBName }; }));
+  var allP = [];
+  teams.forEach(function(t, idx) {
+    t.members.forEach(function(p) {
+      allP.push({ id: p.id, name: p.name, teamIdx: idx, tn: t.name });
+    });
+  });
 
   h += '<div class="goal-section"><h3 style="font-size:0.85rem;">' + svg(IC.goal, 16) + ' 得点者を記録</h3>' +
     allP.map(function(p) {
-      var bc = p.team === 'A' ? 'team-a-badge' : 'team-b-badge';
+      var cls = TEAM_CLASSES_[p.teamIdx] || 'a';
       var cur = 0;
       if (r.goals) { var f = r.goals.find(function(g) { return g.memberId === p.id; }); if (f) cur = f.count; }
-      return '<div class="goal-player"><span class="goal-player-team ' + bc + '">' + esc(p.tn) + '</span>' +
+      return '<div class="goal-player" data-team-idx="' + p.teamIdx + '"><span class="goal-player-team team-' + cls + '-badge">' + esc(p.tn) + '</span>' +
         '<span class="goal-player-name">' + esc(p.name) + '</span>' +
-        '<div class="goal-count"><button class="btn btn-sm btn-secondary" onclick="chGoal(\'' + r.id + '\',\'' + p.id + '\',\'' + p.team + '\',-1)">-</button>' +
+        '<div class="goal-count"><button class="btn btn-sm btn-secondary" onclick="chGoal(\'' + r.id + '\',\'' + p.id + '\',' + p.teamIdx + ',-1)">-</button>' +
         '<span id="g-' + r.id + '-' + p.id + '">' + cur + '</span>' +
-        '<button class="btn btn-sm btn-primary" onclick="chGoal(\'' + r.id + '\',\'' + p.id + '\',\'' + p.team + '\',1)">+</button></div></div>';
+        '<button class="btn btn-sm btn-primary" onclick="chGoal(\'' + r.id + '\',\'' + p.id + '\',' + p.teamIdx + ',1)">+</button></div></div>';
     }).join('') + '</div>';
 
   h += '<div style="display:flex;gap:8px;margin-top:12px;">' +
@@ -470,13 +540,17 @@ function ongoingRoundHtml(r) {
 }
 
 /**
- * 終了済みラウンドのスコア表示HTMLを生成する
+ * 終了済みラウンドのスコア表示HTMLを生成する（Nチーム対応）
  * @param {Object} r - ラウンドオブジェクト
  * @return {string} スコア表示のHTML
  */
 function endedRoundHtml(r) {
+  var teams = r.teams || [];
+  var scoreLine = teams.map(function(t) {
+    return esc(t.name) + ' ' + t.score;
+  }).join(' - ');
   return '<div style="text-align:center;padding:8px 0;font-family:\'Fira Code\',monospace;font-size:1.2rem;font-weight:700;">' +
-    esc(r.teamAName) + ' ' + r.scoreA + ' - ' + r.scoreB + ' ' + esc(r.teamBName) + '</div>' + goalsSummaryHtml(r.goals);
+    scoreLine + '</div>' + goalsSummaryHtml(r.goals);
 }
 
 function renderRoundsList(rounds) {
@@ -489,13 +563,17 @@ function renderRoundsList(rounds) {
       ? '<span class="event-status-badge badge-ongoing">進行中</span>'
       : '<span class="event-status-badge badge-done">終了</span>';
 
-    var teamAH = roundTeamMembersHtml(r.teamA);
-    var teamBH = roundTeamMembersHtml(r.teamB);
+    var teams = r.teams || [];
+    var teamsH = '<div class="teams-preview" style="margin:0 0 8px 0;">' +
+      teams.map(function(t, idx) {
+        var cls = TEAM_CLASSES_[idx] || 'a';
+        return '<div class="team-box team-' + cls + '"><h4>' + esc(t.name) + '</h4>' + roundTeamMembersHtml(t.members) + '</div>';
+      }).join('') + '</div>';
+
     var scoreH = ongoing ? ongoingRoundHtml(r) : endedRoundHtml(r);
 
     return '<div class="round-card"><div class="round-header"><span class="round-title">第' + r.roundNumber + '試合</span>' + statusBadge + '</div>' +
-      '<div class="teams-preview" style="margin:0 0 8px 0;"><div class="team-box team-a"><h4>' + esc(r.teamAName) + '</h4>' + teamAH + '</div>' +
-      '<div class="team-box team-b"><h4>' + esc(r.teamBName) + '</h4>' + teamBH + '</div></div>' + scoreH + '</div>';
+      teamsH + scoreH + '</div>';
   }).join('');
 
   // ゴールカウント初期化
@@ -504,18 +582,29 @@ function renderRoundsList(rounds) {
 }
 
 // ===================================
-// 試合進行
+// 試合進行（Nチーム対応）
 // ===================================
-function chScore(rId, team, delta) {
-  var el = document.getElementById('s' + team.toLowerCase() + '-' + rId);
-  var v = Math.max(0, (parseInt(el.textContent) || 0) + delta);
-  el.textContent = v;
-  var a = parseInt(document.getElementById('sa-' + rId).textContent) || 0;
-  var b = parseInt(document.getElementById('sb-' + rId).textContent) || 0;
-  google.script.run.updateRoundScore(rId, a, b);
+
+/** ラウンドのチーム数を取得する */
+function getRoundTeamCount_(rId) {
+  var round = cachedRounds.find(function(r) { return r.id === rId; });
+  return round ? round.teamCount : 2;
 }
 
-function chGoal(rId, mId, team, delta) {
+function chScore(rId, teamIdx, delta) {
+  var el = document.getElementById('s-' + rId + '-' + teamIdx);
+  var v = Math.max(0, (parseInt(el.textContent) || 0) + delta);
+  el.textContent = v;
+  var tc = getRoundTeamCount_(rId);
+  var scores = [];
+  for (var i = 0; i < tc; i++) {
+    var se = document.getElementById('s-' + rId + '-' + i);
+    scores.push(se ? (parseInt(se.textContent) || 0) : 0);
+  }
+  google.script.run.updateRoundScore(rId, scores);
+}
+
+function chGoal(rId, mId, teamIdx, delta) {
   var key = rId + '-' + mId;
   goalCounts[key] = Math.max(0, (goalCounts[key] || 0) + delta);
   var el = document.getElementById('g-' + rId + '-' + mId);
@@ -525,20 +614,24 @@ function chGoal(rId, mId, team, delta) {
 }
 
 function recalcScores(rId) {
-  var sA = 0, sB = 0;
+  var tc = getRoundTeamCount_(rId);
+  var scores = [];
+  for (var i = 0; i < tc; i++) { scores.push(0); }
+
   document.querySelectorAll('[id^="g-' + rId + '-"]').forEach(function(el) {
     var cnt = parseInt(el.textContent) || 0;
     var row = el.closest('.goal-player');
     if (row) {
-      var badge = row.querySelector('.goal-player-team');
-      if (badge && badge.classList.contains('team-a-badge')) sA += cnt; else sB += cnt;
+      var idx = parseInt(row.getAttribute('data-team-idx'));
+      if (!isNaN(idx) && idx < tc) scores[idx] += cnt;
     }
   });
-  var eA = document.getElementById('sa-' + rId);
-  var eB = document.getElementById('sb-' + rId);
-  if (eA) eA.textContent = sA;
-  if (eB) eB.textContent = sB;
-  google.script.run.updateRoundScore(rId, sA, sB);
+
+  for (var i = 0; i < tc; i++) {
+    var se = document.getElementById('s-' + rId + '-' + i);
+    if (se) se.textContent = scores[i];
+  }
+  google.script.run.updateRoundScore(rId, scores);
 }
 
 function endRound(rId) {
@@ -574,15 +667,22 @@ function renderEventStats() {
     var wins = 0, losses = 0, draws = 0, played = 0, totalGoals = 0;
 
     rounds.forEach(function(r) {
-      var inA = r.teamA.find(function(p) { return p.id === mId; });
-      var inB = r.teamB.find(function(p) { return p.id === mId; });
-      if (!inA && !inB) return;
+      var myTeam = null;
+      (r.teams || []).forEach(function(t) {
+        t.members.forEach(function(p) {
+          if (p.id === mId) myTeam = t;
+        });
+      });
+      if (!myTeam) return;
       played++;
 
       if (r.status === '終了') {
-        var sA = Number(r.scoreA), sB = Number(r.scoreB);
-        if (sA === sB) draws++;
-        else if ((inA && sA > sB) || (inB && sB > sA)) wins++;
+        var teams = r.teams || [];
+        var maxScore = 0;
+        teams.forEach(function(t) { if (t.score > maxScore) maxScore = t.score; });
+        var topCount = teams.filter(function(t) { return t.score === maxScore; }).length;
+        if (myTeam.score === maxScore && topCount === 1) wins++;
+        else if (myTeam.score === maxScore && topCount > 1) draws++;
         else losses++;
       }
 

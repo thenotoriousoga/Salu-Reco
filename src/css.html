@@ -35,6 +35,15 @@
   --team-b: #DB2777;
   --team-b-bg: #FCE7F3;
   --team-b-border: #F9A8D4;
+  --team-c: #059669;
+  --team-c-bg: #D1FAE5;
+  --team-c-border: #6EE7B7;
+  --team-d: #D97706;
+  --team-d-bg: #FEF3C7;
+  --team-d-border: #FCD34D;
+  --team-e: #7C3AED;
+  --team-e-bg: #EDE9FE;
+  --team-e-border: #C4B5FD;
   --success: #059669;
   --success-bg: #D1FAE5;
   --danger: #DC2626;
@@ -410,7 +419,7 @@ body {
 
 .teams-preview {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 10px;
   margin: 14px 0;
 }
@@ -438,6 +447,21 @@ body {
 .team-b {
   background: var(--team-b-bg);
   border: 2px solid var(--team-b-border);
+}
+
+.team-c {
+  background: var(--team-c-bg);
+  border: 2px solid var(--team-c-border);
+}
+
+.team-d {
+  background: var(--team-d-bg);
+  border: 2px solid var(--team-d-border);
+}
+
+.team-e {
+  background: var(--team-e-bg);
+  border: 2px solid var(--team-e-border);
 }
 
 .team-member {
@@ -559,6 +583,24 @@ body {
   background: var(--team-b-bg);
   color: var(--team-b);
   border: 1px solid var(--team-b-border);
+}
+
+.goal-player-team.team-c-badge {
+  background: var(--team-c-bg);
+  color: var(--team-c);
+  border: 1px solid var(--team-c-border);
+}
+
+.goal-player-team.team-d-badge {
+  background: var(--team-d-bg);
+  color: var(--team-d);
+  border: 1px solid var(--team-d-border);
+}
+
+.goal-player-team.team-e-badge {
+  background: var(--team-e-bg);
+  color: var(--team-e);
+  border: 1px solid var(--team-e-border);
 }
 
 .goal-count {
