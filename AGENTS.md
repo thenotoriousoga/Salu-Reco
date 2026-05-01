@@ -1,0 +1,152 @@
+# AGENTS.md — Futsal Manager
+
+## プロジェクト概要
+
+フットサルの試合管理・MVP選出を行うWebアプリ。Google Apps Script（GAS）で完結し、スマホブラウザから利用できる。
+全データはイベント単位で管理され、イベントを横断した集計は行わない。
+
+## 技術スタック
+
+| レイヤー | 技術 |
+|---|---|
+| ランタイム | Google Apps Script（V8ランタイム） |
+| バックエンド | GAS サーバーサイド関数（`.gs` ファイル × 6） |
+| フロントエンド | HTML + CSS + Vanilla JS（GASテンプレート `HtmlService`） |
+| データストア | Google スプレッドシート（7シート） |
+| アンケート | Google フォーム（`FormApp` で自動生成） |
+| デプロイ | `@google/clasp` + GitHub Actions（`master` ブランチ push 時に自動デプロイ） |
+| フォント | Fira Sans（本文）/ Fira Code（データ表示） |
+| デザイン | Vibrant & Block-based スタイル、SVGアイコン、スマホファースト |
+
+## ディレクトリ構成
+
+```
+.
+├── AGENTS.md                  ← このファイル
+├── README.md                  プロジェクト説明・セットアップ手順
+├── .clasp.json                clasp設定（scriptId, rootDir）※ .gitignore対象
+├── .github/
+│   └── workflows/
+│       └── deploy.yml         GitHub Actions: masterへのpush時にclasp pushで自動デプロイ
+├── .kiro/
+│   ├── steering/              AIエージェント向けステアリングルール
+│   └── skills/                AIエージェント向けスキル定義
+└── src/                       GASプロジェクトのソースコード（clasp rootDir）
+    ├── appsscript.json        GASプロジェクト設定（タイムゾーン: Asia/Tokyo, webapp設定）
+    ├── Code.gs                共通処理（スプレッドシート取得、シート初期化、ユーティリティ関数）
+    ├── Events.gs              イベントCRUD（作成・取得・更新・削除）
+    ├── Members.gs             メンバーCRUD（イベントに紐づく、一括登録対応）
+    ├── Rounds.gs              ラウンド管理、チーム分け（AI蛇行ドラフト/ランダム）、スコア・得点記録
+    ├── Survey.gs              Googleフォーム自動生成、アンケート回答取得
+    ├── Mvp.gs                 MVP選出ロジック（定量50% + 定性50%の100点満点評価）
+    ├── index.html             メインHTML（SPA構成、タブ切り替え）
+    ├── css.html               スタイルシート（CSS変数ベースのデザインシステム）
+    └── js.html                クライアントサイドJS（google.script.run経由でサーバー呼び出し）
+```
+
+## アーキテクチャ
+
+### サーバーサイド（GAS）
+
+- `Code.gs` が共通基盤。`getSpreadsheet_()` でスプレッドシートを取得し、`getSheetData_()` でシートデータをオブジェクト配列に変換する
+- プライベート関数は末尾 `_` の命名規則（GASの慣例で、クライアントから直接呼び出せない）
+- 公開関数（`_` なし）は `google.script.run` 経由でクライアントから呼び出される
+- スプレッドシートIDは「コンテナバインドスクリプト」の場合は自動取得、「スタンドアロン」の場合はスクリプトプロパティ `SPREADSHEET_ID` から取得
+
+### クライアントサイド（js.html）
+
+- SPA風の画面遷移（`showPage()` でページ切り替え、`switchTab()` でタブ切り替え）
+- `callServer()` ラッパーでサーバー呼び出しを統一（ローディング表示・エラーハンドリング込み）
+- 状態はグローバル変数で管理（`currentEventId`, `currentMembers`, `cachedRounds` など）
+- メンバー登録はキュー方式（`memberQueue` に追加 → まとめて登録）
+
+### データモデル（スプレッドシート7シート）
+
+```
+イベント ──┬── メンバー
+           ├── ラウンド ──┬── ラウンドメンバー
+           │              └── 得点
+           ├── アンケート回答
+           └── MVP結果
+```
+
+- 全てのデータはイベントIDで紐づく
+- ラウンドメンバー・得点はラウンドIDで紐づく
+- IDは `Utilities.getUuid().substring(0, 8)` で生成（8文字のUUID先頭部分）
+
+## コーディング規約
+
+### GAS（サーバーサイド）
+
+- `var` を使用（GAS V8ランタイムだが、既存コードに合わせる）
+- プライベート関数は `functionName_()` の命名（末尾アンダースコア）
+- 定数は `UPPER_SNAKE_CASE_` + 末尾アンダースコア（例: `SHEET_HEADERS_`, `POSITIVE_WORDS_`）
+- シート名・カラム名は日本語（例: `'イベント'`, `'メンバーID'`）
+- 関数にはJSDoc形式のコメントを付与
+- `Array.prototype.forEach` / `map` / `filter` を使用（for-ofは使わない）
+- エラー時は `{ success: false, message: '...' }` 形式で返す
+
+### フロントエンド（js.html）
+
+- Vanilla JS のみ（フレームワーク・ライブラリ不使用）
+- `google.script.run` でサーバー関数を呼び出し
+- HTML生成は文字列結合（テンプレートリテラルは使わず `+` 演算子で結合）
+- XSS対策として `esc()` 関数でエスケープ
+- SVGアイコンは `svg()` ヘルパー + `IC` オブジェクトで管理
+
+### CSS（css.html）
+
+- CSS変数（`--primary`, `--bg`, `--radius` など）でデザイントークンを管理
+- BEM風ではなく、シンプルなクラス名（`.card`, `.btn-primary`, `.team-a` など）
+- スマホファースト設計（`max-width: 600px` のコンテナ）
+- `@media (prefers-reduced-motion)` でアニメーション配慮
+
+## ビルド・デプロイ
+
+### ローカル開発
+
+```bash
+# claspのインストール（グローバル）
+npm install -g @google/clasp
+
+# GASプロジェクトにpush
+clasp push
+
+# GASプロジェクトからpull
+clasp pull
+```
+
+- ローカルビルドステップは不要（GASが直接 `.gs` / `.html` を実行する）
+- テストフレームワークは未導入
+
+### CI/CD（GitHub Actions）
+
+- `master` ブランチへの push 時、`src/` 配下に変更があれば `clasp push --force` で自動デプロイ
+- シークレット: `CLASPRC_JSON`（clasp認証情報）、`SCRIPT_ID`（GASスクリプトID）
+
+## 主要なビジネスロジック
+
+### チーム分け（Rounds.gs）
+
+- **AI分け**: サッカー経験（2pt）+ 年次スコア（最大1pt）で各メンバーをスコアリングし、蛇行ドラフト方式で交互に分配
+- **ランダム分け**: Fisher-Yatesシャッフルで完全ランダム分配
+- 最低4人以上が必要
+
+### MVP選出（Mvp.gs）
+
+| 評価軸 | 配点 | 補正 |
+|---|---|---|
+| 定量評価（50%） | 得点×3pt、勝利×2pt | 未経験者+30%、若手（2年目以下）+15% |
+| 定性評価（50%） | コメント数×2pt、ポジティブワード+1pt | 長文（30字超）+1pt、（60字超）+2pt |
+
+- 両方を0-50に正規化して合算（100点満点）
+- MVP/準MVP人数は各1〜5人で設定可能
+- ラウンドに出場したメンバーのみが選出対象
+
+## 変更時の注意事項
+
+- シート名・カラム名を変更する場合は `SHEET_HEADERS_`（Code.gs）と全ファイルの参照箇所を同時に更新すること
+- 公開関数を追加した場合、クライアント側の `google.script.run.関数名()` 呼び出しも追加すること
+- CSSの色やサイズを変更する場合は `:root` のCSS変数を変更すること（ハードコードされた値は避ける）
+- `clasp push` 前に GAS エディタ上で他の人が編集していないか確認すること（`--force` で上書きされる）
+- Google フォーム関連の機能（Survey.gs）はGASの `FormApp` スコープが必要。初回実行時に権限承認が求められる
