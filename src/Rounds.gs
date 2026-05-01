@@ -314,5 +314,5 @@ function endRound(roundId) {
   var rowIndex = findRowIndex_(sheet, 0, roundId);
   if (rowIndex === -1) return { success: false, message: 'ラウンドが見つかりません' };
   sheet.getRange(rowIndex, 5).setValue('終了');
-  return { success: true, message: 'ラウンドを終了しました' };
+  return { success: true, message: 'ラウンドを終了しました。新しいチーム分けを行いましょう！' };
 }

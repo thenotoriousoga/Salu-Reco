@@ -476,7 +476,6 @@ function delRound(roundId) {
 }
 
 function doEndRound(roundId) {
-  if (!confirm('このラウンドを終了しますか？\n（試合データは保持されます。新しいチーム分けでラウンドを作成できます）')) return;
   callServer('endRound', [roundId], function(r) { showToast(r.message, !r.success); if (r.success) openEvent(currentEventId, 'tab-rounds'); });
 }
 
