@@ -562,7 +562,6 @@ function recalcScores(matchId) {
 }
 
 function endMatch(matchId) {
-  if (!confirm('この試合を終了しますか？')) return;
   callServer('endMatch', [matchId], function(r) { if (r.success) { showToast(r.message); openEvent(currentEventId, 'tab-rounds'); } });
 }
 
