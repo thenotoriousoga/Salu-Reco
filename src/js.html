@@ -508,12 +508,6 @@ function createRound() {
   });
 }
 
-function roundTeamMembersHtml(teamPlayers) {
-  return teamPlayers.map(function(p) {
-    return '<div class="team-member">' + esc(p.name) + (p.experience === 'あり' ? ' *' : '') + '</div>';
-  }).join('');
-}
-
 function goalsSummaryHtml(goals) {
   if (!goals) return '';
   var scorers = goals.filter(function(g) { return g.count > 0; });
@@ -570,13 +564,10 @@ function renderRoundsList(rounds) {
       ? '<span class="event-status-badge badge-ongoing">進行中</span>'
       : '<span class="event-status-badge badge-done">終了</span>';
 
-    var teamAH = roundTeamMembersHtml(r.teamA);
-    var teamBH = roundTeamMembersHtml(r.teamB);
     var scoreH = ongoing ? ongoingRoundHtml(r) : endedRoundHtml(r);
 
     return '<div class="round-card"><div class="round-header"><span class="round-title">第' + r.roundNumber + '試合</span>' + statusBadge + '</div>' +
-      '<div class="teams-preview" style="margin:0 0 8px 0;"><div class="team-box team-a"><h4>' + esc(r.teamAName) + '</h4>' + teamAH + '</div>' +
-      '<div class="team-box team-b"><h4>' + esc(r.teamBName) + '</h4>' + teamBH + '</div></div>' + scoreH + '</div>';
+      scoreH + '</div>';
   }).join('');
 
   goalCounts = {};
