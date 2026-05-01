@@ -400,18 +400,22 @@ function renderRoundsList(rounds) {
       }).join('');
     }
 
-    // 対戦カード追加UI
+    // 対戦カード追加UI（進行中のラウンドのみ）
     var addMatchH = '';
-    if (sd.teams && sd.teams.length >= 2) {
-      addMatchH = '<div style="margin-top:8px;">' +
-        '<button class="btn btn-sm btn-primary" onclick="showAddMatch(\'' + round.id + '\')">' +
-        svg('<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>', 14) + ' 試合を追加</button>' +
-        '<div id="add-match-' + round.id + '" style="display:none;"></div></div>';
+    var roundActionsH = '';
+    if (round.status !== '終了') {
+      if (sd.teams && sd.teams.length >= 2) {
+        addMatchH = '<div style="margin-top:8px;">' +
+          '<button class="btn btn-sm btn-primary" onclick="showAddMatch(\'' + round.id + '\')">' +
+          svg('<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>', 14) + ' 試合を追加</button>' +
+          '<div id="add-match-' + round.id + '" style="display:none;"></div></div>';
+      }
+      roundActionsH = '<button class="btn btn-sm btn-secondary" onclick="doEndRound(\'' + round.id + '\')" style="margin-left:4px;">' + svg(IC.flag, 14) + ' 終了</button>';
     }
 
     return '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
       '<h3 style="margin:0;">ラウンド' + round.roundNumber + '</h3>' +
-      '<div>' + statusBadgeHtml(round.status) +
+      '<div>' + statusBadgeHtml(round.status) + roundActionsH +
       ' <button class="btn btn-sm btn-danger" onclick="delRound(\'' + round.id + '\')" style="margin-left:4px;">' + svg(IC.trash, 14) + '</button></div></div>' +
       teamsH + matchesH + addMatchH + '</div>';
   }).join('');
@@ -466,6 +470,11 @@ function doCreateMatch(roundId) {
 function delRound(roundId) {
   if (!confirm('このラウンドと全試合を削除しますか？')) return;
   callServer('deleteRound', [roundId], function(r) { showToast(r.message, !r.success); if (r.success) openEvent(currentEventId, 'tab-rounds'); });
+}
+
+function doEndRound(roundId) {
+  if (!confirm('このラウンドを終了しますか？\n（試合データは保持されます。新しいチーム分けでラウンドを作成できます）')) return;
+  callServer('endRound', [roundId], function(r) { showToast(r.message, !r.success); if (r.success) openEvent(currentEventId, 'tab-rounds'); });
 }
 
 // ===================================

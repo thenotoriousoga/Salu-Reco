@@ -302,3 +302,17 @@ function deleteMatch(matchId) {
   deleteRowsByMatch_('マッチ', 0, matchId);
   return { success: true, message: '試合を削除しました' };
 }
+
+/**
+ * ラウンドを終了する（試合データは保持）
+ * @param {string} roundId - ラウンドID
+ * @return {Object} 結果オブジェクト
+ */
+function endRound(roundId) {
+  var ss = getSpreadsheet_();
+  var sheet = ss.getSheetByName('ラウンド');
+  var rowIndex = findRowIndex_(sheet, 0, roundId);
+  if (rowIndex === -1) return { success: false, message: 'ラウンドが見つかりません' };
+  sheet.getRange(rowIndex, 5).setValue('終了');
+  return { success: true, message: 'ラウンドを終了しました' };
+}
