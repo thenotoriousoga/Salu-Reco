@@ -169,16 +169,20 @@ function renderEventDetail(d) {
   renderRoundsList(d.rounds);
   renderPostMatch(ev, d.rounds, d.mvpResults);
 
-  // プレビューリセット
-  previewTeams = [];
-  previewNames = [];
-  selectedMatchA = -1;
-  selectedMatchB = -1;
-  document.getElementById('teams-preview').style.display = 'none';
-  document.getElementById('teams-preview').innerHTML = '';
-  document.getElementById('match-selector').style.display = 'none';
-  document.getElementById('match-selector').innerHTML = '';
-  document.getElementById('btn-create-round').style.display = 'none';
+  // プレビュー: 既存のチーム分け結果があれば保持して再描画
+  if (previewTeams.length > 0 && previewNames.length > 0) {
+    renderTeamPreview();
+  } else {
+    previewTeams = [];
+    previewNames = [];
+    selectedMatchA = -1;
+    selectedMatchB = -1;
+    document.getElementById('teams-preview').style.display = 'none';
+    document.getElementById('teams-preview').innerHTML = '';
+    document.getElementById('match-selector').style.display = 'none';
+    document.getElementById('match-selector').innerHTML = '';
+    document.getElementById('btn-create-round').style.display = 'none';
+  }
 
   // チーム数セレクトを更新
   updateTeamCountOptions();
@@ -481,6 +485,10 @@ function createRound() {
       if (previewTeams.length <= 2) {
         previewTeams = [];
         previewNames = [];
+      } else {
+        // 対戦選択をリセット（次の対戦を選べるように）
+        selectedMatchA = -1;
+        selectedMatchB = -1;
       }
       openEvent(currentEventId);
       switchTab('tab-rounds');
