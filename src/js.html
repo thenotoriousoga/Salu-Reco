@@ -142,6 +142,8 @@ function renderEventDetail(d, activeTab) {
   renderRoundsList(d.rounds);
   renderPostMatch(ev, d.rounds, d.mvpResults);
   // チーム分けプレビューリセット
+  document.getElementById('manual-split-area').style.display = 'none';
+  document.getElementById('manual-split-area').innerHTML = '';
   document.getElementById('teams-preview').style.display = 'none';
   document.getElementById('teams-preview').innerHTML = '';
   document.getElementById('match-selector').style.display = 'none';
@@ -267,7 +269,7 @@ function getTeamNames() {
   return names;
 }
 function handleSplitResult(r, toastMsg) {
-  if (r.success) { previewTeams = r.teams; previewNames = getTeamNames(); renderTeamPreview(); showToast(toastMsg); }
+  if (r.success) { previewTeams = r.teams; previewNames = getTeamNames(); document.getElementById('manual-split-area').style.display = 'none'; renderTeamPreview(); showToast(toastMsg); }
   else showToast(r.message, true);
 }
 function doAutoSplit() {
@@ -275,10 +277,66 @@ function doAutoSplit() {
   if (ids.length < 4) { showToast('4人以上選択してください', true); return; }
   callServer('autoSplitTeams', [currentEventId, ids, tc], function(r) { handleSplitResult(r, 'AI分け完了'); });
 }
-function doRandomSplit() {
-  var ids = getSelectedIds(); var tc = getTeamCount();
+function doManualSplit() {
+  var ids = getSelectedIds();
+  var tc = getTeamCount();
   if (ids.length < 4) { showToast('4人以上選択してください', true); return; }
-  callServer('randomSplitTeams', [ids, tc], function(r) { handleSplitResult(r, 'ランダム分け完了'); });
+  var names = getTeamNames();
+  var mm = {};
+  currentMembers.forEach(function(m) { mm[m['メンバーID']] = m; });
+
+  var h = '<div style="margin-top:12px;padding:12px;background:var(--bg-surface);border-radius:var(--radius-sm);border:1px solid var(--border-light);">' +
+    '<div style="font-size:0.85rem;font-weight:600;color:var(--text-secondary);margin-bottom:8px;">各メンバーのチームを選択</div>';
+  ids.forEach(function(id) {
+    var m = mm[id] || {};
+    var exp = m['サッカー経験'] === 'あり' ? ' *' : '';
+    h += '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-light);">' +
+      '<span style="flex:1;font-size:0.9rem;font-weight:500;">' + esc(m['名前'] || '?') + exp + '</span>' +
+      '<select id="ms-' + id + '" class="input" style="width:auto;flex:0 0 auto;">';
+    names.forEach(function(name, idx) {
+      h += '<option value="' + idx + '">' + esc(name) + '</option>';
+    });
+    h += '</select></div>';
+  });
+  h += '<button class="btn btn-primary" style="width:100%;margin-top:10px;" onclick="applyManualSplit()">チーム分けを確定</button></div>';
+
+  document.getElementById('manual-split-area').innerHTML = h;
+  document.getElementById('manual-split-area').style.display = 'block';
+  // プレビューを一旦非表示
+  document.getElementById('teams-preview').style.display = 'none';
+  document.getElementById('btn-create-round').style.display = 'none';
+}
+
+function applyManualSplit() {
+  var ids = getSelectedIds();
+  var tc = getTeamCount();
+  var teams = [];
+  for (var i = 0; i < tc; i++) { teams.push([]); }
+
+  ids.forEach(function(id) {
+    var sel = document.getElementById('ms-' + id);
+    if (sel) {
+      var idx = parseInt(sel.value);
+      if (idx >= 0 && idx < tc) teams[idx].push(id);
+    }
+  });
+
+  // 空チームチェック
+  var emptyTeams = [];
+  var names = getTeamNames();
+  teams.forEach(function(t, idx) {
+    if (t.length === 0) emptyTeams.push(names[idx]);
+  });
+  if (emptyTeams.length > 0) {
+    showToast(emptyTeams.join(', ') + ' にメンバーがいません', true);
+    return;
+  }
+
+  previewTeams = teams;
+  previewNames = names;
+  document.getElementById('manual-split-area').style.display = 'none';
+  renderTeamPreview();
+  showToast('手動分け完了');
 }
 function teamMemberHtml(id, memberMap) {
   var m = memberMap[id] || {};
