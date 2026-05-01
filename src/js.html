@@ -140,7 +140,7 @@ function loadRecentEvents() {
 // ===================================
 // イベント詳細
 // ===================================
-function openEvent(eventId) {
+function openEvent(eventId, activeTab) {
   currentEventId = eventId;
   callServer('getEventDetail', [eventId], function(d) {
     if (!d) { showToast('イベントが見つかりません', true); return; }
@@ -150,15 +150,15 @@ function openEvent(eventId) {
     if (d.savedSplit && d.savedSplit.teams && d.savedSplit.teams.length > 0) {
       previewTeams = d.savedSplit.teams;
       previewNames = d.savedSplit.names || [];
-    } else {
+    } else if (previewTeams.length === 0) {
       previewTeams = [];
       previewNames = [];
     }
-    renderEventDetail(d);
+    renderEventDetail(d, activeTab);
   }, 'エラー');
 }
 
-function renderEventDetail(d) {
+function renderEventDetail(d, activeTab) {
   document.getElementById('event-list-view').style.display = 'none';
   document.getElementById('event-detail-view').style.display = 'block';
 
@@ -195,8 +195,8 @@ function renderEventDetail(d) {
   // チーム数セレクトを更新
   updateTeamCountOptions();
 
-  // デフォルトタブ
-  switchTab('tab-members');
+  // タブ切り替え（指定があればそのタブ、なければメンバータブ）
+  switchTab(activeTab || 'tab-members');
 }
 
 function backToEventList() {
@@ -501,8 +501,7 @@ function createRound() {
         selectedMatchA = -1;
         selectedMatchB = -1;
       }
-      openEvent(currentEventId);
-      switchTab('tab-rounds');
+      openEvent(currentEventId, 'tab-rounds');
     } else {
       showToast(r.message, true);
     }
@@ -625,7 +624,7 @@ function recalcScores(rId) {
 function endRound(rId) {
   if (!confirm('この試合を終了しますか？')) return;
   callServer('endRound', [rId], function(r) {
-    if (r.success) { showToast(r.message); openEvent(currentEventId); switchTab('tab-rounds'); }
+    if (r.success) { showToast(r.message); openEvent(currentEventId, 'tab-rounds'); }
   });
 }
 
@@ -633,7 +632,7 @@ function delRound(rId) {
   if (!confirm('このラウンドを削除しますか？')) return;
   callServer('deleteRound', [rId], function(r) {
     showToast(r.message, !r.success);
-    if (r.success) { openEvent(currentEventId); switchTab('tab-rounds'); }
+    if (r.success) { openEvent(currentEventId, 'tab-rounds'); }
   });
 }
 
@@ -753,7 +752,7 @@ function saveMvpSettings() {
 
 function createSurvey() {
   callServer('createSurveyForm', [currentEventId], function(r) {
-    if (r.success) { showToast(r.message); openEvent(currentEventId); switchTab('tab-results'); }
+    if (r.success) { showToast(r.message); openEvent(currentEventId, 'tab-results'); }
     else showToast(r.message, true);
   });
 }

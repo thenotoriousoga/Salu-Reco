@@ -101,9 +101,23 @@ function deleteEvent(eventId) {
  * @return {Object} 結果オブジェクト
  */
 function saveTeamSplit(eventId, teamNames, teams) {
+  var ss = getSpreadsheet_();
+  var sheet = ss.getSheetByName('イベント');
+  // 既存シートに「チーム分けJSON」カラムがない場合はヘッダーを追加
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  if (headers.indexOf('チーム分けJSON') === -1) {
+    var nextCol = sheet.getLastColumn() + 1;
+    sheet.getRange(1, nextCol).setValue('チーム分けJSON');
+  }
+  // カラム位置を再取得
+  headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var colIndex = headers.indexOf('チーム分けJSON') + 1;
+
+  var rowIndex = findRowIndex_(sheet, 0, eventId);
+  if (rowIndex === -1) return { success: false, message: 'イベントが見つかりません' };
+
   var data = JSON.stringify({ names: teamNames, teams: teams });
-  var ok = updateEventField_(eventId, 9, data);
-  if (!ok) return { success: false, message: 'イベントが見つかりません' };
+  sheet.getRange(rowIndex, colIndex).setValue(data);
   return { success: true };
 }
 
@@ -113,6 +127,13 @@ function saveTeamSplit(eventId, teamNames, teams) {
  * @return {Object} 結果オブジェクト
  */
 function clearTeamSplit(eventId) {
-  updateEventField_(eventId, 9, '');
+  var ss = getSpreadsheet_();
+  var sheet = ss.getSheetByName('イベント');
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var colIdx = headers.indexOf('チーム分けJSON');
+  if (colIdx === -1) return { success: true };
+  var rowIndex = findRowIndex_(sheet, 0, eventId);
+  if (rowIndex === -1) return { success: true };
+  sheet.getRange(rowIndex, colIdx + 1).setValue('');
   return { success: true };
 }
