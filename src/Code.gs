@@ -76,19 +76,50 @@ function getSpreadsheet_() {
 
 /**
  * シートが存在しなければ作成してヘッダーを設定する
+ * 既存シートのヘッダーがSHEET_HEADERS_と異なる場合はヘッダー行のみ上書きする
  * @param {Spreadsheet} ss - スプレッドシート
  * @param {string} sheetName - シート名
  * @return {Sheet} 作成済みまたは既存のシート
  */
 function ensureSheet_(ss, sheetName) {
+  var headers = SHEET_HEADERS_[sheetName];
   var sheet = ss.getSheetByName(sheetName);
+
   if (!sheet) {
+    // シートが存在しない場合は新規作成
     sheet = ss.insertSheet(sheetName);
-    var headers = SHEET_HEADERS_[sheetName];
     if (headers) {
       sheet.appendRow(headers);
     }
+    return sheet;
   }
+
+  // 既存シートのヘッダーをチェックし、不一致なら上書き
+  if (headers) {
+    var currentHeaders = sheet.getLastColumn() > 0
+      ? sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
+      : [];
+
+    var needsUpdate = headers.length !== currentHeaders.length;
+    if (!needsUpdate) {
+      for (var i = 0; i < headers.length; i++) {
+        if (headers[i] !== currentHeaders[i]) {
+          needsUpdate = true;
+          break;
+        }
+      }
+    }
+
+    if (needsUpdate) {
+      // ヘッダー行のみ上書き（データ行はそのまま）
+      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+      // 旧ヘッダーの方が列数が多かった場合、余分なセルをクリア
+      if (currentHeaders.length > headers.length) {
+        sheet.getRange(1, headers.length + 1, 1, currentHeaders.length - headers.length).clearContent();
+      }
+    }
+  }
+
   return sheet;
 }
 
