@@ -229,6 +229,35 @@ function completeEvent(eventId) {
 }
 
 /**
+ * イベントを「試合終了」状態に戻す（完了から差し戻し）
+ * Googleフォームの回答受付を再開する
+ * @param {string} eventId - イベントID
+ * @return {Object} 結果オブジェクト { success, message }
+ */
+function uncompleteEvent(eventId) {
+  var event = findEvent_(eventId);
+  if (!event) return { success: false, message: 'イベントが見つかりません' };
+
+  var status = event['ステータス'];
+  if (status !== '完了') {
+    return { success: false, message: '完了状態のイベントのみ差し戻しできます' };
+  }
+
+  // Googleフォームの回答受付を再開
+  if (event['フォームID']) {
+    try {
+      var form = FormApp.openById(event['フォームID']);
+      form.setAcceptingResponses(true);
+    } catch (e) {
+      // フォームが見つからない場合は無視
+    }
+  }
+
+  updateEventStatus(eventId, '試合終了');
+  return { success: true, message: 'イベントを試合終了に戻しました' };
+}
+
+/**
  * MVP設定を更新する
  * @param {string} eventId - イベントID
  * @param {number} mvpCount - MVP人数

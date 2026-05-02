@@ -87,11 +87,10 @@ function renderEventDetail(d, activeTab) {
     '<line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> ' +
     esc(ev['名称'] || '') + ' <span class="event-date" style="margin-left:8px;">' + esc(String(ev['日付'] || '')) + '</span>';
 
-  // ステータスと削除ボタン（管理者のみ）
+  // ステータスと遷移ボタン（管理者のみ）
   var statusH = statusBadgeHtml(ev['ステータス']);
   if (isAdmin()) {
     statusH += buildStatusButtons_(ev['ステータス']);
-    statusH += ' <button class="btn btn-sm btn-danger" onclick="deleteCurrentEvent()" style="margin-left:8px;">' + svg(IC.trash, 14) + '</button>';
   }
   document.getElementById('ev-detail-status').innerHTML = statusH;
 
@@ -169,6 +168,11 @@ function buildStatusButtons_(status) {
       ' <button class="btn btn-sm btn-primary" onclick="doCompleteEvent()" style="margin-left:4px;">' +
       svg(IC.check, 14) + ' 完了にする</button>';
   }
+  if (status === '完了') {
+    return ' <button class="btn btn-sm btn-secondary" onclick="doUncompleteEvent()" style="margin-left:8px;">' +
+      svg('<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>', 14) +
+      ' 試合終了に戻す</button>';
+  }
   return '';
 }
 
@@ -213,5 +217,15 @@ function doCompleteEvent() {
       if (r.success) openEvent(currentEventId);
     });
   }, '完了にする');
+}
+
+/** イベントを「試合終了」に戻す（完了から差し戻し） */
+function doUncompleteEvent() {
+  showConfirm('試合終了に戻す', 'イベントを試合終了に戻しますか？MVP再選出やアンケート回答が可能になります。', function() {
+    callServer('uncompleteEvent', [currentEventId], function(r) {
+      showToast(r.message, !r.success);
+      if (r.success) openEvent(currentEventId);
+    });
+  }, '戻す');
 }
 </script>
