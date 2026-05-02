@@ -285,18 +285,30 @@ function fetchSurvey() { callServer('fetchSurveyResponses', [currentEventId], fu
 var mvpLoadingTimer_ = null;
 function runMvp() {
   showConfirm('MVP選出', 'いよいよMVP発表！準備はいいですか？', function() {
-    showLoading('AIが今日のヒーローを選出中...', 'ドラムロール...🥁');
+    showLoading("ウェカピポ -SOUL'd OUT", "Yo! 俺がDiggy-MO'だぜ! 聴いてくれ");
     // 「言い切る男」演出
     var lines = [
-      'どうも！言い切る男です！',
-      '今日のMVPがだれか、これまだ～答え出てないですよね',
-      '僕がその答えを言い切りましょ～！',
-      '厳しさの中にある',
-      'ｷﾋﾞｼｲ',
-      'まーごめ',
-      'ひき肉にしてやんよ！',
-      'やさしいゴージャス',
-      'きびしいゆってぃー',
+      'Nah ウェカピポ Yo!',
+      '秘めた巨大なPower そびえたったTower',
+      'アスファルトに網目状にひびが入るような地響き',
+      'Metropolis apocalypse, oh! 大げさな目次六とともに研ぎ澄ます',
+      '鳥肌立つ だけど自らTuffに赴いてUrbanite',
+      'わかってんじゃない? Ah!時は告げる 移ろう時代 世代に喝!',
+      '見上げた空からのThunda a-yo! Wake up!',
+      'その瞳も曇ってしまったLost generation',
+      '失ってしまった愛という名のIllumination',
+      '仮に別の愛という名のTemptation',
+      'インチキな街 Just imitation でしょ?',
+      'この場所に潤いをもう一度',
+      'パンチを! 変わらないSituation',
+      'そして胸の奥に秘めたSweetest emotion',
+      'One time! Yo! Yo!',
+      '荒 荒 荒波立つ ここはUrbanite ウェカピポ!',
+      '若 若さの中 不確かな迷いとか ウェカピポ! O-oh!',
+      '逆 逆 逆さまWorldの 孤独に強く ウェカピポ!',
+      'まだ まだ 闘わねば 真実はどこだ',
+      'Ah, ah, ah, ah-ah-ah, ah',
+      'ｱ ｱﾗﾗﾗｧ ｱ ｱｧ'
     ];
     var lineIdx = 0;
     mvpLoadingTimer_ = setInterval(function() {
@@ -311,7 +323,7 @@ function runMvp() {
       }
       sub.textContent = lines[lineIdx];
       lineIdx++;
-    }, 3000);
+    }, 2000);
     google.script.run
       .withSuccessHandler(function(r) {
         if (mvpLoadingTimer_) { clearInterval(mvpLoadingTimer_); mvpLoadingTimer_ = null; }
