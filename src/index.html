@@ -9,7 +9,21 @@
   <header class="header">
     <div class="header-inner">
       <h1>
-        <svg class="header-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 0 20 10 10 0 0 1 0-20m4.5 5.5L13 10l3.5 2.5-1.5 4h-6l-1.5-4L11 10 7.5 7.5"/></svg>
+        <svg class="header-logo" viewBox="0 0 36 36" aria-hidden="true">
+          <defs>
+            <linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#FBBF24"/>
+              <stop offset="100%" stop-color="#D97706"/>
+            </linearGradient>
+          </defs>
+          <circle cx="18" cy="20" r="14" fill="url(#logo-grad)" opacity="0.15"/>
+          <circle cx="18" cy="20" r="11" fill="none" stroke="url(#logo-grad)" stroke-width="2.2"/>
+          <path d="M18 9a11 11 0 0 1 0 22 11 11 0 0 1 0-22m5 6.2l-3.5 2.8 1.3 4.3h-5.6l1.3-4.3L13 15.2l3.5-1.2h3l3.5 1.2" fill="none" stroke="url(#logo-grad)" stroke-width="1.5" stroke-linejoin="round"/>
+          <path d="M13 6l2 4h6l2-4" fill="none" stroke="#FBBF24" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="15" cy="5" r="1.2" fill="#FBBF24"/>
+          <circle cx="18" cy="3.5" r="1.2" fill="#D97706"/>
+          <circle cx="21" cy="5" r="1.2" fill="#FBBF24"/>
+        </svg>
         Salu-Rec
       </h1>
       <button id="btn-logout" class="btn-logout" onclick="doLogout()" style="display:none;" aria-label="ログアウト">
@@ -24,7 +38,26 @@
     <div id="page-login" class="page active">
       <div class="login-hero">
         <div class="login-hero-icon">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 0 20 10 10 0 0 1 0-20m4.5 5.5L13 10l3.5 2.5-1.5 4h-6l-1.5-4L11 10 7.5 7.5"/></svg>
+          <svg class="login-logo" viewBox="0 0 80 80" aria-hidden="true">
+            <defs>
+              <linearGradient id="login-logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#FBBF24"/>
+                <stop offset="50%" stop-color="#D97706"/>
+                <stop offset="100%" stop-color="#B45309"/>
+              </linearGradient>
+              <linearGradient id="login-crown-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#FDE68A"/>
+                <stop offset="100%" stop-color="#FBBF24"/>
+              </linearGradient>
+            </defs>
+            <circle cx="40" cy="44" r="28" fill="url(#login-logo-grad)" opacity="0.12"/>
+            <circle cx="40" cy="44" r="24" fill="none" stroke="url(#login-logo-grad)" stroke-width="3"/>
+            <path d="M40 20a24 24 0 0 1 0 48 24 24 0 0 1 0-48m11 13.5l-7.5 6 2.8 9.2H33.7l2.8-9.2-7.5-6 7.5-2.5h6.5l7.5 2.5" fill="none" stroke="url(#login-logo-grad)" stroke-width="2.5" stroke-linejoin="round"/>
+            <path d="M27 12l5 9h16l5-9" fill="none" stroke="url(#login-crown-grad)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="32" cy="10" r="2.5" fill="#FBBF24"/>
+            <circle cx="40" cy="7" r="3" fill="#D97706"/>
+            <circle cx="48" cy="10" r="2.5" fill="#FBBF24"/>
+          </svg>
         </div>
         <h2 class="login-hero-title">Salu-Rec</h2>
         <p class="login-hero-sub">イベントコードを入力して参加</p>

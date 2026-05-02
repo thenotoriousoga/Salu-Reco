@@ -68,7 +68,7 @@ body {
 
 /* --- ヘッダー --- */
 .header {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 50%, var(--accent) 100%);
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 50%, var(--accent-dark) 100%);
   color: white;
   padding: 18px 20px;
   text-align: center;
@@ -97,6 +97,12 @@ body {
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+.header-logo {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
 }
 
 .header-inner {
@@ -1107,20 +1113,23 @@ body {
 .login-hero { text-align: center; padding: 48px 20px 24px; }
 
 .login-hero-icon {
-  width: 64px;
-  height: 64px;
+  width: 96px;
+  height: 96px;
   margin: 0 auto 16px;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.08) 0%, rgba(251, 191, 36, 0.12) 100%);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 24px rgba(220, 38, 38, 0.25);
+  box-shadow: 0 8px 32px rgba(251, 191, 36, 0.2), 0 4px 16px rgba(220, 38, 38, 0.1);
+}
+
+.login-hero-icon .login-logo {
+  width: 80px;
+  height: 80px;
 }
 
 .login-hero-icon svg {
-  width: 36px;
-  height: 36px;
   stroke: white;
   fill: none;
   stroke-width: 2;
