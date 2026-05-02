@@ -60,10 +60,10 @@ function renderMemberList(members, surveyVoters) {
  * @param {Object} m - メンバーオブジェクト
  * @param {boolean} isQueue - キュー内のメンバーか
  * @param {boolean} hasAnswered - アンケート回答済みか
- * @param {boolean} canDelete - 削除可能か
+ * @param {boolean} canEdit - 編集可能か
  * @return {string} HTML文字列
  */
-function memberItemHtml_(m, isQueue, hasAnswered, canDelete) {
+function memberItemHtml_(m, isQueue, hasAnswered, canEdit) {
   var id = isQueue ? '' : m['メンバーID'];
   var name = isQueue ? m.name : m['名前'];
   var years = isQueue ? m.years : m['年次'];
@@ -77,23 +77,26 @@ function memberItemHtml_(m, isQueue, hasAnswered, canDelete) {
   if (orgLabel === 'はい') icons += '<span class="member-icon" title="幹事">👔</span>';
   if (hasAnswered) icons += '<span class="member-icon member-icon-survey" title="アンケート回答済">✓</span>';
 
-  // 削除ボタン
-  var deleteBtn = '';
-  if (canDelete && id) {
-    deleteBtn = '<button class="btn btn-sm btn-danger member-delete-btn" onclick="deleteMember(\'' + id + '\')">' + svg(IC.trash, 14) + '</button>';
-  } else if (isQueue) {
-    // キュー用の削除は別途renderQueueで処理
+  // 編集ボタン（管理者のみ）
+  var editBtn = '';
+  if (canEdit && id) {
+    editBtn = '<button class="btn btn-sm btn-secondary member-edit-btn" onclick="openMemberEdit(\'' + id + '\')" title="編集">' +
+      '<svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true" style="width:14px;height:14px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' +
+      '</button>';
   }
 
   // 2行目: 年次 / 備考
   var subLine = years + '年目';
   if (note) subLine += ' / ' + esc(note);
 
+  // クリックで編集（管理者のみ）
+  var clickAttr = (canEdit && id) ? ' onclick="openMemberEdit(\'' + id + '\')" style="cursor:pointer;"' : '';
+
   return '<div class="member-item-v2">' +
     '<div class="member-main">' +
-    '<span class="member-name-v2">' + esc(name) + '</span>' +
+    '<span class="member-name-v2"' + clickAttr + '>' + esc(name) + '</span>' +
     '<span class="member-icons">' + icons + '</span>' +
-    deleteBtn +
+    editBtn +
     '</div>' +
     '<div class="member-sub">' + subLine + '</div>' +
     '</div>';
@@ -156,5 +159,70 @@ function deleteMember(memberId) {
   showConfirm('メンバー削除', 'このメンバーを削除しますか？', function() {
     callServer('deleteEventMember', [memberId], function(r) { showToast(r.message, !r.success); if (r.success) openEvent(currentEventId); });
   }, '削除する');
+}
+
+// ===================================
+// メンバー編集
+// ===================================
+var editingMemberId = null;
+
+/**
+ * メンバー編集モーダルを開く
+ * @param {string} memberId - メンバーID
+ */
+function openMemberEdit(memberId) {
+  var member = currentMembers.find(function(m) { return m['メンバーID'] === memberId; });
+  if (!member) { showToast('メンバーが見つかりません', true); return; }
+
+  editingMemberId = memberId;
+
+  // モーダルにデータをセット
+  document.getElementById('edit-m-name').value = member['名前'] || '';
+  document.getElementById('edit-m-years').value = member['年次'] || 1;
+  document.getElementById('edit-m-exp').value = member['サッカー経験'] === 'あり' ? 'true' : 'false';
+  document.getElementById('edit-m-organizer').checked = member['幹事'] === 'はい';
+  document.getElementById('edit-m-note').value = member['備考'] || '';
+
+  // モーダル表示
+  document.getElementById('member-edit-modal').style.display = 'flex';
+}
+
+/** メンバー編集モーダルを閉じる */
+function closeMemberEdit() {
+  document.getElementById('member-edit-modal').style.display = 'none';
+  editingMemberId = null;
+}
+
+/** メンバー情報を保存する */
+function saveMemberEdit() {
+  if (!editingMemberId) return;
+
+  var data = {
+    name: document.getElementById('edit-m-name').value.trim(),
+    years: Number(document.getElementById('edit-m-years').value) || 1,
+    exp: document.getElementById('edit-m-exp').value === 'true',
+    org: document.getElementById('edit-m-organizer').checked,
+    note: document.getElementById('edit-m-note').value.trim()
+  };
+
+  if (!data.name) {
+    showToast('名前を入力してください', true);
+    return;
+  }
+
+  callServer('updateMember', [editingMemberId, data], function(r) {
+    showToast(r.message, !r.success);
+    if (r.success) {
+      closeMemberEdit();
+      openEvent(currentEventId);
+    }
+  });
+}
+
+/** メンバーを削除する（編集モーダルから） */
+function deleteMemberFromEdit() {
+  if (!editingMemberId) return;
+  closeMemberEdit();
+  deleteMember(editingMemberId);
 }
 </script>

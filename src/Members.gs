@@ -75,3 +75,39 @@ function deleteEventMember(memberId) {
   deleteRowsByMatch_('メンバー', 0, memberId);
   return { success: true, message: 'メンバーを削除しました' };
 }
+
+// ===================================
+// メンバー更新
+// ===================================
+
+/**
+ * メンバー情報を更新する
+ * @param {string} memberId - メンバーID
+ * @param {Object} data - 更新データ { name, years, exp, org, note }
+ * @return {Object} 結果オブジェクト { success, message }
+ */
+function updateMember(memberId, data) {
+  if (!memberId) {
+    return { success: false, message: 'メンバーIDが指定されていません' };
+  }
+  if (!data.name || !data.name.trim()) {
+    return { success: false, message: '名前を入力してください' };
+  }
+
+  var ss = getSpreadsheet_();
+  var sheet = ss.getSheetByName('メンバー');
+  var rowIndex = findRowIndex_(sheet, 0, memberId);
+
+  if (rowIndex === -1) {
+    return { success: false, message: 'メンバーが見つかりません' };
+  }
+
+  // 各フィールドを更新（列: メンバーID, イベントID, 名前, 年次, サッカー経験, 幹事, 備考）
+  sheet.getRange(rowIndex, 3).setValue(data.name.trim());           // 名前
+  sheet.getRange(rowIndex, 4).setValue(Number(data.years) || 1);    // 年次
+  sheet.getRange(rowIndex, 5).setValue(data.exp ? 'あり' : 'なし'); // サッカー経験
+  sheet.getRange(rowIndex, 6).setValue(data.org ? 'はい' : 'いいえ'); // 幹事
+  sheet.getRange(rowIndex, 7).setValue((data.note || '').trim());   // 備考
+
+  return { success: true, message: 'メンバー情報を更新しました' };
+}

@@ -320,6 +320,43 @@
   <!-- カスタムモーダル -->
   <div id="modal-container"></div>
 
+  <!-- メンバー編集モーダル -->
+  <div id="member-edit-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-box modal-box-wide">
+      <h3>メンバー編集</h3>
+      <div class="member-form-name" style="margin-bottom:12px;">
+        <input type="text" id="edit-m-name" placeholder="名前" class="input input-name" aria-label="名前">
+      </div>
+      <div class="member-form-attrs" style="margin-bottom:12px;">
+        <div class="attr-item">
+          <label for="edit-m-years" class="attr-label">年次</label>
+          <input type="number" id="edit-m-years" value="1" min="1" max="50" class="input attr-input">
+        </div>
+        <div class="attr-item">
+          <label for="edit-m-exp" class="attr-label">経験</label>
+          <select id="edit-m-exp" class="input attr-input">
+            <option value="false">なし</option>
+            <option value="true">あり</option>
+          </select>
+        </div>
+        <div class="attr-item">
+          <label class="attr-label attr-label-cb">
+            <input type="checkbox" id="edit-m-organizer"> 幹事
+          </label>
+        </div>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label for="edit-m-note" class="attr-label" style="display:block;margin-bottom:4px;">備考</label>
+        <textarea id="edit-m-note" class="input" rows="2" placeholder="初参加、久しぶり、役職など" aria-label="備考"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-danger" onclick="deleteMemberFromEdit()" style="margin-right:auto;">削除</button>
+        <button class="btn btn-secondary" onclick="closeMemberEdit()">キャンセル</button>
+        <button class="btn btn-primary" onclick="saveMemberEdit()">保存</button>
+      </div>
+    </div>
+  </div>
+
   <!-- トースト通知 -->
   <div id="toast" class="toast" role="alert" aria-live="polite"></div>
 
