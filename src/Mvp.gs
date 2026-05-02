@@ -76,19 +76,24 @@ function getParticipantIds_(matchMembers, matchIds) {
  */
 function countGoals_(goals, matchIds, memberId) {
   return goals
-    .filter(function(g) { return matchIds.indexOf(g['マッチID']) >= 0 && g['メンバーID'] === memberId; })
-    .reduce(function(sum, g) { return sum + Number(g['得点数']); }, 0);
+    .filter(function(g) {
+      return matchIds.indexOf(g['マッチID']) >= 0 &&
+             g['メンバーID'] === memberId &&
+             g['種別'] === '通常';
+    })
+    .length;
 }
 
 /**
  * メンバーの勝利数を集計する
  * @param {Object[]} matches - マッチデータ
  * @param {Object[]} matchMembers - マッチメンバーデータ
+ * @param {Object[]} goals - 得点データ
  * @param {string[]} matchIds - 対象マッチIDの配列
  * @param {string} memberId - メンバーID
  * @return {number} 勝利数
  */
-function countWins_(matches, matchMembers, matchIds, memberId) {
+function countWins_(matches, matchMembers, goals, matchIds, memberId) {
   var wins = 0;
   matchIds.forEach(function(mMatchId) {
     var mm = matchMembers.find(function(mm) { return mm['マッチID'] === mMatchId && mm['メンバーID'] === memberId; });
@@ -97,8 +102,11 @@ function countWins_(matches, matchMembers, matchIds, memberId) {
     var match = matches.find(function(mt) { return mt['マッチID'] === mMatchId; });
     if (!match || match['ステータス'] !== '終了') return;
 
-    var sA = Number(match['スコアA']);
-    var sB = Number(match['スコアB']);
+    // スコアを得点テーブルから計算
+    var matchGoals = goals.filter(function(g) { return g['マッチID'] === mMatchId; });
+    var sA = matchGoals.filter(function(g) { return g['チーム'] === 'A'; }).length;
+    var sB = matchGoals.filter(function(g) { return g['チーム'] === 'B'; }).length;
+
     if ((mm['チーム'] === 'A' && sA > sB) || (mm['チーム'] === 'B' && sB > sA)) {
       wins++;
     }
@@ -140,7 +148,7 @@ function buildMvpPrompt_(participantIds, memberMap, surveyComments, goals, match
   var memberLines = participantIds.map(function(mId) {
     var m = memberMap[mId] || {};
     var totalGoals = countGoals_(goals, matchIds, mId);
-    var totalWins = countWins_(matches, matchMembers, matchIds, mId);
+    var totalWins = countWins_(matches, matchMembers, goals, matchIds, mId);
     var played = countPlayed_(matchMembers, matchIds, mId);
     var comments = surveyComments
       .filter(function(c) { return c['対象メンバーID'] === mId; })

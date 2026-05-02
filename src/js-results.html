@@ -111,9 +111,13 @@ function renderEventStats() {
         else if ((inA && sA > sB) || (inB && sB > sA)) { wins++; result = '勝ち'; }
         else { losses++; result = '負け'; }
       }
-      if (match.goals) {
-        var g = match.goals.find(function(g) { return g.memberId === mId; });
+      // 得点集計
+      if (match.memberGoals) {
+        var g = match.memberGoals.find(function(g) { return g.memberId === mId; });
         if (g) { goalCount = Number(g.count); totalGoals += goalCount; }
+      } else if (match.goals) {
+        goalCount = match.goals.filter(function(g) { return g.memberId === mId && g.type === '通常'; }).length;
+        totalGoals += goalCount;
       }
       matchDetails.push({
         roundNumber: item.roundNumber,

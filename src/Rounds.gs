@@ -94,15 +94,29 @@ function buildMatchData_(match, matchMembers, goals, memberMap) {
     .filter(function(mm) { return mm['マッチID'] === mId && mm['チーム'] === 'B'; })
     .map(function(mm) { return mm['メンバーID']; });
 
+  // 得点データを取得
   var matchGoals = goals.filter(function(g) { return g['マッチID'] === mId; });
+
+  // スコアを得点データから集計
+  var scoreA = matchGoals.filter(function(g) { return g['チーム'] === 'A'; }).length;
+  var scoreB = matchGoals.filter(function(g) { return g['チーム'] === 'B'; }).length;
+
+  // メンバーごとの得点数を集計
+  var memberGoalCounts = {};
+  matchGoals.forEach(function(g) {
+    if (g['種別'] === '通常' && g['メンバーID']) {
+      var key = g['メンバーID'];
+      memberGoalCounts[key] = (memberGoalCounts[key] || 0) + 1;
+    }
+  });
 
   return {
     id: mId,
     matchNumber: match['マッチ番号'],
     teamAName: match['チームA名'],
     teamBName: match['チームB名'],
-    scoreA: match['スコアA'],
-    scoreB: match['スコアB'],
+    scoreA: scoreA,
+    scoreB: scoreB,
     status: match['ステータス'],
     teamA: teamAIds.map(function(id) {
       var m = memberMap[id] || {};
@@ -112,11 +126,24 @@ function buildMatchData_(match, matchMembers, goals, memberMap) {
       var m = memberMap[id] || {};
       return { id: id, name: m['名前'] || '不明', experience: m['サッカー経験'] || 'なし' };
     }),
+    // 得点一覧
     goals: matchGoals.map(function(g) {
+      var memberId = g['メンバーID'] || '';
+      var memberName = memberId ? ((memberMap[memberId] || {})['名前'] || '不明') : '';
       return {
-        memberId: g['メンバーID'],
-        name: (memberMap[g['メンバーID']] || {})['名前'] || '不明',
-        count: g['得点数']
+        goalId: g['得点ID'],
+        team: g['チーム'],
+        memberId: memberId,
+        name: memberName,
+        type: g['種別']
+      };
+    }),
+    // メンバーごとの得点数
+    memberGoals: Object.keys(memberGoalCounts).map(function(memberId) {
+      return {
+        memberId: memberId,
+        name: (memberMap[memberId] || {})['名前'] || '不明',
+        count: memberGoalCounts[memberId]
       };
     })
   };
@@ -157,10 +184,11 @@ function createMatch(roundId, teamAName, teamBName, teamAMembers, teamBMembers) 
   var existing = getSheetData_('マッチ').filter(function(m) { return m['ラウンドID'] === roundId; });
   var matchNumber = existing.length + 1;
 
+  // マッチシート
   ensureSheet_(ss, 'マッチ').appendRow([
     matchId, roundId, matchNumber,
     teamAName || 'チームA', teamBName || 'チームB',
-    0, 0, '進行中'
+    '進行中'
   ]);
 
   // マッチメンバーを一括書き込み（appendRowの繰り返しより高速）
@@ -183,46 +211,62 @@ function createMatch(roundId, teamAName, teamBName, teamAMembers, teamBMembers) 
 }
 
 /**
- * マッチのスコアを更新する
+ * 得点を追加する（1得点=1行）
  * @param {string} matchId - マッチID
- * @param {number} scoreA - チームAのスコア
- * @param {number} scoreB - チームBのスコア
+ * @param {string} team - チーム（A / B）
+ * @param {string} memberId - メンバーID（オウンゴール・不明の場合は空文字）
+ * @param {string} type - 種別（通常 / オウンゴール / 不明）
+ * @return {Object} 結果オブジェクト { success, goalId }
+ */
+function addGoal(matchId, team, memberId, type) {
+  var ss = getSpreadsheet_();
+  var sheet = ensureSheet_(ss, '得点');
+  var goalId = generateId_();
+
+  sheet.appendRow([goalId, matchId, team, memberId || '', type || '通常']);
+  return { success: true, goalId: goalId };
+}
+
+/**
+ * 得点を削除する
+ * @param {string} goalId - 得点ID
  * @return {Object} 結果オブジェクト { success }
  */
-function updateMatchScore(matchId, scoreA, scoreB) {
+function removeGoal(goalId) {
   var ss = getSpreadsheet_();
-  var sheet = ss.getSheetByName('マッチ');
-  var rowIndex = findRowIndex_(sheet, 0, matchId);
+  var sheet = ss.getSheetByName('得点');
+  if (!sheet) return { success: false };
+
+  var rowIndex = findRowIndex_(sheet, 0, goalId);
   if (rowIndex === -1) return { success: false };
 
-  // 2つのセルを一括更新（setValueの繰り返しより高速）
-  sheet.getRange(rowIndex, 6, 1, 2).setValues([[Number(scoreA), Number(scoreB)]]);
+  sheet.deleteRow(rowIndex);
   return { success: true };
 }
 
 /**
- * 得点を記録する
+ * 指定メンバーの最新の得点を1つ削除する
  * @param {string} matchId - マッチID
- * @param {string} memberId - メンバーID
- * @param {number} goalCount - 得点数
+ * @param {string} team - チーム（A / B）
+ * @param {string} memberId - メンバーID（オウンゴール・不明の場合は空文字）
+ * @param {string} type - 種別（通常 / オウンゴール / 不明）
  * @return {Object} 結果オブジェクト { success }
  */
-function recordGoal(matchId, memberId, goalCount) {
+function removeLatestGoal(matchId, team, memberId, type) {
   var ss = getSpreadsheet_();
-  var sheet = ensureSheet_(ss, '得点');
-  var data = sheet.getDataRange().getValues();
+  var sheet = ss.getSheetByName('得点');
+  if (!sheet || sheet.getLastRow() < 2) return { success: false };
 
-  // 既存レコードを更新
-  for (var i = 1; i < data.length; i++) {
-    if (data[i][0] === matchId && data[i][1] === memberId) {
-      sheet.getRange(i + 1, 3).setValue(Number(goalCount));
+  var data = sheet.getDataRange().getValues();
+  // 後ろから検索して最初に見つかった該当行を削除
+  for (var i = data.length - 1; i >= 1; i--) {
+    if (data[i][1] === matchId && data[i][2] === team &&
+        data[i][3] === (memberId || '') && data[i][4] === type) {
+      sheet.deleteRow(i + 1);
       return { success: true };
     }
   }
-
-  // 新規レコードを追加
-  sheet.appendRow([matchId, memberId, Number(goalCount)]);
-  return { success: true };
+  return { success: false };
 }
 
 /**
@@ -236,7 +280,7 @@ function endMatch(matchId) {
   var rowIndex = findRowIndex_(sheet, 0, matchId);
   if (rowIndex === -1) return { success: false };
 
-  sheet.getRange(rowIndex, 8).setValue('終了');
+  sheet.getRange(rowIndex, 6).setValue('終了');
   return { success: true, message: '試合終了！次の戦いはもう始まっている' };
 }
 
@@ -267,6 +311,6 @@ function reopenMatch(matchId) {
     return { success: false, message: 'イベント終了後は編集できません' };
   }
 
-  sheet.getRange(rowIndex, 8).setValue('進行中');
+  sheet.getRange(rowIndex, 6).setValue('進行中');
   return { success: true, message: '試合を再開しました。スコアを編集できます' };
 }
