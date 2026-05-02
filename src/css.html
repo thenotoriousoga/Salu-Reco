@@ -357,6 +357,78 @@ body {
   font-size: 0.95rem;
 }
 
+/* --- メンバーリスト v2（アイコン版） --- */
+.member-legend {
+  display: flex;
+  gap: 12px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  padding: 6px 0 10px;
+  border-bottom: 1px solid var(--border-light);
+  margin-bottom: 4px;
+}
+
+.member-legend span {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.member-legend .legend-survey {
+  color: var(--success);
+}
+
+.member-item-v2 {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.member-item-v2:last-child {
+  border-bottom: none;
+}
+
+.member-main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.member-name-v2 {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.member-icons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 4px;
+}
+
+.member-icon {
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+.member-icon-survey {
+  color: var(--success);
+  font-weight: 700;
+  opacity: 1;
+}
+
+.member-delete-btn {
+  margin-left: auto;
+}
+
+.member-sub {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+  padding-left: 2px;
+  line-height: 1.4;
+}
+
 /* --- チェックボックスグリッド --- */
 .checkbox-grid {
   display: grid;
