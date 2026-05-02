@@ -55,19 +55,17 @@ function callServer(funcName, args, onSuccess, errorMsg) {
 }
 
 function showPage(page, skipHash) {
+  // ホームへのアクセスはイベント一覧にリダイレクト
+  if (page === 'home') page = 'events';
   document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
-  document.querySelectorAll('.nav-btn').forEach(function(b) { b.classList.remove('active'); });
   document.getElementById('page-' + page).classList.add('active');
-  var btn = document.querySelector('[data-page="' + page + '"]');
-  if (btn) btn.classList.add('active');
   // イベント一覧に戻る場合、詳細ビューをリセット
   if (page === 'events') {
     currentEventId = null;
     document.getElementById('event-detail-view').style.display = 'none';
     document.getElementById('event-list-view').style.display = 'block';
+    loadEventList();
   }
-  if (page === 'home') loadRecentEvents();
-  if (page === 'events') loadEventList();
   if (!skipHash) pushState_();
 }
 
@@ -108,15 +106,7 @@ function createNewEvent() {
   var date = document.getElementById('ev-date').value || new Date().toLocaleDateString('ja-JP');
   callServer('createNewEvent', [date, name], function(r) { if (r.success) { showToast(r.message); openEvent(r.eventId); } else showToast(r.message, true); });
 }
-function loadRecentEvents() {
-  google.script.run.withSuccessHandler(function(events) {
-    var c = document.getElementById('recent-events');
-    if (!events || events.length === 0) { c.innerHTML = '<div class="empty-state">イベントがありません</div>'; return; }
-    c.innerHTML = events.slice(0, 5).map(function(ev) {
-      return eventItemHtml(ev, "showPage('events');openEvent('" + ev['イベントID'] + "')");
-    }).join('');
-  }).withFailureHandler(function() { document.getElementById('recent-events').innerHTML = '<div class="empty-state">読み込みエラー</div>'; }).getEvents();
-}
+
 
 // ===================================
 // イベント詳細
@@ -253,13 +243,10 @@ function navigateToRoute_(route) {
   if (route.eventId) {
     // イベント詳細に直接遷移（一覧読み込みをスキップ）
     document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
-    document.querySelectorAll('.nav-btn').forEach(function(b) { b.classList.remove('active'); });
     document.getElementById('page-events').classList.add('active');
-    var btn = document.querySelector('[data-page="events"]');
-    if (btn) btn.classList.add('active');
     openEvent(route.eventId, route.tab, true);
   } else {
-    showPage(route.page, true);
+    showPage('events', true);
   }
 }
 
@@ -286,10 +273,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (route.eventId) {
       navigateToRoute_(route);
     } else {
-      showPage(route.page, true);
-      if (route.page === 'home' || !params.page) {
-        google.script.history.replace({ page: 'home' }, { page: 'home' });
-      }
+      showPage('events', true);
+      google.script.history.replace({ page: 'events' }, { page: 'events' });
     }
   });
 });

@@ -61,7 +61,7 @@ body {
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
-  padding-bottom: 80px;
+  padding-bottom: 24px;
   -webkit-font-smoothing: antialiased;
   line-height: 1.6;
 }
@@ -94,59 +94,6 @@ body {
   height: 24px;
   fill: none;
   stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-/* --- ナビゲーション --- */
-.nav {
-  display: flex;
-  background: var(--bg-card);
-  border-bottom: 2px solid var(--border-light);
-  position: sticky;
-  top: 56px;
-  z-index: 99;
-  overflow-x: auto;
-  padding: 0 4px;
-}
-
-.nav-btn {
-  flex: 1;
-  padding: 12px 8px;
-  border: none;
-  background: none;
-  font-family: 'Fira Sans', sans-serif;
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: var(--text-muted);
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all var(--transition);
-  border-bottom: 3px solid transparent;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  position: relative;
-}
-
-.nav-btn:hover {
-  color: var(--primary);
-  background: var(--bg-surface);
-}
-
-.nav-btn.active {
-  color: var(--primary);
-  border-bottom-color: var(--primary);
-  font-weight: 700;
-}
-
-.nav-btn .nav-icon {
-  width: 20px;
-  height: 20px;
-  stroke: currentColor;
-  fill: none;
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -328,14 +275,6 @@ body {
 
 .input-group .input {
   flex: 1;
-}
-
-/* --- ホームメニュー --- */
-.home-menu {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 16px;
 }
 
 /* --- メンバーリスト --- */
@@ -1147,7 +1086,6 @@ body {
 /* --- フォーカス（キーボードナビゲーション） --- */
 .btn:focus-visible,
 .input:focus-visible,
-.nav-btn:focus-visible,
 .checkbox-item input:focus-visible,
 .mvp-candidate:focus-visible {
   outline: 3px solid var(--primary);
