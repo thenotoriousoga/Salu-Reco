@@ -178,22 +178,18 @@ function renderStatsCards() {
 
     // 詳細行（モード別）
     var detailsHtml = '';
-    var hasMvpInfo = cachedMvpData && cachedMvpData.length > 0 && s.rating > 0;
-    var ratingInline = hasMvpInfo ? '<span class="stats-rating' + ratingClass_(s.rating) + '" style="font-size:0.8rem;padding:1px 6px;">' + s.rating.toFixed(1) + '</span>' : '';
     if (currentStatsMode === 'goals') {
       detailsHtml =
         '<span>' + svg(IC.check, 14) + ' ' + s.wins + '勝</span>' +
         '<span>' + svg(IC.x, 14) + ' ' + s.losses + '敗</span>' +
         '<span>' + svg(IC.minus, 14) + ' ' + s.draws + '分</span>' +
-        '<span>' + svg(IC.file, 14) + ' ' + s.played + '試合</span>' +
-        ratingInline;
+        '<span>' + svg(IC.file, 14) + ' ' + s.played + '試合</span>';
     } else if (currentStatsMode === 'points') {
       detailsHtml =
         '<span>' + svg(IC.check, 14) + ' ' + s.wins + '勝</span>' +
         '<span>' + svg(IC.x, 14) + ' ' + s.losses + '敗</span>' +
         '<span>' + svg(IC.minus, 14) + ' ' + s.draws + '分</span>' +
-        '<span>' + svg(IC.goal, 14) + ' ' + s.goals + '点</span>' +
-        ratingInline;
+        '<span>' + svg(IC.goal, 14) + ' ' + s.goals + '点</span>';
     } else {
       detailsHtml =
         '<span>' + svg(IC.goal, 14) + ' ' + s.goals + '点</span>' +
