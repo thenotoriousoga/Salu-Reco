@@ -395,11 +395,11 @@ function renderRoundsList(rounds) {
           : '<span class="event-status-badge badge-done">終了</span>';
         var scoreH = ongoing ? ongoingMatchHtml(m, teamColorMap) : endedMatchHtml(m, teamColorMap);
         if (ongoing) {
-          return '<div class="round-card" style="margin-left:0;"><div class="round-header"><span class="round-title">第' + m.matchNumber + '試合</span>' + badge + '</div>' + scoreH + '</div>';
+          return '<div class="round-card" style="margin-left:0;"><div class="round-header"><span class="round-title">第' + m.matchNumber + '試合</span><div style="display:flex;align-items:center;gap:4px;">' + badge + '</div></div>' + scoreH + '</div>';
         } else {
           return '<div class="round-card round-card-collapsed" style="margin-left:0;" onclick="toggleMatchBody(this)">' +
-            '<div class="round-header"><span class="round-title">第' + m.matchNumber + '試合</span>' + badge +
-            ' <svg class="round-expand-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></div>' +
+            '<div class="round-header"><span class="round-title">第' + m.matchNumber + '試合</span><div style="display:flex;align-items:center;gap:4px;">' + badge +
+            '<svg class="round-expand-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></div></div>' +
             '<div class="match-body match-body-collapsed">' + scoreH + '</div></div>';
         }
       }).join('');
