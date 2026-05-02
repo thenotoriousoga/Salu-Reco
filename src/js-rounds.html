@@ -100,19 +100,26 @@ function resetSplitBoard() {
 function doAutoAssign() {
   var unassigned = boardState.pool.slice();
   if (unassigned.length === 0) { showToast('未割当のメンバーがいません', true); return; }
-  // 既にチームにいるメンバーはそのまま維持
-  callServer('autoSplitTeams', [currentEventId, unassigned, boardState.teams.length], function(r) {
+
+  // 既にチームにメンバーがいるか判定
+  var hasExisting = boardState.teams.some(function(t) { return t.length > 0; });
+
+  // existingTeams を渡すかどうかで挙動が変わる
+  var args = hasExisting
+    ? [currentEventId, unassigned, boardState.teams.length, boardState.teams]
+    : [currentEventId, unassigned, boardState.teams.length];
+
+  callServer('autoSplitTeams', args, function(r) {
     if (r.success) {
-      // AIの結果を既存のチームにマージ
-      r.teams.forEach(function(aiTeam, idx) {
+      r.teams.forEach(function(assigned, idx) {
         if (idx < boardState.teams.length) {
-          boardState.teams[idx] = boardState.teams[idx].concat(aiTeam);
+          boardState.teams[idx] = boardState.teams[idx].concat(assigned);
         }
       });
       boardState.pool = [];
       renderSplitBoard();
       checkBoardComplete();
-      showToast('AI自動配置完了');
+      showToast(hasExisting ? 'AI自動配置完了（既存チームのバランスを考慮）' : 'AI自動配置完了');
     } else {
       showToast(r.message, true);
     }
