@@ -14,6 +14,7 @@ var selectedMatchB = -1;
 var currentRoundId = null; // 現在操作中のラウンドID
 var goalCounts = {};
 var currentRole = null;    // 'admin' or 'user' or null
+var currentEventStatus = null; // イベントのステータス
 
 // --- チームカラーマッピング ---
 var TEAM_CLASSES_ = ['a', 'b', 'c', 'd', 'e'];
@@ -310,6 +311,7 @@ function renderEventDetail(d, activeTab) {
   document.getElementById('event-list-view').style.display = 'none';
   document.getElementById('event-detail-view').style.display = 'block';
   var ev = d.event;
+  currentEventStatus = ev['ステータス'] || '準備中';
   document.getElementById('ev-detail-title').innerHTML =
     '<svg class="section-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>' +
     '<line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> ' +

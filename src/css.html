@@ -447,6 +447,24 @@ body {
 .team-d { background: var(--team-d-bg); border: 2px solid var(--team-d-border); }
 .team-e { background: var(--team-e-bg); border: 2px solid var(--team-e-border); }
 
+/* チームカラーゾーン（スコアボード・試合結果用） */
+.team-a-zone { background: var(--team-a-bg); border-color: var(--team-a-border); }
+.team-b-zone { background: var(--team-b-bg); border-color: var(--team-b-border); }
+.team-c-zone { background: var(--team-c-bg); border-color: var(--team-c-border); }
+.team-d-zone { background: var(--team-d-bg); border-color: var(--team-d-border); }
+.team-e-zone { background: var(--team-e-bg); border-color: var(--team-e-border); }
+
+.score-team.team-a-zone { border-radius: var(--radius-sm); padding: 8px; }
+.score-team.team-b-zone { border-radius: var(--radius-sm); padding: 8px; }
+.score-team.team-c-zone { border-radius: var(--radius-sm); padding: 8px; }
+.score-team.team-d-zone { border-radius: var(--radius-sm); padding: 8px; }
+.score-team.team-e-zone { border-radius: var(--radius-sm); padding: 8px; }
+
+/* 勝敗の視覚表示 */
+.match-win { border: 2px solid var(--success); box-shadow: 0 0 0 1px var(--success); }
+.match-lose { opacity: 0.6; }
+.match-draw { border: 2px solid var(--border); }
+
 .team-member {
   padding: 4px 0;
   font-size: 0.85rem;

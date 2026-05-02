@@ -20,7 +20,7 @@ function createRound(eventId, teamNames, teams) {
   var splitJson = JSON.stringify({ names: teamNames, teams: teams });
   roundSheet.appendRow([roundId, eventId, roundNumber, splitJson, '進行中']);
   updateEventStatus(eventId, '進行中');
-  return { success: true, roundId: roundId, roundNumber: roundNumber, message: 'ラウンド' + roundNumber + 'を作成しました' };
+  return { success: true, roundId: roundId, roundNumber: roundNumber, message: 'ラウンド' + roundNumber + '開始！ピッチがあなたを待っている' };
 }
 
 /**
@@ -133,7 +133,7 @@ function createMatch(roundId, teamAName, teamBName, teamAMembers, teamBMembers) 
   teamAMembers.forEach(function(mId) { mmSheet.appendRow([matchId, mId, 'A']); });
   teamBMembers.forEach(function(mId) { mmSheet.appendRow([matchId, mId, 'B']); });
 
-  return { success: true, matchId: matchId, matchNumber: matchNumber, message: '第' + matchNumber + '試合を作成しました' };
+  return { success: true, matchId: matchId, matchNumber: matchNumber, message: '第' + matchNumber + '試合キックオフ！' };
 }
 
 /**
@@ -185,7 +185,33 @@ function endMatch(matchId) {
   var rowIndex = findRowIndex_(sheet, 0, matchId);
   if (rowIndex === -1) return { success: false };
   sheet.getRange(rowIndex, 8).setValue('終了');
-  return { success: true, message: '試合を終了しました' };
+  return { success: true, message: '試合終了！次の戦いはもう始まっている' };
+}
+
+/**
+ * 終了した試合を再開する（スコア・得点を編集可能にする）
+ * イベントが「完了」の場合は再開不可
+ * @param {string} matchId - マッチID
+ * @return {Object} 結果オブジェクト
+ */
+function reopenMatch(matchId) {
+  var ss = getSpreadsheet_();
+  var sheet = ss.getSheetByName('マッチ');
+  var rowIndex = findRowIndex_(sheet, 0, matchId);
+  if (rowIndex === -1) return { success: false, message: '試合が見つかりません' };
+
+  // マッチからラウンドIDを取得し、イベントのステータスを確認
+  var matchData = getSheetData_('マッチ').find(function(m) { return m['マッチID'] === matchId; });
+  if (!matchData) return { success: false, message: '試合が見つかりません' };
+  var roundData = getSheetData_('ラウンド').find(function(r) { return r['ラウンドID'] === matchData['ラウンドID']; });
+  if (!roundData) return { success: false, message: 'ラウンドが見つかりません' };
+  var event = findEvent_(roundData['イベントID']);
+  if (event && event['ステータス'] === '完了') {
+    return { success: false, message: 'イベント終了後は編集できません' };
+  }
+
+  sheet.getRange(rowIndex, 8).setValue('進行中');
+  return { success: true, message: '試合を再開しました。スコアを編集できます' };
 }
 
 /**

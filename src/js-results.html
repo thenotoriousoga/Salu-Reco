@@ -90,10 +90,6 @@ function renderPostMatch(event, rounds, mvpResults) {
   if (formUrl) {
     h += '<p style="font-size:0.85rem;margin-bottom:8px;">アンケートフォーム作成済み:</p>' +
       '<a href="' + esc(formUrl) + '" target="_blank" class="survey-link">' + svg(IC.file, 16) + ' アンケートに回答する</a>';
-    if (isAdmin()) {
-      h += '<button class="btn btn-sm btn-secondary" style="margin-top:8px;" onclick="fetchSurvey()">' +
-        svg('<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>', 14) + ' 回答を取得</button>';
-    }
   } else if (isAdmin()) {
     h += '<button class="btn btn-accent btn-large" onclick="createSurvey()">' + svg(IC.file, 18) + ' アンケートフォームを作成</button>';
   }

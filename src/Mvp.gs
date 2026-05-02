@@ -251,6 +251,11 @@ function selectMVP(eventId) {
   var mvpCount = Number(event['MVP人数']) || 1;
   var subMvpCount = Number(event['準MVP人数']) || 1;
 
+  // アンケート回答を自動取得（フォームが作成済みの場合）
+  if (event['フォームID']) {
+    fetchSurveyResponses(eventId);
+  }
+
   // データ取得
   var data = getMvpData_(eventId);
 

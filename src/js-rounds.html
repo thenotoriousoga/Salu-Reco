@@ -381,18 +381,26 @@ function renderRoundsList(rounds) {
 
     var matchesH = '';
     if (round.matches && round.matches.length > 0) {
+      // チーム名→カラークラスのマッピングを作成
+      var teamColorMap = {};
+      if (sd.names) {
+        sd.names.forEach(function(name, idx) {
+          teamColorMap[name] = TEAM_CLASSES_[idx] || 'a';
+        });
+      }
       matchesH = round.matches.map(function(m) {
         var ongoing = m.status !== '終了';
         var badge = ongoing
           ? '<span class="event-status-badge badge-ongoing">進行中</span>'
           : '<span class="event-status-badge badge-done">終了</span>';
-        var scoreH = ongoing ? ongoingMatchHtml(m) : endedMatchHtml(m);
+        var scoreH = ongoing ? ongoingMatchHtml(m, teamColorMap) : endedMatchHtml(m, teamColorMap);
         return '<div class="round-card" style="margin-left:0;"><div class="round-header"><span class="round-title">第' + m.matchNumber + '試合</span>' + badge + '</div>' + scoreH + '</div>';
       }).join('');
     }
 
     var addMatchH = '';
     var roundActionsH = '';
+    var roundBottomH = '';
     if (round.status !== '終了') {
       if (sd.teams && sd.teams.length >= 2) {
         addMatchH = '<div style="margin-top:8px;">' +
@@ -400,7 +408,8 @@ function renderRoundsList(rounds) {
           svg('<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>', 14) + ' 次の試合へ</button>' +
           '<div id="add-match-' + round.id + '" style="display:none;"></div></div>';
       }
-      roundActionsH = '<button class="btn btn-sm btn-secondary" onclick="doEndRound(\'' + round.id + '\')" style="margin-left:4px;">' + svg(IC.flag, 14) + ' ラウンド終了</button>';
+      roundBottomH = '<div style="display:flex;justify-content:flex-end;margin-top:12px;padding-top:8px;border-top:1px solid var(--border-light);">' +
+        '<button class="btn btn-sm btn-secondary" onclick="doEndRound(\'' + round.id + '\')">' + svg(IC.flag, 14) + ' ラウンド終了</button></div>';
     }
 
     var deleteRoundBtn = isAdmin()
@@ -409,9 +418,9 @@ function renderRoundsList(rounds) {
 
     return '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
       '<h3 style="margin:0;">ラウンド' + round.roundNumber + '</h3>' +
-      '<div>' + statusBadgeHtml(round.status) + roundActionsH +
+      '<div>' + statusBadgeHtml(round.status) +
       deleteRoundBtn + '</div></div>' +
-      teamsH + matchesH + addMatchH + '</div>';
+      teamsH + matchesH + addMatchH + roundBottomH + '</div>';
   }).join('');
 
   goalCounts = {};
@@ -472,24 +481,26 @@ function doEndRound(roundId) {
 // ===================================
 // マッチ進行（2チーム対戦）
 // ===================================
-function ongoingMatchHtml(m) {
+function ongoingMatchHtml(m, teamColorMap) {
+  var clsA = (teamColorMap && teamColorMap[m.teamAName]) || 'a';
+  var clsB = (teamColorMap && teamColorMap[m.teamBName]) || 'b';
   var h = '<div class="scoreboard" style="margin:12px 0;">' +
-    '<div class="score-team"><span class="team-label">' + esc(m.teamAName) + '</span>' +
+    '<div class="score-team team-' + clsA + '-zone"><span class="team-label">' + esc(m.teamAName) + '</span>' +
     '<span class="score" id="sa-' + m.id + '">' + m.scoreA + '</span>' +
     '<div class="score-btns"><button class="btn btn-sm btn-primary" onclick="chScore(\'' + m.id + '\',\'A\',1)">+1</button>' +
     '<button class="btn btn-sm btn-secondary" onclick="chScore(\'' + m.id + '\',\'A\',-1)">-1</button></div></div>' +
     '<div class="score-vs">VS</div>' +
-    '<div class="score-team"><span class="team-label">' + esc(m.teamBName) + '</span>' +
+    '<div class="score-team team-' + clsB + '-zone"><span class="team-label">' + esc(m.teamBName) + '</span>' +
     '<span class="score" id="sb-' + m.id + '">' + m.scoreB + '</span>' +
     '<div class="score-btns"><button class="btn btn-sm btn-primary" onclick="chScore(\'' + m.id + '\',\'B\',1)">+1</button>' +
     '<button class="btn btn-sm btn-secondary" onclick="chScore(\'' + m.id + '\',\'B\',-1)">-1</button></div></div></div>';
 
-  var allP = m.teamA.map(function(p) { return { id: p.id, name: p.name, team: 'A', tn: m.teamAName }; })
-    .concat(m.teamB.map(function(p) { return { id: p.id, name: p.name, team: 'B', tn: m.teamBName }; }));
+  var allP = m.teamA.map(function(p) { return { id: p.id, name: p.name, team: 'A', tn: m.teamAName, cls: clsA }; })
+    .concat(m.teamB.map(function(p) { return { id: p.id, name: p.name, team: 'B', tn: m.teamBName, cls: clsB }; }));
 
   h += '<div class="goal-section"><h3 style="font-size:0.85rem;">' + svg(IC.goal, 16) + ' 得点者を記録</h3>' +
     allP.map(function(p) {
-      var bc = p.team === 'A' ? 'team-a-badge' : 'team-b-badge';
+      var bc = 'team-' + p.cls + '-badge';
       var cur = 0;
       if (m.goals) { var f = m.goals.find(function(g) { return g.memberId === p.id; }); if (f) cur = f.count; }
       return '<div class="goal-player"><span class="goal-player-team ' + bc + '">' + esc(p.tn) + '</span>' +
@@ -505,7 +516,17 @@ function ongoingMatchHtml(m) {
   return h;
 }
 
-function endedMatchHtml(m) {
+function endedMatchHtml(m, teamColorMap) {
+  var clsA = (teamColorMap && teamColorMap[m.teamAName]) || 'a';
+  var clsB = (teamColorMap && teamColorMap[m.teamBName]) || 'b';
+  var sA = Number(m.scoreA);
+  var sB = Number(m.scoreB);
+  // 勝敗の視覚表示
+  var resultA = '', resultB = '';
+  if (sA > sB) { resultA = ' match-win'; resultB = ' match-lose'; }
+  else if (sB > sA) { resultA = ' match-lose'; resultB = ' match-win'; }
+  else { resultA = ' match-draw'; resultB = ' match-draw'; }
+
   var goalsSummary = '';
   if (m.goals) {
     var scorers = m.goals.filter(function(g) { return g.count > 0; });
@@ -514,8 +535,22 @@ function endedMatchHtml(m) {
         scorers.map(function(g) { return esc(g.name) + '(' + g.count + ')'; }).join(', ') + '</div>';
     }
   }
-  return '<div style="text-align:center;padding:8px 0;font-family:\'Fira Code\',monospace;font-size:1.2rem;font-weight:700;">' +
-    esc(m.teamAName) + ' ' + m.scoreA + ' - ' + m.scoreB + ' ' + esc(m.teamBName) + '</div>' + goalsSummary;
+  var editBtn = '';
+  if (currentEventStatus !== '完了') {
+    editBtn = '<div style="text-align:right;margin-top:8px;">' +
+      '<button class="btn btn-sm btn-secondary" onclick="reopenMatch(\'' + m.id + '\')">' +
+      svg('<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>', 14) +
+      ' 編集</button></div>';
+  }
+  return '<div class="match-result" style="display:flex;justify-content:center;align-items:center;gap:12px;padding:12px 0;">' +
+    '<div class="match-result-team team-' + clsA + '-zone' + resultA + '" style="text-align:center;padding:8px 16px;border-radius:var(--radius-sm);flex:1;">' +
+    '<div style="font-size:0.8rem;font-weight:600;">' + esc(m.teamAName) + '</div>' +
+    '<div style="font-family:\'Fira Code\',monospace;font-size:1.5rem;font-weight:700;">' + sA + '</div></div>' +
+    '<div style="font-weight:700;color:var(--text-muted);">-</div>' +
+    '<div class="match-result-team team-' + clsB + '-zone' + resultB + '" style="text-align:center;padding:8px 16px;border-radius:var(--radius-sm);flex:1;">' +
+    '<div style="font-size:0.8rem;font-weight:600;">' + esc(m.teamBName) + '</div>' +
+    '<div style="font-family:\'Fira Code\',monospace;font-size:1.5rem;font-weight:700;">' + sB + '</div></div>' +
+    '</div>' + goalsSummary + editBtn;
 }
 
 var scoreTimers_ = {};
@@ -582,5 +617,13 @@ function delMatch(matchId) {
   showConfirm('試合削除', 'この試合を削除しますか？', function() {
     callServer('deleteMatch', [matchId], function(r) { showToast(r.message, !r.success); if (r.success) openEvent(currentEventId, 'tab-rounds'); });
   }, '削除する');
+}
+
+/** 終了した試合を再開して編集可能にする */
+function reopenMatch(matchId) {
+  callServer('reopenMatch', [matchId], function(r) {
+    showToast(r.message, !r.success);
+    if (r.success) openEvent(currentEventId, 'tab-rounds');
+  }, '試合の再開に失敗しました');
 }
 </script>
