@@ -60,6 +60,12 @@ function showPage(page, skipHash) {
   document.getElementById('page-' + page).classList.add('active');
   var btn = document.querySelector('[data-page="' + page + '"]');
   if (btn) btn.classList.add('active');
+  // イベント一覧に戻る場合、詳細ビューをリセット
+  if (page === 'events') {
+    currentEventId = null;
+    document.getElementById('event-detail-view').style.display = 'none';
+    document.getElementById('event-list-view').style.display = 'block';
+  }
   if (page === 'home') loadRecentEvents();
   if (page === 'events') loadEventList();
   if (!skipHash) pushState_();
