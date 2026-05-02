@@ -17,7 +17,7 @@
 | レイヤー | 技術 |
 |---|---|
 | ランタイム | Google Apps Script（V8ランタイム） |
-| バックエンド | GAS サーバーサイド関数（`.gs` ファイル × 6） |
+| バックエンド | GAS サーバーサイド関数（`.gs` ファイル × 7） |
 | フロントエンド | HTML + CSS + Vanilla JS（GASテンプレート `HtmlService`） |
 | データストア | Google スプレッドシート（8シート） |
 | アンケート | Google フォーム（`FormApp` で自動生成） |
@@ -44,7 +44,8 @@
 └── src/                       GASプロジェクトのソースコード（clasp rootDir）
     ├── appsscript.json        GASプロジェクト設定（タイムゾーン: Asia/Tokyo, webapp設定）
     ├── Code.gs                共通処理（スプレッドシート取得、シート初期化、ユーティリティ関数）
-    ├── Events.gs              イベントCRUD（作成・取得・更新・削除）、認証・ロール管理
+    ├── Auth.gs                認証・ロール管理（管理者パスワード認証、イベントコード認証）
+    ├── Events.gs              イベントCRUD（作成・取得・更新・削除）
     ├── Gemini.gs              Gemini API連携（プロンプト送信・レスポンス取得）
     ├── Members.gs             メンバーCRUD（イベントに紐づく、一括登録対応）
     ├── Mvp.gs                 MVP選出ロジック（定量50% + 定性50%の100点満点評価）
