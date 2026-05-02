@@ -77,7 +77,7 @@ function initializeSheets() {
 function doGet() {
   var template = HtmlService.createTemplateFromFile('index');
   return template.evaluate()
-    .setTitle('Salu-Rec')
+    .setTitle('SALU-REC')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
