@@ -485,12 +485,12 @@ function ongoingMatchHtml(m, teamColorMap) {
   var clsA = (teamColorMap && teamColorMap[m.teamAName]) || 'a';
   var clsB = (teamColorMap && teamColorMap[m.teamBName]) || 'b';
   var h = '<div class="scoreboard" style="margin:12px 0;">' +
-    '<div class="score-team team-' + clsA + '-zone"><span class="team-label">' + esc(m.teamAName) + '</span>' +
+    '<div class="score-team"><span class="team-label team-' + clsA + '-badge">' + esc(m.teamAName) + '</span>' +
     '<span class="score" id="sa-' + m.id + '">' + m.scoreA + '</span>' +
     '<div class="score-btns"><button class="btn btn-sm btn-primary" onclick="chScore(\'' + m.id + '\',\'A\',1)">+1</button>' +
     '<button class="btn btn-sm btn-secondary" onclick="chScore(\'' + m.id + '\',\'A\',-1)">-1</button></div></div>' +
     '<div class="score-vs">VS</div>' +
-    '<div class="score-team team-' + clsB + '-zone"><span class="team-label">' + esc(m.teamBName) + '</span>' +
+    '<div class="score-team"><span class="team-label team-' + clsB + '-badge">' + esc(m.teamBName) + '</span>' +
     '<span class="score" id="sb-' + m.id + '">' + m.scoreB + '</span>' +
     '<div class="score-btns"><button class="btn btn-sm btn-primary" onclick="chScore(\'' + m.id + '\',\'B\',1)">+1</button>' +
     '<button class="btn btn-sm btn-secondary" onclick="chScore(\'' + m.id + '\',\'B\',-1)">-1</button></div></div></div>';
@@ -503,7 +503,7 @@ function ongoingMatchHtml(m, teamColorMap) {
       var bc = 'team-' + p.cls + '-badge';
       var cur = 0;
       if (m.goals) { var f = m.goals.find(function(g) { return g.memberId === p.id; }); if (f) cur = f.count; }
-      return '<div class="goal-player"><span class="goal-player-team ' + bc + '">' + esc(p.tn) + '</span>' +
+      return '<div class="goal-player" data-team="' + p.team + '"><span class="goal-player-team ' + bc + '">' + esc(p.tn) + '</span>' +
         '<span class="goal-player-name">' + esc(p.name) + '</span>' +
         '<div class="goal-count"><button class="btn btn-sm btn-secondary" onclick="chGoal(\'' + m.id + '\',\'' + p.id + '\',\'' + p.team + '\',-1)">-</button>' +
         '<span id="g-' + m.id + '-' + p.id + '">' + cur + '</span>' +
@@ -543,12 +543,12 @@ function endedMatchHtml(m, teamColorMap) {
       ' 編集</button></div>';
   }
   return '<div class="match-result" style="display:flex;justify-content:center;align-items:center;gap:12px;padding:12px 0;">' +
-    '<div class="match-result-team team-' + clsA + '-zone' + resultA + '" style="text-align:center;padding:8px 16px;border-radius:var(--radius-sm);flex:1;">' +
-    '<div style="font-size:0.8rem;font-weight:600;">' + esc(m.teamAName) + '</div>' +
+    '<div class="match-result-team' + resultA + '" style="text-align:center;padding:8px 16px;border-radius:var(--radius-sm);flex:1;">' +
+    '<div class="team-label team-' + clsA + '-badge" style="display:inline-block;margin-bottom:4px;">' + esc(m.teamAName) + '</div>' +
     '<div style="font-family:\'Fira Code\',monospace;font-size:1.5rem;font-weight:700;">' + sA + '</div></div>' +
     '<div style="font-weight:700;color:var(--text-muted);">-</div>' +
-    '<div class="match-result-team team-' + clsB + '-zone' + resultB + '" style="text-align:center;padding:8px 16px;border-radius:var(--radius-sm);flex:1;">' +
-    '<div style="font-size:0.8rem;font-weight:600;">' + esc(m.teamBName) + '</div>' +
+    '<div class="match-result-team' + resultB + '" style="text-align:center;padding:8px 16px;border-radius:var(--radius-sm);flex:1;">' +
+    '<div class="team-label team-' + clsB + '-badge" style="display:inline-block;margin-bottom:4px;">' + esc(m.teamBName) + '</div>' +
     '<div style="font-family:\'Fira Code\',monospace;font-size:1.5rem;font-weight:700;">' + sB + '</div></div>' +
     '</div>' + goalsSummary + editBtn;
 }
@@ -593,8 +593,7 @@ function recalcScores(matchId) {
     var cnt = parseInt(el.textContent) || 0;
     var row = el.closest('.goal-player');
     if (row) {
-      var badge = row.querySelector('.goal-player-team');
-      if (badge && badge.classList.contains('team-a-badge')) sA += cnt; else sB += cnt;
+      if (row.getAttribute('data-team') === 'A') sA += cnt; else sB += cnt;
     }
   });
   var eA = document.getElementById('sa-' + matchId);

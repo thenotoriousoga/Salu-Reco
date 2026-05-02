@@ -447,18 +447,12 @@ body {
 .team-d { background: var(--team-d-bg); border: 2px solid var(--team-d-border); }
 .team-e { background: var(--team-e-bg); border: 2px solid var(--team-e-border); }
 
-/* チームカラーゾーン（スコアボード・試合結果用） */
+/* チームカラーゾーン（チーム分けボード用） */
 .team-a-zone { background: var(--team-a-bg); border-color: var(--team-a-border); }
 .team-b-zone { background: var(--team-b-bg); border-color: var(--team-b-border); }
 .team-c-zone { background: var(--team-c-bg); border-color: var(--team-c-border); }
 .team-d-zone { background: var(--team-d-bg); border-color: var(--team-d-border); }
 .team-e-zone { background: var(--team-e-bg); border-color: var(--team-e-border); }
-
-.score-team.team-a-zone { border-radius: var(--radius-sm); padding: 8px; }
-.score-team.team-b-zone { border-radius: var(--radius-sm); padding: 8px; }
-.score-team.team-c-zone { border-radius: var(--radius-sm); padding: 8px; }
-.score-team.team-d-zone { border-radius: var(--radius-sm); padding: 8px; }
-.score-team.team-e-zone { border-radius: var(--radius-sm); padding: 8px; }
 
 /* 勝敗の視覚表示 */
 .match-win { border: 2px solid var(--success); box-shadow: 0 0 0 1px var(--success); }
@@ -487,15 +481,23 @@ body {
 .score-team { text-align: center; flex: 1; }
 
 .team-label {
-  display: block;
+  display: inline-block;
   font-family: 'Fira Code', monospace;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 700;
+  padding: 2px 10px;
+  border-radius: var(--radius-xs);
   margin-bottom: 6px;
-  color: var(--text-secondary);
   letter-spacing: 0.02em;
   text-transform: uppercase;
 }
+
+/* チーム名バッジ（スコアボード・試合結果用） */
+.team-label.team-a-badge { background: var(--team-a-bg); color: var(--team-a); border: 1px solid var(--team-a-border); }
+.team-label.team-b-badge { background: var(--team-b-bg); color: var(--team-b); border: 1px solid var(--team-b-border); }
+.team-label.team-c-badge { background: var(--team-c-bg); color: var(--team-c); border: 1px solid var(--team-c-border); }
+.team-label.team-d-badge { background: var(--team-d-bg); color: var(--team-d); border: 1px solid var(--team-d-border); }
+.team-label.team-e-badge { background: var(--team-e-bg); color: var(--team-e); border: 1px solid var(--team-e-border); }
 
 .score {
   display: block;
