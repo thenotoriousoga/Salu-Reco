@@ -109,15 +109,4 @@ function fetchSurveyResponses(eventId) {
   };
 }
 
-function getSurveyResults(eventId) {
-  var comments = getSheetData_('アンケート回答').filter(function(c) { return c['イベントID'] === eventId; });
-  var grouped = {};
-  comments.forEach(function(c) {
-    var key = c['対象メンバーID'] || c['対象メンバー名'];
-    if (!grouped[key]) {
-      grouped[key] = { memberId: c['対象メンバーID'], name: c['対象メンバー名'], comments: [] };
-    }
-    grouped[key].comments.push({ from: c['回答者名'], comment: c['コメント'] });
-  });
-  return Object.values(grouped);
-}
+

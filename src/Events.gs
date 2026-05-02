@@ -136,15 +136,4 @@ function loginWithCode(code) {
   return { success: true, role: 'user', eventId: found['イベントID'] };
 }
 
-/**
- * 管理者パスワードを取得する（管理者向け確認用）
- * @return {Object} { success: boolean, password: string }
- */
-function getAdminPassword() {
-  var props = PropertiesService.getScriptProperties();
-  var password = props.getProperty('ADMIN_PASSWORD');
-  if (!password) {
-    return { success: false, message: '管理者パスワードが設定されていません' };
-  }
-  return { success: true, password: password };
-}
+

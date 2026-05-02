@@ -261,14 +261,6 @@ var TAB_TO_PARAM_ = { 'tab-members': 'members', 'tab-rounds': 'rounds', 'tab-res
 var PARAM_TO_TAB_ = { 'members': 'tab-members', 'rounds': 'tab-rounds', 'results': 'tab-results' };
 
 /**
- * 現在の画面状態をURLに反映する（replaceで履歴を上書き）
- */
-function updateHash_() {
-  var state = buildState_();
-  google.script.history.replace(state, state.params);
-}
-
-/**
  * 現在の画面状態をURLに反映する（pushで履歴に追加）
  */
 function pushState_() {

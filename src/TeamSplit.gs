@@ -84,26 +84,4 @@ function autoSplitTeams(eventId, memberIds, teamCount) {
   return { success: true, teams: teams };
 }
 
-/**
- * ランダムチーム分け（Nチーム対応）
- * @param {string[]} memberIds - メンバーIDの配列
- * @param {number} [teamCount] - チーム数（省略時は2）
- * @return {Object} { success, teams: string[][] }
- */
-function randomSplitTeams(memberIds, teamCount) {
-  teamCount = Number(teamCount) || 2;
-  var error = validateSplitInput_(memberIds, teamCount);
-  if (error) return error;
 
-  var shuffled = memberIds.slice();
-  for (var i = shuffled.length - 1; i > 0; i--) {
-    var j = Math.floor(Math.random() * (i + 1));
-    var tmp = shuffled[i]; shuffled[i] = shuffled[j]; shuffled[j] = tmp;
-  }
-  var teams = [];
-  for (var t = 0; t < teamCount; t++) { teams.push([]); }
-  shuffled.forEach(function(id, idx) {
-    teams[idx % teamCount].push(id);
-  });
-  return { success: true, teams: teams };
-}
