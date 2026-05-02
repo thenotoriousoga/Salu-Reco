@@ -16,7 +16,7 @@ function callGemini_(prompt) {
     return null;
   }
 
-  var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro:generateContent?key=' + apiKey;
+  var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=' + apiKey;
   var payload = {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: {
