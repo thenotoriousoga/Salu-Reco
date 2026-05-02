@@ -187,10 +187,14 @@ function renderRoundsList(rounds) {
       roundActionsH = '<button class="btn btn-sm btn-secondary" onclick="doEndRound(\'' + round.id + '\')" style="margin-left:4px;">' + svg(IC.flag, 14) + ' 終了</button>';
     }
 
+    var deleteRoundBtn = isAdmin()
+      ? ' <button class="btn btn-sm btn-danger" onclick="delRound(\'' + round.id + '\')" style="margin-left:4px;">' + svg(IC.trash, 14) + '</button>'
+      : '';
+
     return '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
       '<h3 style="margin:0;">ラウンド' + round.roundNumber + '</h3>' +
       '<div>' + statusBadgeHtml(round.status) + roundActionsH +
-      ' <button class="btn btn-sm btn-danger" onclick="delRound(\'' + round.id + '\')" style="margin-left:4px;">' + svg(IC.trash, 14) + '</button></div></div>' +
+      deleteRoundBtn + '</div></div>' +
       teamsH + matchesH + addMatchH + '</div>';
   }).join('');
 

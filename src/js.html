@@ -13,6 +13,7 @@ var selectedMatchA = -1;
 var selectedMatchB = -1;
 var currentRoundId = null; // 現在操作中のラウンドID
 var goalCounts = {};
+var currentRole = null;    // 'admin' or 'user' or null
 
 // --- チームカラーマッピング ---
 var TEAM_CLASSES_ = ['a', 'b', 'c', 'd', 'e'];
@@ -55,12 +56,14 @@ function callServer(funcName, args, onSuccess, errorMsg) {
 }
 
 function showPage(page, skipHash) {
-  // ホームへのアクセスはイベント一覧にリダイレクト
-  if (page === 'home') page = 'events';
+  // ホームへのアクセスはログイン状態に応じてリダイレクト
+  if (page === 'home') page = currentRole ? 'events' : 'login';
+  // 未ログインでイベント一覧にアクセスした場合はログインへ
+  if (page === 'events' && !currentRole) page = 'login';
   document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
   document.getElementById('page-' + page).classList.add('active');
   // イベント一覧に戻る場合、詳細ビューをリセット
-  if (page === 'events') {
+  if (page === 'events' && currentRole === 'admin') {
     currentEventId = null;
     document.getElementById('event-detail-view').style.display = 'none';
     document.getElementById('event-list-view').style.display = 'block';
@@ -93,6 +96,68 @@ function eventItemHtml(ev, onclickExpr) {
 }
 
 // ===================================
+// ログイン・ロール管理
+// ===================================
+
+/**
+ * ロールを設定し、bodyクラスでUI出し分けを制御する
+ * @param {string} role - 'admin' or 'user'
+ */
+function setRole_(role) {
+  currentRole = role;
+  document.body.classList.remove('role-admin', 'role-user');
+  if (role) {
+    document.body.classList.add('role-' + role);
+  }
+}
+
+/** 管理者ログイン */
+function doLoginAdmin() {
+  var password = document.getElementById('login-password').value;
+  if (!password) { showToast('パスワードを入力してください', true); return; }
+  callServer('loginAdmin', [password], function(r) {
+    if (r.success) {
+      setRole_('admin');
+      showPage('events');
+    } else {
+      showToast(r.message, true);
+    }
+  }, 'ログインに失敗しました');
+}
+
+/** イベントコードでログイン */
+function doLoginWithCode() {
+  var code = document.getElementById('login-code').value;
+  if (!code) { showToast('コードを入力してください', true); return; }
+  callServer('loginWithCode', [code], function(r) {
+    if (r.success) {
+      setRole_('user');
+      // イベント詳細に直接遷移
+      document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+      document.getElementById('page-events').classList.add('active');
+      openEvent(r.eventId);
+    } else {
+      showToast(r.message, true);
+    }
+  }, 'ログインに失敗しました');
+}
+
+/** ログアウト */
+function doLogout() {
+  currentRole = null;
+  currentEventId = null;
+  document.body.classList.remove('role-admin', 'role-user');
+  document.getElementById('login-code').value = '';
+  document.getElementById('login-password').value = '';
+  showPage('login');
+}
+
+/** 現在のロールが管理者かどうか */
+function isAdmin() {
+  return currentRole === 'admin';
+}
+
+// ===================================
 // イベント一覧
 // ===================================
 function loadEventList() { callServer('getEvents', [], function(events) { renderEventList(events); }, '読み込みエラー'); }
@@ -104,7 +169,9 @@ function renderEventList(events) {
 function createNewEvent() {
   var name = document.getElementById('ev-name').value.trim() || 'フットサル';
   var date = document.getElementById('ev-date').value || new Date().toLocaleDateString('ja-JP');
-  callServer('createNewEvent', [date, name], function(r) { if (r.success) { showToast(r.message); openEvent(r.eventId); } else showToast(r.message, true); });
+  var code = document.getElementById('ev-code').value.trim();
+  if (!code) { showToast('参加コードを入力してください', true); return; }
+  callServer('createNewEvent', [date, name, code], function(r) { if (r.success) { showToast(r.message); openEvent(r.eventId); } else showToast(r.message, true); });
 }
 
 
@@ -133,9 +200,17 @@ function renderEventDetail(d, activeTab) {
     '<svg class="section-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>' +
     '<line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> ' +
     esc(ev['名称'] || '') + ' <span class="event-date" style="margin-left:8px;">' + esc(String(ev['日付'] || '')) + '</span>';
-  document.getElementById('ev-detail-status').innerHTML =
-    statusBadgeHtml(ev['ステータス']) +
-    ' <button class="btn btn-sm btn-danger" onclick="deleteCurrentEvent()" style="margin-left:8px;">' + svg(IC.trash, 14) + '</button>';
+  // ステータスと削除ボタン（管理者のみ）
+  var statusH = statusBadgeHtml(ev['ステータス']);
+  if (isAdmin()) {
+    statusH += ' <button class="btn btn-sm btn-danger" onclick="deleteCurrentEvent()" style="margin-left:8px;">' + svg(IC.trash, 14) + '</button>';
+  }
+  document.getElementById('ev-detail-status').innerHTML = statusH;
+  // イベントコード表示（管理者のみ）
+  var codeEl = document.getElementById('ev-detail-code');
+  if (codeEl && ev['コード']) {
+    codeEl.innerHTML = '<div class="event-code">参加コード: <span class="event-code-value">' + esc(ev['コード']) + '</span></div>';
+  }
   renderMemberList(d.members);
   renderParticipantCB(d.members);
   renderRoundsList(d.rounds);
@@ -211,6 +286,9 @@ function buildState_() {
         params.tab = 'members';
       }
     }
+    if (currentRole) {
+      params.role = currentRole;
+    }
   }
   return { params: params, page: params.page, event: params.event, tab: params.tab };
 }
@@ -240,13 +318,20 @@ function parseParams_(params) {
  * @param {{ page: string, eventId: string|null, tab: string|null }} route
  */
 function navigateToRoute_(route) {
+  // ロールが未設定の場合はログイン画面へ
+  if (!currentRole) {
+    showPage('login', true);
+    return;
+  }
   if (route.eventId) {
     // イベント詳細に直接遷移（一覧読み込みをスキップ）
     document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
     document.getElementById('page-events').classList.add('active');
     openEvent(route.eventId, route.tab, true);
-  } else {
+  } else if (currentRole === 'admin') {
     showPage('events', true);
+  } else {
+    showPage('login', true);
   }
 }
 
@@ -258,6 +343,11 @@ document.addEventListener('DOMContentLoaded', function() {
   if (di) { var t = new Date(); di.value = t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); }
   var nameInput = document.getElementById('m-name');
   if (nameInput) { nameInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); addToQueue(); } }); }
+  // ログインコード入力でEnterキー対応
+  var codeInput = document.getElementById('login-code');
+  if (codeInput) { codeInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); doLoginWithCode(); } }); }
+  var passInput = document.getElementById('login-password');
+  if (passInput) { passInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); doLoginAdmin(); } }); }
 
   // ブラウザの戻る/進むボタン対応
   google.script.history.setChangeHandler(function(e) {
@@ -266,18 +356,7 @@ document.addEventListener('DOMContentLoaded', function() {
     navigateToRoute_(route);
   });
 
-  // 初回読み込み: URLパラメータから画面を復元
-  google.script.url.getLocation(function(location) {
-    var params = (location && location.parameter) ? location.parameter : {};
-    var route = parseParams_(params);
-    if (route.eventId) {
-      // イベント詳細に直接遷移
-      document.getElementById('page-events').classList.add('active');
-      openEvent(route.eventId, route.tab, true);
-    } else {
-      showPage('events', true);
-      google.script.history.replace({ page: 'events' }, { page: 'events' });
-    }
-  });
+  // 初回読み込み: ログイン画面を表示
+  showPage('login', true);
 });
 </script>

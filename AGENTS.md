@@ -5,6 +5,13 @@
 フットサルの試合管理・MVP選出を行うWebアプリ。Google Apps Script（GAS）で完結し、スマホブラウザから利用できる。
 全データはイベント単位で管理され、イベントを横断した集計は行わない。
 
+### ロール（権限モデル）
+
+- **管理者**: パスワード認証（スクリプトプロパティ `ADMIN_PASSWORD`）。全機能にアクセス可能
+- **一般ユーザー**: イベントコード（4桁英数字）で参加。試合管理・閲覧が可能、イベント作成・メンバー管理・MVP選出は不可
+- Webアプリは「全員」に公開し、アプリ内でロールを制御する（GASのセッション管理は使わない）
+- UI出し分けはクライアントサイドの `currentRole` 変数と CSSクラス（`.admin-only` / `.user-only`）で制御
+
 ## 技術スタック
 
 | レイヤー | 技術 |
@@ -37,7 +44,7 @@
 └── src/                       GASプロジェクトのソースコード（clasp rootDir）
     ├── appsscript.json        GASプロジェクト設定（タイムゾーン: Asia/Tokyo, webapp設定）
     ├── Code.gs                共通処理（スプレッドシート取得、シート初期化、ユーティリティ関数）
-    ├── Events.gs              イベントCRUD（作成・取得・更新・削除）
+    ├── Events.gs              イベントCRUD（作成・取得・更新・削除）、認証・ロール管理
     ├── Gemini.gs              Gemini API連携（プロンプト送信・レスポンス取得）
     ├── Members.gs             メンバーCRUD（イベントに紐づく、一括登録対応）
     ├── Mvp.gs                 MVP選出ロジック（定量50% + 定性50%の100点満点評価）
@@ -46,7 +53,7 @@
     ├── TeamSplit.gs           チーム分けロジック（AI蛇行ドラフト/ランダム）
     ├── index.html             メインHTML（SPA構成、タブ切り替え）
     ├── css.html               スタイルシート（CSS変数ベースのデザインシステム）
-    ├── js.html                クライアントサイドJS・コア（状態管理、ユーティリティ、ページ遷移、イベント管理）
+    ├── js.html                クライアントサイドJS・コア（状態管理、ユーティリティ、ページ遷移、ログイン・ロール管理、イベント管理）
     ├── js-members.html        クライアントサイドJS・メンバー管理（キュー方式の登録・編集・削除）
     ├── js-rounds.html         クライアントサイドJS・試合管理（チーム分けUI、ラウンド・マッチ操作）
     └── js-results.html        クライアントサイドJS・結果表示（成績集計、アンケート、MVP選出）
@@ -65,8 +72,10 @@
 
 - SPA風の画面遷移（`showPage()` でページ切り替え、`switchTab()` でタブ切り替え）
 - `callServer()` ラッパーでサーバー呼び出しを統一（ローディング表示・エラーハンドリング込み）
-- 状態はグローバル変数で管理（`currentEventId`, `currentMembers`, `cachedRounds` など）
+- 状態はグローバル変数で管理（`currentEventId`, `currentMembers`, `cachedRounds`, `currentRole` など）
 - メンバー登録はキュー方式（`memberQueue` に追加 → `bulkAddMembersFromQueue` で一括登録）
+- ロール別UI出し分け: `isAdmin()` 関数でJS内の条件分岐、CSSクラス `body.role-user .admin-only { display: none }` でHTML要素の表示制御
+- ログイン画面（`page-login`）で管理者パスワード or イベントコードを入力し、`setRole_()` でロールを設定
 
 ### データモデル（スプレッドシート8シート）
 
@@ -163,3 +172,6 @@ Gemini AIによる総合評価で0〜100点の採点を行う。
 - CSSの色やサイズを変更する場合は `:root` のCSS変数を変更すること（ハードコードされた値は避ける）
 - `clasp push` 前に GAS エディタ上で他の人が編集していないか確認すること（`--force` で上書きされる）
 - Google フォーム関連の機能（Survey.gs）はGASの `FormApp` スコープが必要。初回実行時に権限承認が求められる
+- 管理者限定の機能を追加する場合は、HTML要素に `admin-only` クラスを付与するか、JS内で `isAdmin()` で条件分岐すること
+- 一般ユーザーに非表示にする要素は `admin-only` クラス、管理者に非表示にする要素は `user-only` クラスを使用
+- 管理者パスワードはスクリプトプロパティ `ADMIN_PASSWORD` に手動で設定する

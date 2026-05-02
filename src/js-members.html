@@ -7,9 +7,12 @@ function renderMemberList(members) {
   var c = document.getElementById('member-list');
   if (!members || members.length === 0) { c.innerHTML = '<div class="empty-state">メンバーがいません。追加してください。</div>'; return; }
   c.innerHTML = members.map(function(m) {
+    var deleteBtn = isAdmin()
+      ? '<button class="btn btn-sm btn-danger" onclick="deleteMember(\'' + m['メンバーID'] + '\')">' + svg(IC.trash, 14) + '</button>'
+      : '';
     return '<div class="member-item"><div><span class="member-name">' + esc(m['名前']) + '</span>' +
       '<div class="member-badges">' + memberBadgesHtml(m) + '</div></div>' +
-      '<button class="btn btn-sm btn-danger" onclick="deleteMember(\'' + m['メンバーID'] + '\')">' + svg(IC.trash, 14) + '</button></div>';
+      deleteBtn + '</div>';
   }).join('');
 }
 function memberBadgesHtml(m, isQueue) {

@@ -6,12 +6,22 @@ function getEvents() {
   return getSheetData_('イベント').reverse();
 }
 
-function createNewEvent(date, name) {
+function createNewEvent(date, name, code) {
+  if (!code || !code.trim()) {
+    return { success: false, message: '参加コードを入力してください' };
+  }
+  code = code.trim().toUpperCase();
+  // コード重複チェック
+  var existing = getSheetData_('イベント');
+  var dup = existing.find(function(e) { return String(e['コード']).toUpperCase() === code; });
+  if (dup) {
+    return { success: false, message: 'このコードは既に使われています' };
+  }
   var ss = getSpreadsheet_();
   var sheet = ensureSheet_(ss, 'イベント');
   var eventId = generateId_();
-  sheet.appendRow([eventId, date, name || 'フットサル', '準備中', 1, 1, '', '']);
-  return { success: true, eventId: eventId, message: 'イベントを作成しました' };
+  sheet.appendRow([eventId, date, name || 'フットサル', '準備中', 1, 1, '', '', code]);
+  return { success: true, eventId: eventId, code: code, message: 'イベントを作成しました' };
 }
 
 /**
@@ -84,4 +94,57 @@ function deleteEvent(eventId) {
   deleteRowsByMatch_('イベント', 0, eventId);
 
   return { success: true, message: 'イベントを削除しました' };
+}
+
+// ===================================
+// 認証・ロール管理
+// ===================================
+
+/**
+ * 管理者パスワードで認証する
+ * @param {string} password - 入力されたパスワード
+ * @return {Object} { success: boolean, role: string, message: string }
+ */
+function loginAdmin(password) {
+  var props = PropertiesService.getScriptProperties();
+  var adminPassword = props.getProperty('ADMIN_PASSWORD');
+  if (!adminPassword) {
+    return { success: false, message: '管理者パスワードが設定されていません。initializeSheets を実行してください。' };
+  }
+  if (password === adminPassword) {
+    return { success: true, role: 'admin' };
+  }
+  return { success: false, message: 'パスワードが正しくありません' };
+}
+
+/**
+ * イベントコードでイベントを検索する
+ * @param {string} code - イベントコード（4桁英数字）
+ * @return {Object} { success: boolean, role: string, eventId: string, message: string }
+ */
+function loginWithCode(code) {
+  if (!code || !code.trim()) {
+    return { success: false, message: 'コードを入力してください' };
+  }
+  var events = getSheetData_('イベント');
+  var found = events.find(function(e) {
+    return String(e['コード']).toUpperCase() === String(code).trim().toUpperCase();
+  });
+  if (!found) {
+    return { success: false, message: 'イベントが見つかりません。コードを確認してください。' };
+  }
+  return { success: true, role: 'user', eventId: found['イベントID'] };
+}
+
+/**
+ * 管理者パスワードを取得する（管理者向け確認用）
+ * @return {Object} { success: boolean, password: string }
+ */
+function getAdminPassword() {
+  var props = PropertiesService.getScriptProperties();
+  var password = props.getProperty('ADMIN_PASSWORD');
+  if (!password) {
+    return { success: false, message: '管理者パスワードが設定されていません' };
+  }
+  return { success: true, password: password };
 }

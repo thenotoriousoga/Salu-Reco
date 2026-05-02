@@ -1091,4 +1091,101 @@ body {
   outline: 3px solid var(--primary);
   outline-offset: 2px;
 }
+
+/* --- ログイン画面 --- */
+.login-card {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.login-logo {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.login-logo-icon {
+  width: 48px;
+  height: 48px;
+  stroke: var(--primary);
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  margin-bottom: 8px;
+}
+
+.login-logo h2 {
+  font-family: 'Fira Code', monospace;
+  font-size: 1.3rem;
+  color: var(--text);
+  justify-content: center;
+}
+
+.login-section {
+  margin-bottom: 8px;
+}
+
+.login-section h3 {
+  margin-bottom: 4px;
+}
+
+.login-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.login-divider::before,
+.login-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* --- ロール別表示制御 --- */
+body.role-user .admin-only {
+  display: none !important;
+}
+
+body.role-admin .user-only {
+  display: none !important;
+}
+
+/* ログイン前は両方非表示 */
+body:not(.role-user):not(.role-admin) .admin-only,
+body:not(.role-user):not(.role-admin) .user-only {
+  display: none !important;
+}
+
+/* --- イベントコード表示 --- */
+.event-code {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  background: var(--bg-surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-xs);
+  color: var(--text-secondary);
+}
+
+.event-code-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--primary);
+  letter-spacing: 0.1em;
+}
 </style>
