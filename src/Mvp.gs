@@ -158,34 +158,44 @@ function buildMvpPrompt_(participantIds, memberMap, surveyComments, goals, match
       '  チームメイトからのコメント: ' + (comments.length > 0 ? comments.join(', ') : 'なし');
   });
 
-  return 'あなたはフットサルイベントのMVP選出を行う審査員です。\n' +
-    '以下のメンバー情報・試合データ・アンケートコメントを総合的に判断し、各メンバーを0〜100点で採点してください。\n\n' +
-    '【重要な評価方針】\n' +
+  return 'あなたはフットサルイベントの熱血実況アナウンサー兼MVP選考委員長です！\n' +
+    '今日の激闘を振り返り、各メンバーを0〜100点で採点してください。\n' +
+    '表彰式で読み上げることを想定し、会場が盛り上がるような熱いコメントをお願いします！\n\n' +
+    '【あなたのキャラクター】\n' +
+    '- 全員の頑張りを見逃さない、愛のある実況アナウンサー\n' +
+    '- 得点シーンだけでなく、ナイスプレーや声かけ、ムードメーカーとしての貢献も熱く語る\n' +
+    '- ネガティブな表現は絶対に使わない。全員が「参加してよかった」と思える言葉を届ける\n' +
+    '- 適度に絵文字を使ってOK（🔥⚽🏆👏✨🎯💪 など）\n\n' +
+    '【評価方針】\n' +
     '- これは社内・仲間内のフットサルイベントです。プロの試合ではありません\n' +
     '- 得点や勝利数だけでなく、現場の雰囲気への貢献・チームメイトからの評価を重視してください\n' +
     '- サッカー未経験者や若手が積極的に参加し頑張っている場合は、高く評価してください\n' +
     '- 備考欄の情報（メンバーの性格、特徴、役職など）も考慮してください\n' +
     '- 幹事としてイベント運営に貢献しているメンバーも評価に加味してください\n' +
     '- チームメイトからのコメントが多い・ポジティブなメンバーは高く評価してください\n' +
-    '- 得点が多い＝MVPではありません。場を盛り上げた人、チームに貢献した人を総合的に評価してください\n\n' +
+    '- 得点が多い＝MVPではありません。場を盛り上げた人、チームに貢献した人を総合的に評価してください\n' +
     '- 幹事はMVP、準MVPから除外してください。スコア、レーティングは他のメンバーと同様に評価してください\n\n' +
     '【採点基準の目安】\n' +
-    '- 90〜100点: 文句なしのMVP。試合でも雰囲気でも圧倒的な貢献\n' +
-    '- 70〜89点: MVP候補。目立った活躍や周囲からの高い評価\n' +
-    '- 50〜69点: 良い活躍。チームに貢献していた\n' +
-    '- 30〜49点: 普通の参加。特筆すべき点は少ない\n' +
-    '- 0〜29点: 参加のみ。目立った活躍やコメントがない\n\n' +
+    '- 90〜100点: 文句なしのMVP！試合でも雰囲気でも圧倒的な貢献\n' +
+    '- 70〜89点: MVP候補！目立った活躍や周囲からの高い評価\n' +
+    '- 50〜69点: ナイスプレー連発！チームに欠かせない存在\n' +
+    '- 30〜49点: しっかり貢献！次回のブレイクに期待\n' +
+    '- 0〜29点: 参加ありがとう！一緒にプレーできて楽しかった\n\n' +
     '【メンバー情報・試合データ・コメント】\n' + memberLines.join('\n\n') + '\n\n' +
     '【出力ルール】\n' +
     '- 上位' + mvpCount + '名を「MVP」、次の' + subMvpCount + '名を「準MVP」としてください\n' +
-    '- 全メンバーに評価コメント（50〜80文字程度）を付けてください\n' +
-    '- MVP・準MVPのメンバーには選出理由を、それ以外のメンバーにはポジティブな評価コメントを書いてください\n' +
-    '- 堅すぎず、フットサルの楽しい雰囲気に合ったトーンで書いてください\n\n' +
+    '- MVP・準MVPには「称号」を付けてください（例: 「ゴールハンター」「鉄壁の守護神」「ムードメーカー王」「影のMVP」など）\n' +
+    '- reasonフィールド: 表彰式で読み上げる選出理由（400文字程度）。具体的なプレーや場面に言及し、会場が沸くような熱い文章で！\n' +
+    '- commentフィールド: 本人へのメッセージカード風コメント（200文字程度）。「〇〇さんへ」で始め、温かい言葉を届けてください\n' +
+    '- MVP・準MVP以外のメンバーにも、reasonに評価コメント（200文字程度）を書いてください。必ずポジティブな内容で！\n\n' +
+    '【NGワード】\n' +
+    '「残念」「惜しい」「もう少し」「課題」「反省」「ミス」「失敗」など、ネガティブな表現は禁止です。\n' +
+    '全員が笑顔で読めるコメントをお願いします！\n\n' +
     '以下のJSON配列形式で返してください（他のテキストは不要）:\n' +
-    '[{"memberId": "xxx", "score": 85, "rank": "MVP", "reason": "評価コメント", "rating": 7.5, "comment": "個人評価コメント"}, ...]\n' +
+    '[{"memberId": "xxx", "score": 85, "rank": "MVP", "title": "称号（MVP・準MVPのみ）", "reason": "選出理由または評価コメント", "rating": 7.5, "comment": "本人へのメッセージ"}, ...]\n' +
     'rankは "MVP", "準MVP", "" のいずれかです。全メンバー分を必ず含めてください。\n' +
-    'ratingは0.0〜10.0の小数第一位までの数値です（Sofascore風の10段階評価）。\n' +
-    'commentは全メンバーに対する個人評価コメント（50〜80文字程度）です。reasonとは別に、その人のプレー全体を評価するコメントを書いてください。';
+    'titleはMVP・準MVPのメンバーのみ付与。それ以外は空文字""にしてください。\n' +
+    'ratingは0.0〜10.0の小数第一位までの数値です（Sofascore風の10段階評価）。';
 }
 
 /**
@@ -204,6 +214,7 @@ function parseMvpResponse_(responseText, participantIds, memberMap) {
 
       var score = 0;
       var rank = '';
+      var title = '';
       var reason = '';
       var rating = 0;
       var comment = '';
@@ -211,6 +222,7 @@ function parseMvpResponse_(responseText, participantIds, memberMap) {
       if (item) {
         score = Math.max(0, Math.min(100, Math.round(Number(item.score) || 0)));
         rank = item.rank || '';
+        title = item.title || '';
         reason = item.reason || '';
         rating = Math.max(0, Math.min(10, Math.round((Number(item.rating) || 0) * 10) / 10));
         comment = item.comment || '';
@@ -220,6 +232,7 @@ function parseMvpResponse_(responseText, participantIds, memberMap) {
         memberId: mId,
         name: m['名前'] || '不明',
         rank: rank,
+        title: title,
         reason: reason,
         totalScore: score,
         rating: rating,
@@ -252,7 +265,7 @@ function saveMvpResults_(eventId, results) {
 
   // 行配列に変換して一括書き込み（appendRowの繰り返しより高速）
   var rows = results.map(function(r) {
-    return [eventId, r.memberId, r.name, r.rank, r.reason, r.totalScore, r.rating, r.comment];
+    return [eventId, r.memberId, r.name, r.rank, r.title, r.reason, r.totalScore, r.rating, r.comment];
   });
 
   var ss = getSpreadsheet_();
