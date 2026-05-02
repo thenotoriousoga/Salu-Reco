@@ -668,28 +668,30 @@ body {
 
 /* 試合終了後の得点者サマリー */
 .match-goals-summary {
-  margin-top: 10px;
-  padding: 8px 12px;
-  background: var(--bg-surface);
-  border-radius: var(--radius-sm);
-  font-size: 0.8rem;
-}
-
-.match-goals-team {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 0;
-}
-
-.match-goals-team:not(:last-child) {
-  border-bottom: 1px solid var(--border-light);
-  padding-bottom: 6px;
-  margin-bottom: 6px;
-}
-
-.match-goals-list {
+  justify-content: space-between;
+  padding: 8px 16px;
+  font-size: 0.8rem;
   color: var(--text-secondary);
+}
+
+.match-goals-col {
+  flex: 1;
+  text-align: center;
+}
+
+.match-goals-col:first-child {
+  text-align: left;
+  padding-left: 8px;
+}
+
+.match-goals-col:last-child {
+  text-align: right;
+  padding-right: 8px;
+}
+
+.match-goals-col div {
+  padding: 2px 0;
 }
 
 /* --- MVP --- */

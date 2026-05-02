@@ -648,7 +648,6 @@ function endedMatchHtml(m, teamColorMap) {
   var ownGoalA = 0, ownGoalB = 0, unknownA = 0, unknownB = 0;
 
   if (m.goals) {
-    // メンバーごとの得点数をチーム別に集計
     var countA = {}, countB = {};
     m.goals.forEach(function(g) {
       if (g.type === '通常' && g.memberId) {
@@ -664,33 +663,22 @@ function endedMatchHtml(m, teamColorMap) {
     Object.keys(countB).forEach(function(k) { scorersB.push(countB[k]); });
   }
 
-  // 得点者サマリー（チームごとに表示）
+  // 得点者リストを作成
+  var listA = scorersA.map(function(s) { return esc(s.name) + (s.count > 1 ? ' ×' + s.count : ''); });
+  if (ownGoalA > 0) listA.push('OG' + (ownGoalA > 1 ? ' ×' + ownGoalA : ''));
+  if (unknownA > 0) listA.push('不明' + (unknownA > 1 ? ' ×' + unknownA : ''));
+
+  var listB = scorersB.map(function(s) { return esc(s.name) + (s.count > 1 ? ' ×' + s.count : ''); });
+  if (ownGoalB > 0) listB.push('OG' + (ownGoalB > 1 ? ' ×' + ownGoalB : ''));
+  if (unknownB > 0) listB.push('不明' + (unknownB > 1 ? ' ×' + unknownB : ''));
+
+  // 得点者サマリー（左右に分けて縦並び）
   var goalsSummary = '';
-  var hasGoalsA = scorersA.length > 0 || ownGoalA > 0 || unknownA > 0;
-  var hasGoalsB = scorersB.length > 0 || ownGoalB > 0 || unknownB > 0;
-
-  if (hasGoalsA || hasGoalsB) {
-    goalsSummary = '<div class="match-goals-summary">';
-
-    // チームAの得点者
-    if (hasGoalsA) {
-      var aList = scorersA.map(function(s) { return esc(s.name) + (s.count > 1 ? '×' + s.count : ''); });
-      if (ownGoalA > 0) aList.push('OG' + (ownGoalA > 1 ? '×' + ownGoalA : ''));
-      if (unknownA > 0) aList.push('不明' + (unknownA > 1 ? '×' + unknownA : ''));
-      goalsSummary += '<div class="match-goals-team"><span class="team-label team-' + clsA + '-badge" style="font-size:0.65rem;">' + esc(m.teamAName) + '</span>' +
-        '<span class="match-goals-list">' + aList.join(', ') + '</span></div>';
-    }
-
-    // チームBの得点者
-    if (hasGoalsB) {
-      var bList = scorersB.map(function(s) { return esc(s.name) + (s.count > 1 ? '×' + s.count : ''); });
-      if (ownGoalB > 0) bList.push('OG' + (ownGoalB > 1 ? '×' + ownGoalB : ''));
-      if (unknownB > 0) bList.push('不明' + (unknownB > 1 ? '×' + unknownB : ''));
-      goalsSummary += '<div class="match-goals-team"><span class="team-label team-' + clsB + '-badge" style="font-size:0.65rem;">' + esc(m.teamBName) + '</span>' +
-        '<span class="match-goals-list">' + bList.join(', ') + '</span></div>';
-    }
-
-    goalsSummary += '</div>';
+  if (listA.length > 0 || listB.length > 0) {
+    goalsSummary = '<div class="match-goals-summary">' +
+      '<div class="match-goals-col">' + listA.map(function(n) { return '<div>' + n + '</div>'; }).join('') + '</div>' +
+      '<div class="match-goals-col">' + listB.map(function(n) { return '<div>' + n + '</div>'; }).join('') + '</div>' +
+      '</div>';
   }
 
   var editBtn = '';
