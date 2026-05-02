@@ -18,8 +18,8 @@ function toggleNoteField() {
 /** アイコン凡例のHTML */
 function memberLegendHtml_() {
   return '<div class="member-legend">' +
-    '<span>⚽経験あり</span>' +
     '<span>👔幹事</span>' +
+    '<span>⚽経験あり</span>' +
     '<span class="legend-survey">✓回答済</span>' +
     '</div>';
 }
@@ -71,10 +71,10 @@ function memberItemHtml_(m, isQueue, hasAnswered, canEdit) {
   var orgLabel = isQueue ? (m.org ? 'はい' : 'いいえ') : m['幹事'];
   var note = isQueue ? (m.note || '') : (m['備考'] || '');
 
-  // アイコン部分
+  // アイコン部分（幹事→経験→回答済の順）
   var icons = '';
-  if (expLabel === 'あり') icons += '<span class="member-icon" title="サッカー経験あり">⚽</span>';
   if (orgLabel === 'はい') icons += '<span class="member-icon" title="幹事">👔</span>';
+  if (expLabel === 'あり') icons += '<span class="member-icon" title="サッカー経験あり">⚽</span>';
   if (hasAnswered) icons += '<span class="member-icon member-icon-survey" title="アンケート回答済">✓</span>';
 
   // 編集ボタン（管理者のみ）
@@ -85,21 +85,26 @@ function memberItemHtml_(m, isQueue, hasAnswered, canEdit) {
       '</button>';
   }
 
-  // 2行目: 年次 / 備考
-  var subLine = years + '年目';
-  if (note) subLine += ' / ' + esc(note);
+  // 名前（n年目）
+  var nameWithYears = esc(name) + '<span class="member-years">（' + years + '年目）</span>';
+
+  // 2行目: 備考のみ
+  var subLine = note ? esc(note) : '';
 
   // クリックで編集（管理者のみ）
   var clickAttr = (canEdit && id) ? ' onclick="openMemberEdit(\'' + id + '\')" style="cursor:pointer;"' : '';
 
-  return '<div class="member-item-v2">' +
+  var html = '<div class="member-item-v2">' +
     '<div class="member-main">' +
-    '<span class="member-name-v2"' + clickAttr + '>' + esc(name) + '</span>' +
+    '<span class="member-name-v2"' + clickAttr + '>' + nameWithYears + '</span>' +
     '<span class="member-icons">' + icons + '</span>' +
     editBtn +
-    '</div>' +
-    '<div class="member-sub">' + subLine + '</div>' +
     '</div>';
+  if (subLine) {
+    html += '<div class="member-sub">' + subLine + '</div>';
+  }
+  html += '</div>';
+  return html;
 }
 
 function memberBadgesHtml(m, isQueue, hasAnswered) {
@@ -109,9 +114,9 @@ function memberBadgesHtml(m, isQueue, hasAnswered) {
   var orgLabel = isQueue ? (m.org ? 'はい' : 'いいえ') : m['幹事'];
   var note = isQueue ? (m.note || '') : (m['備考'] || '');
   var icons = '';
-  if (expLabel === 'あり') icons += '<span class="member-icon" title="サッカー経験あり">⚽</span>';
   if (orgLabel === 'はい') icons += '<span class="member-icon" title="幹事">👔</span>';
-  return '<span class="badge badge-years">' + years + '年目</span> ' + icons + (note ? ' <span style="color:var(--text-muted);font-size:0.8rem;">' + esc(note) + '</span>' : '');
+  if (expLabel === 'あり') icons += '<span class="member-icon" title="サッカー経験あり">⚽</span>';
+  return '（' + years + '年目） ' + icons + (note ? ' <span style="color:var(--text-muted);font-size:0.8rem;">' + esc(note) + '</span>' : '');
 }
 
 function addToQueue() {
