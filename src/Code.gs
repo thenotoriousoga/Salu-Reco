@@ -23,27 +23,45 @@ var SHEET_HEADERS_ = {
 };
 
 // ===================================
-// スプレッドシート取得
+// スプレッドシート取得（キャッシュ付き）
 // ===================================
 
 /**
- * スプレッドシートを取得する
- * 1. スクリプトプロパティ SPREADSHEET_ID から取得
- * 2. コンテナバインドスクリプトの場合は自動取得
+ * スプレッドシートのキャッシュ
+ * 同一実行コンテキスト内で再利用することでAPI呼び出しを削減
+ * @type {Spreadsheet|null}
+ */
+var ssCache_ = null;
+
+/**
+ * スプレッドシートを取得する（キャッシュ付き）
+ * 同一実行コンテキスト内では2回目以降はキャッシュを返す
+ * 1. キャッシュがあればそれを返す
+ * 2. スクリプトプロパティ SPREADSHEET_ID から取得
+ * 3. コンテナバインドスクリプトの場合は自動取得
  * @return {Spreadsheet} スプレッドシート
  * @throws {Error} スプレッドシートが見つからない場合
  */
 function getSpreadsheet_() {
+  // キャッシュがあれば返す
+  if (ssCache_) {
+    return ssCache_;
+  }
+
   // 1. スクリプトプロパティから取得
   var props = PropertiesService.getScriptProperties();
   var ssId = props.getProperty('SPREADSHEET_ID');
   if (ssId) {
-    return SpreadsheetApp.openById(ssId);
+    ssCache_ = SpreadsheetApp.openById(ssId);
+    return ssCache_;
   }
 
   // 2. コンテナバインドスクリプトの場合
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  if (ss) return ss;
+  if (ss) {
+    ssCache_ = ss;
+    return ssCache_;
+  }
 
   // 3. どちらもない場合はエラー
   throw new Error(
@@ -134,6 +152,23 @@ function generateId_() {
 }
 
 /**
+ * タイムゾーンのキャッシュ
+ * @type {string|null}
+ */
+var tzCache_ = null;
+
+/**
+ * スクリプトのタイムゾーンを取得する（キャッシュ付き）
+ * @return {string} タイムゾーン文字列
+ */
+function getTimeZone_() {
+  if (!tzCache_) {
+    tzCache_ = Session.getScriptTimeZone();
+  }
+  return tzCache_;
+}
+
+/**
  * シートデータをオブジェクト配列として取得する
  * @param {string} sheetName - シート名
  * @return {Object[]} データ配列
@@ -143,25 +178,31 @@ function getSheetData_(sheetName) {
   var sheet = ss.getSheetByName(sheetName);
   if (!sheet || sheet.getLastRow() < 2) return [];
 
-  var data = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
-  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  // ヘッダーとデータを1回のAPI呼び出しで取得（2回のgetRangeより高速）
+  var allData = sheet.getDataRange().getValues();
+  var headers = allData[0];
+  var tz = getTimeZone_();
 
-  return data.map(function(row) {
+  var result = [];
+  for (var i = 1; i < allData.length; i++) {
+    var row = allData[i];
     var obj = {};
-    headers.forEach(function(h, i) {
-      var val = row[i];
+    for (var j = 0; j < headers.length; j++) {
+      var val = row[j];
       // Dateオブジェクトはクライアントにシリアライズできないため文字列に変換
       if (val instanceof Date) {
-        val = Utilities.formatDate(val, Session.getScriptTimeZone(), 'yyyy/MM/dd');
+        val = Utilities.formatDate(val, tz, 'yyyy/MM/dd');
       }
-      obj[h] = val;
-    });
-    return obj;
-  });
+      obj[headers[j]] = val;
+    }
+    result.push(obj);
+  }
+  return result;
 }
 
 /**
- * 指定列の値が一致する行を削除する
+ * 指定列の値が一致する行を削除する（バッチ処理版）
+ * 削除対象以外の行を残して一括書き換えすることで高速化
  * @param {string} sheetName - シート名
  * @param {number} colIndex - 列インデックス（0始まり）
  * @param {string} value - 検索値
@@ -172,10 +213,24 @@ function deleteRowsByMatch_(sheetName, colIndex, value) {
   if (!sheet || sheet.getLastRow() < 2) return;
 
   var data = sheet.getDataRange().getValues();
-  for (var i = data.length - 1; i >= 1; i--) {
-    if (String(data[i][colIndex]) === String(value)) {
-      sheet.deleteRow(i + 1);
+  var headers = data[0];
+  var colCount = headers.length;
+
+  // 削除対象以外の行を抽出
+  var remaining = [headers];
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][colIndex]) !== String(value)) {
+      remaining.push(data[i]);
     }
+  }
+
+  // 削除対象がなければ何もしない
+  if (remaining.length === data.length) return;
+
+  // シートをクリアして残りのデータを一括書き込み
+  sheet.clearContents();
+  if (remaining.length > 0) {
+    sheet.getRange(1, 1, remaining.length, colCount).setValues(remaining);
   }
 }
 
@@ -208,4 +263,55 @@ function buildMap_(items, idKey) {
     map[item[idKey]] = item;
   });
   return map;
+}
+
+// ===================================
+// 一括データ取得（パフォーマンス最適化）
+// ===================================
+
+/**
+ * シートオブジェクトからデータをオブジェクト配列として取得する（内部用）
+ * @param {Sheet} sheet - シートオブジェクト
+ * @param {string} tz - タイムゾーン文字列
+ * @return {Object[]} データ配列
+ */
+function getSheetDataFromSheet_(sheet, tz) {
+  if (!sheet || sheet.getLastRow() < 2) return [];
+
+  var allData = sheet.getDataRange().getValues();
+  var headers = allData[0];
+
+  var result = [];
+  for (var i = 1; i < allData.length; i++) {
+    var row = allData[i];
+    var obj = {};
+    for (var j = 0; j < headers.length; j++) {
+      var val = row[j];
+      if (val instanceof Date) {
+        val = Utilities.formatDate(val, tz, 'yyyy/MM/dd');
+      }
+      obj[headers[j]] = val;
+    }
+    result.push(obj);
+  }
+  return result;
+}
+
+/**
+ * 複数シートのデータを一括取得する
+ * 個別にgetSheetData_を呼ぶより高速（スプレッドシート取得が1回で済む）
+ * @param {string[]} sheetNames - 取得するシート名の配列
+ * @return {Object} シート名をキーにしたデータオブジェクト
+ */
+function getMultipleSheetData_(sheetNames) {
+  var ss = getSpreadsheet_();
+  var tz = getTimeZone_();
+  var result = {};
+
+  sheetNames.forEach(function(name) {
+    var sheet = ss.getSheetByName(name);
+    result[name] = getSheetDataFromSheet_(sheet, tz);
+  });
+
+  return result;
 }

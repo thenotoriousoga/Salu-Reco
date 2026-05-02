@@ -41,11 +41,14 @@ function createRound(eventId, teamNames, teams) {
  * @return {Object[]} ラウンドデータの配列
  */
 function getRounds(eventId) {
-  var rounds = getSheetData_('ラウンド').filter(function(r) { return r['イベントID'] === eventId; });
-  var allMatches = getSheetData_('マッチ');
-  var matchMembers = getSheetData_('マッチメンバー');
-  var goals = getSheetData_('得点');
-  var members = getSheetData_('メンバー');
+  // 複数シートを一括取得（個別取得より高速）
+  var data = getMultipleSheetData_(['ラウンド', 'マッチ', 'マッチメンバー', '得点', 'メンバー']);
+
+  var rounds = data['ラウンド'].filter(function(r) { return r['イベントID'] === eventId; });
+  var allMatches = data['マッチ'];
+  var matchMembers = data['マッチメンバー'];
+  var goals = data['得点'];
+  var members = data['メンバー'];
   var memberMap = buildMap_(members, 'メンバーID');
 
   return rounds.map(function(round) {
@@ -160,9 +163,16 @@ function createMatch(roundId, teamAName, teamBName, teamAMembers, teamBMembers) 
     0, 0, '進行中'
   ]);
 
-  var mmSheet = ensureSheet_(ss, 'マッチメンバー');
-  teamAMembers.forEach(function(mId) { mmSheet.appendRow([matchId, mId, 'A']); });
-  teamBMembers.forEach(function(mId) { mmSheet.appendRow([matchId, mId, 'B']); });
+  // マッチメンバーを一括書き込み（appendRowの繰り返しより高速）
+  var mmRows = [];
+  teamAMembers.forEach(function(mId) { mmRows.push([matchId, mId, 'A']); });
+  teamBMembers.forEach(function(mId) { mmRows.push([matchId, mId, 'B']); });
+
+  if (mmRows.length > 0) {
+    var mmSheet = ensureSheet_(ss, 'マッチメンバー');
+    var lastRow = mmSheet.getLastRow();
+    mmSheet.getRange(lastRow + 1, 1, mmRows.length, mmRows[0].length).setValues(mmRows);
+  }
 
   return {
     success: true,
@@ -185,8 +195,8 @@ function updateMatchScore(matchId, scoreA, scoreB) {
   var rowIndex = findRowIndex_(sheet, 0, matchId);
   if (rowIndex === -1) return { success: false };
 
-  sheet.getRange(rowIndex, 6).setValue(Number(scoreA));
-  sheet.getRange(rowIndex, 7).setValue(Number(scoreB));
+  // 2つのセルを一括更新（setValueの繰り返しより高速）
+  sheet.getRange(rowIndex, 6, 1, 2).setValues([[Number(scoreA), Number(scoreB)]]);
   return { success: true };
 }
 
@@ -242,14 +252,16 @@ function reopenMatch(matchId) {
   var rowIndex = findRowIndex_(sheet, 0, matchId);
   if (rowIndex === -1) return { success: false, message: '試合が見つかりません' };
 
-  // マッチからラウンドIDを取得し、イベントのステータスを確認
-  var matchData = getSheetData_('マッチ').find(function(m) { return m['マッチID'] === matchId; });
+  // 必要なデータを一括取得
+  var data = getMultipleSheetData_(['マッチ', 'ラウンド', 'イベント']);
+
+  var matchData = data['マッチ'].find(function(m) { return m['マッチID'] === matchId; });
   if (!matchData) return { success: false, message: '試合が見つかりません' };
 
-  var roundData = getSheetData_('ラウンド').find(function(r) { return r['ラウンドID'] === matchData['ラウンドID']; });
+  var roundData = data['ラウンド'].find(function(r) { return r['ラウンドID'] === matchData['ラウンドID']; });
   if (!roundData) return { success: false, message: 'ラウンドが見つかりません' };
 
-  var event = findEvent_(roundData['イベントID']);
+  var event = data['イベント'].find(function(e) { return e['イベントID'] === roundData['イベントID']; });
   if (event && event['ステータス'] === '完了') {
     return { success: false, message: 'イベント終了後は編集できません' };
   }

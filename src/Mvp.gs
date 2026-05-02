@@ -13,19 +13,22 @@
  * @return {Object} MVP選出用データ一式
  */
 function getMvpData_(eventId) {
-  var members = getEventMembers(eventId);
+  // 複数シートを一括取得（個別取得より高速）
+  var data = getMultipleSheetData_(['メンバー', 'ラウンド', 'マッチ', 'マッチメンバー', '得点', 'アンケート回答']);
+
+  var members = data['メンバー'].filter(function(m) { return m['イベントID'] === eventId; });
   var memberMap = buildMap_(members, 'メンバーID');
 
-  var rounds = getSheetData_('ラウンド').filter(function(r) { return r['イベントID'] === eventId; });
+  var rounds = data['ラウンド'].filter(function(r) { return r['イベントID'] === eventId; });
   var roundIds = rounds.map(function(r) { return r['ラウンドID']; });
 
-  var allMatches = getSheetData_('マッチ');
+  var allMatches = data['マッチ'];
   var matches = allMatches.filter(function(m) { return roundIds.indexOf(m['ラウンドID']) >= 0; });
   var matchIds = matches.map(function(m) { return m['マッチID']; });
 
-  var matchMembers = getSheetData_('マッチメンバー');
-  var goals = getSheetData_('得点');
-  var surveyComments = getSheetData_('アンケート回答').filter(function(c) { return c['イベントID'] === eventId; });
+  var matchMembers = data['マッチメンバー'];
+  var goals = data['得点'];
+  var surveyComments = data['アンケート回答'].filter(function(c) { return c['イベントID'] === eventId; });
 
   return {
     members: members,
@@ -244,11 +247,17 @@ function parseMvpResponse_(responseText, participantIds, memberMap) {
 function saveMvpResults_(eventId, results) {
   deleteRowsByMatch_('MVP結果', 0, eventId);
 
+  if (!results || results.length === 0) return;
+
+  // 行配列に変換して一括書き込み（appendRowの繰り返しより高速）
+  var rows = results.map(function(r) {
+    return [eventId, r.memberId, r.name, r.rank, r.reason, r.totalScore, r.rating, r.comment];
+  });
+
   var ss = getSpreadsheet_();
   var mvpSheet = ss.getSheetByName('MVP結果');
-  results.forEach(function(r) {
-    mvpSheet.appendRow([eventId, r.memberId, r.name, r.rank, r.reason, r.totalScore, r.rating, r.comment]);
-  });
+  var lastRow = mvpSheet.getLastRow();
+  mvpSheet.getRange(lastRow + 1, 1, rows.length, rows[0].length).setValues(rows);
 }
 
 // ===================================

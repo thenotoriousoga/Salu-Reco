@@ -34,15 +34,12 @@ function bulkAddMembersFromQueue(eventId, memberDataList) {
     return { success: false, message: '登録するメンバーがいません' };
   }
 
-  var ss = getSpreadsheet_();
-  var sheet = ss.getSheetByName('メンバー');
-  var count = 0;
-
+  // 有効なメンバーデータを行配列に変換
+  var rows = [];
   memberDataList.forEach(function(m) {
     if (!m.name || !m.name.trim()) return;
-    var id = generateId_();
-    sheet.appendRow([
-      id,
+    rows.push([
+      generateId_(),
       eventId,
       m.name.trim(),
       Number(m.years) || 1,
@@ -50,10 +47,19 @@ function bulkAddMembersFromQueue(eventId, memberDataList) {
       m.org ? 'はい' : 'いいえ',
       (m.note || '').trim()
     ]);
-    count++;
   });
 
-  return { success: true, message: count + '人を登録しました' };
+  if (rows.length === 0) {
+    return { success: false, message: '登録するメンバーがいません' };
+  }
+
+  // 一括書き込み（appendRowの繰り返しより高速）
+  var ss = getSpreadsheet_();
+  var sheet = ss.getSheetByName('メンバー');
+  var lastRow = sheet.getLastRow();
+  sheet.getRange(lastRow + 1, 1, rows.length, rows[0].length).setValues(rows);
+
+  return { success: true, message: rows.length + '人を登録しました' };
 }
 
 // ===================================

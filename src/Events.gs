@@ -27,16 +27,49 @@ function findEvent_(eventId) {
 
 /**
  * イベント詳細を取得する（メンバー・ラウンド・MVP結果含む）
+ * 全データを一括取得してからフィルタリングすることで高速化
  * @param {string} eventId - イベントID
  * @return {Object|null} イベント詳細データ
  */
 function getEventDetail(eventId) {
-  var event = findEvent_(eventId);
+  // 必要な全シートを一括取得
+  var data = getMultipleSheetData_(['イベント', 'メンバー', 'ラウンド', 'マッチ', 'マッチメンバー', '得点', 'MVP結果']);
+
+  var event = data['イベント'].find(function(e) { return e['イベントID'] === eventId; });
   if (!event) return null;
 
-  var members = getEventMembers(eventId);
-  var rounds = getRounds(eventId);
-  var mvpResults = getMvpResults(eventId);
+  var members = data['メンバー'].filter(function(m) { return m['イベントID'] === eventId; });
+  var memberMap = buildMap_(members, 'メンバーID');
+
+  // ラウンドとマッチデータを構築
+  var eventRounds = data['ラウンド'].filter(function(r) { return r['イベントID'] === eventId; });
+  var allMatches = data['マッチ'];
+  var matchMembers = data['マッチメンバー'];
+  var goals = data['得点'];
+
+  var rounds = eventRounds.map(function(round) {
+    var rId = round['ラウンドID'];
+    var splitData = null;
+    try { splitData = JSON.parse(round['チーム分けJSON']); } catch (e) { splitData = null; }
+
+    var rMatches = allMatches
+      .filter(function(m) { return m['ラウンドID'] === rId; })
+      .sort(function(a, b) { return a['マッチ番号'] - b['マッチ番号']; });
+
+    var matchesData = rMatches.map(function(match) {
+      return buildMatchData_(match, matchMembers, goals, memberMap);
+    });
+
+    return {
+      id: rId,
+      roundNumber: round['ラウンド番号'],
+      status: round['ステータス'],
+      splitData: splitData,
+      matches: matchesData
+    };
+  }).sort(function(a, b) { return a.roundNumber - b.roundNumber; });
+
+  var mvpResults = data['MVP結果'].filter(function(r) { return r['イベントID'] === eventId; });
 
   return {
     event: event,
@@ -123,8 +156,8 @@ function updateMvpSettings(eventId, mvpCount, subMvpCount) {
   if (rowIndex === -1) {
     return { success: false, message: 'イベントが見つかりません' };
   }
-  sheet.getRange(rowIndex, 5).setValue(Number(mvpCount) || 1);
-  sheet.getRange(rowIndex, 6).setValue(Number(subMvpCount) || 1);
+  // 2つのセルを一括更新（setValueの繰り返しより高速）
+  sheet.getRange(rowIndex, 5, 1, 2).setValues([[Number(mvpCount) || 1, Number(subMvpCount) || 1]]);
   return { success: true, message: 'MVP設定を更新しました' };
 }
 
@@ -138,15 +171,25 @@ function updateMvpSettings(eventId, mvpCount, subMvpCount) {
  * @return {Object} 結果オブジェクト { success, message }
  */
 function deleteEvent(eventId) {
-  // 関連ラウンド・マッチを削除
-  var rounds = getSheetData_('ラウンド').filter(function(r) { return r['イベントID'] === eventId; });
-  rounds.forEach(function(round) {
-    var matches = getSheetData_('マッチ').filter(function(m) { return m['ラウンドID'] === round['ラウンドID']; });
-    matches.forEach(function(m) {
-      deleteRowsByMatch_('マッチメンバー', 0, m['マッチID']);
-      deleteRowsByMatch_('得点', 0, m['マッチID']);
-    });
-    deleteRowsByMatch_('マッチ', 1, round['ラウンドID']);
+  // 必要なデータを一括取得
+  var data = getMultipleSheetData_(['ラウンド', 'マッチ']);
+
+  // 関連するマッチIDを収集
+  var rounds = data['ラウンド'].filter(function(r) { return r['イベントID'] === eventId; });
+  var roundIds = rounds.map(function(r) { return r['ラウンドID']; });
+
+  var matches = data['マッチ'].filter(function(m) { return roundIds.indexOf(m['ラウンドID']) >= 0; });
+  var matchIds = matches.map(function(m) { return m['マッチID']; });
+
+  // マッチメンバーと得点を削除
+  matchIds.forEach(function(matchId) {
+    deleteRowsByMatch_('マッチメンバー', 0, matchId);
+    deleteRowsByMatch_('得点', 0, matchId);
+  });
+
+  // ラウンドに紐づくマッチを削除
+  roundIds.forEach(function(roundId) {
+    deleteRowsByMatch_('マッチ', 1, roundId);
   });
 
   // 関連データを削除
