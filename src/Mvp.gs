@@ -1,5 +1,5 @@
 // ===================================
-// MVP選出（Gemini AI 評価）
+// MVP選出（Gemini AI 総合評価）
 // ===================================
 
 // -----------------------------------
@@ -10,13 +10,6 @@
  * MVP選出に必要なデータをまとめて取得する
  * @param {string} eventId - イベントID
  * @return {Object} MVP選出用データ一式
- *   - members: メンバー配列
- *   - memberMap: メンバーIDをキーにしたマップ
- *   - matchIds: 対象マッチIDの配列
- *   - matches: マッチデータ配列
- *   - matchMembers: マッチメンバーデータ配列
- *   - goals: 得点データ配列
- *   - surveyComments: アンケート回答データ配列
  */
 function getMvpData_(eventId) {
   var members = getEventMembers(eventId);
@@ -66,7 +59,7 @@ function getParticipantIds_(matchMembers, matchIds) {
 }
 
 // -----------------------------------
-// 定量評価（ルールベース）
+// 試合データ集計（AI入力用）
 // -----------------------------------
 
 /**
@@ -107,281 +100,119 @@ function countWins_(matches, matchMembers, matchIds, memberId) {
 }
 
 /**
- * 経験・年次に基づくボーナス倍率を計算する
- * @param {Object} member - メンバーオブジェクト
- * @return {number} ボーナス倍率（1.0以上）
+ * メンバーの出場試合数を集計する
+ * @param {Object[]} matchMembers - マッチメンバーデータ
+ * @param {string[]} matchIds - 対象マッチIDの配列
+ * @param {string} memberId - メンバーID
+ * @return {number} 出場試合数
  */
-function calcBonusMultiplier_(member) {
-  var multiplier = 1.0;
-  // 未経験者ボーナス
-  if (member['サッカー経験'] === 'なし') {
-    multiplier *= 1.3;
-  }
-  // 若手ボーナス
-  var years = Number(member['年次']) || 1;
-  if (years <= 2) {
-    multiplier *= 1.15;
-  }
-  return multiplier;
+function countPlayed_(matchMembers, matchIds, memberId) {
+  return matchMembers.filter(function(mm) {
+    return matchIds.indexOf(mm['マッチID']) >= 0 && mm['メンバーID'] === memberId;
+  }).length;
 }
 
+// -----------------------------------
+// Gemini AI 総合評価
+// -----------------------------------
+
 /**
- * 各メンバーの定量スコアを計算する
+ * AI総合評価用のプロンプトを組み立てる
  * @param {string[]} participantIds - 参加メンバーIDの配列
  * @param {Object} memberMap - メンバーIDをキーにしたマップ
+ * @param {Object[]} surveyComments - アンケート回答データ
  * @param {Object[]} goals - 得点データ
  * @param {Object[]} matches - マッチデータ
  * @param {Object[]} matchMembers - マッチメンバーデータ
  * @param {string[]} matchIds - 対象マッチIDの配列
- * @return {Object} メンバーIDをキーにした定量スコアのマップ
- */
-function calcQuantScores_(participantIds, memberMap, goals, matches, matchMembers, matchIds) {
-  var quantScores = {};
-  participantIds.forEach(function(mId) {
-    var m = memberMap[mId] || {};
-    var score = 0;
-
-    // 得点数 × 3pt
-    score += countGoals_(goals, matchIds, mId) * 3;
-
-    // 勝利数 × 2pt
-    score += countWins_(matches, matchMembers, matchIds, mId) * 2;
-
-    // 経験・年次ボーナス
-    score *= calcBonusMultiplier_(m);
-
-    quantScores[mId] = Math.round(score * 10) / 10;
-  });
-  return quantScores;
-}
-
-// -----------------------------------
-// 定性評価（AI）
-// -----------------------------------
-
-/**
- * 定性評価用のプロンプトを組み立てる
- * @param {string[]} participantIds - 参加メンバーIDの配列
- * @param {Object[]} surveyComments - アンケート回答データ
- * @param {Object} memberMap - メンバーIDをキーにしたマップ
- * @return {string} プロンプト文字列
- */
-function buildQualPrompt_(participantIds, surveyComments, memberMap) {
-  var memberLines = participantIds.map(function(mId) {
-    var m = memberMap[mId] || {};
-    return '- memberId: "' + mId + '", 名前: ' + (m['名前'] || '不明') +
-      ', サッカー経験: ' + (m['サッカー経験'] || '不明') +
-      ', 年次: ' + (m['年次'] || '不明');
-  });
-
-  var commentLines = surveyComments.map(function(c) {
-    var targetName = c['対象メンバー名'] || '不明';
-    var targetId = c['対象メンバーID'] || '';
-    var text = c['コメント'] || '';
-    return '- 対象: ' + targetName + ' (memberId: "' + targetId + '"), コメント: 「' + text + '」';
-  });
-
-  return 'あなたはフットサルイベントの定性評価を行う審査員です。\n' +
-    'アンケートのコメントを分析し、各メンバーの定性スコアを0〜50の整数で採点してください。\n\n' +
-    '【評価基準】\n' +
-    '- チームメイトからの評価の高さ（コメント数、内容のポジティブさ）\n' +
-    '- プレーの質に関する言及（シュート、パス、ディフェンスなど）\n' +
-    '- チームへの貢献度（盛り上げ、声かけ、サポートなど）\n' +
-    '- コメントが無いメンバーは0点としてください\n' +
-    '- サッカー未経験者が頑張っている場合は加点を考慮してください\n\n' +
-    '【メンバー一覧】\n' + memberLines.join('\n') + '\n\n' +
-    '【アンケートコメント】\n' + commentLines.join('\n') + '\n\n' +
-    '以下のJSON配列形式で返してください（他のテキストは不要）:\n' +
-    '[{"memberId": "xxx", "score": 30}, ...]\n' +
-    '全メンバー分を必ず含めてください。';
-}
-
-/**
- * AIレスポンスから定性スコアをパースする
- * @param {string} responseText - AIレスポンスのJSON文字列
- * @param {string[]} participantIds - 参加メンバーIDの配列
- * @return {Object} メンバーIDをキーにした定性スコアのマップ、またはエラーオブジェクト
- */
-function parseQualScores_(responseText, participantIds) {
-  try {
-    var parsed = JSON.parse(responseText);
-    var qualScores = {};
-    // まず全員0で初期化
-    participantIds.forEach(function(mId) { qualScores[mId] = 0; });
-    // AIの結果を反映
-    parsed.forEach(function(item) {
-      if (item.memberId && typeof item.score === 'number') {
-        var s = Math.max(0, Math.min(50, Math.round(item.score)));
-        qualScores[item.memberId] = s;
-      }
-    });
-    return qualScores;
-  } catch (e) {
-    return { success: false, message: 'AI定性評価のレスポンス解析に失敗しました: ' + e.message };
-  }
-}
-
-/**
- * Gemini AI を使って各メンバーの定性スコアを算出する
- * @param {string[]} participantIds - 参加メンバーIDの配列
- * @param {Object[]} surveyComments - アンケート回答データ
- * @param {Object} memberMap - メンバーIDをキーにしたマップ
- * @return {Object} メンバーIDをキーにした定性スコアのマップ
- */
-function calcQualScoresAI_(participantIds, surveyComments, memberMap) {
-  // コメントが無い場合は全員0点
-  if (surveyComments.length === 0) {
-    var qualScores = {};
-    participantIds.forEach(function(mId) { qualScores[mId] = 0; });
-    return qualScores;
-  }
-
-  var prompt = buildQualPrompt_(participantIds, surveyComments, memberMap);
-  var responseText = callGemini_(prompt);
-  if (!responseText) {
-    return { success: false, message: 'AI定性評価に失敗しました。GEMINI_API_KEY の設定とAPIの状態を確認してください。' };
-  }
-
-  return parseQualScores_(responseText, participantIds);
-}
-
-// -----------------------------------
-// ランキング作成
-// -----------------------------------
-
-/**
- * 定量・定性スコアを正規化して合算し、ランキングを作成する
- * 定量50点 + 定性50点 = 100点満点
- * @param {string[]} participantIds - 参加メンバーIDの配列
- * @param {Object} quantScores - メンバーIDをキーにした定量スコアのマップ
- * @param {Object} qualScores - メンバーIDをキーにした定性スコアのマップ
- * @param {Object} memberMap - メンバーIDをキーにしたマップ
- * @return {Object[]} 総合スコア降順のランキング配列
- */
-function buildRanking_(participantIds, quantScores, qualScores, memberMap) {
-  var maxQuant = Math.max.apply(null, participantIds.map(function(id) { return quantScores[id] || 0; }).concat([1]));
-  var maxQual = Math.max.apply(null, participantIds.map(function(id) { return qualScores[id] || 0; }).concat([1]));
-  var totalScores = participantIds.map(function(mId) {
-    var normQuant = ((quantScores[mId] || 0) / maxQuant) * 50;
-    var normQual = ((qualScores[mId] || 0) / maxQual) * 50;
-    var total = Math.round((normQuant + normQual) * 10) / 10;
-    return { memberId: mId, name: (memberMap[mId] || {})['名前'] || '不明', quantScore: quantScores[mId] || 0, qualScore: qualScores[mId] || 0, totalScore: total };
-  });
-  totalScores.sort(function(a, b) { return b.totalScore - a.totalScore; });
-  return totalScores;
-}
-
-// -----------------------------------
-// 順位付け
-// -----------------------------------
-
-/**
- * ランキング結果にMVP/準MVPの順位を付与する
- * @param {Object[]} totalScores - buildRanking_の戻り値
  * @param {number} mvpCount - MVP人数
  * @param {number} subMvpCount - 準MVP人数
- * @return {Object[]} rank付きの結果配列
- */
-function assignRanks_(totalScores, mvpCount, subMvpCount) {
-  return totalScores.map(function(s, i) {
-    var rank = '';
-    if (i < mvpCount) { rank = 'MVP'; }
-    else if (i < mvpCount + subMvpCount) { rank = '準MVP'; }
-    return { memberId: s.memberId, name: s.name, rank: rank, reason: '', quantScore: s.quantScore, qualScore: s.qualScore, totalScore: s.totalScore };
-  });
-}
-
-// -----------------------------------
-// 選出理由生成（AI）
-// -----------------------------------
-
-/**
- * 選出理由生成用のプロンプトを組み立てる
- * @param {Object[]} rankedResults - ランキング済みの結果配列（rank付き）
- * @param {Object} memberMap - メンバーIDをキーにしたマップ
- * @param {Object[]} surveyComments - アンケート回答データ
- * @param {Object[]} goals - 得点データ
- * @param {string[]} matchIds - 対象マッチIDの配列
  * @return {string} プロンプト文字列
  */
-function buildReasonPrompt_(rankedResults, memberMap, surveyComments, goals, matchIds) {
-  var targetLines = rankedResults.map(function(r) {
-    var m = memberMap[r.memberId] || {};
-    var totalGoals = goals
-      .filter(function(g) { return matchIds.indexOf(g['マッチID']) >= 0 && g['メンバーID'] === r.memberId; })
-      .reduce(function(sum, g) { return sum + Number(g['得点数']); }, 0);
+function buildMvpPrompt_(participantIds, memberMap, surveyComments, goals, matches, matchMembers, matchIds, mvpCount, subMvpCount) {
+  var memberLines = participantIds.map(function(mId) {
+    var m = memberMap[mId] || {};
+    var totalGoals = countGoals_(goals, matchIds, mId);
+    var totalWins = countWins_(matches, matchMembers, matchIds, mId);
+    var played = countPlayed_(matchMembers, matchIds, mId);
     var comments = surveyComments
-      .filter(function(c) { return c['対象メンバーID'] === r.memberId; })
-      .map(function(c) { return c['コメント'] || ''; });
+      .filter(function(c) { return c['対象メンバーID'] === mId; })
+      .map(function(c) { return '「' + (c['コメント'] || '') + '」'; });
 
-    return '- memberId: "' + r.memberId + '"\n' +
-      '  名前: ' + r.name + '\n' +
-      '  順位: ' + (r.rank || 'なし') + '\n' +
+    return '- memberId: "' + mId + '"\n' +
+      '  名前: ' + (m['名前'] || '不明') + '\n' +
       '  サッカー経験: ' + (m['サッカー経験'] || '不明') + '\n' +
       '  年次: ' + (m['年次'] || '不明') + '\n' +
+      '  備考: ' + (m['備考'] || 'なし') + '\n' +
+      '  幹事: ' + (m['幹事'] || 'いいえ') + '\n' +
+      '  出場試合数: ' + played + '\n' +
       '  得点数: ' + totalGoals + '\n' +
-      '  定量スコア: ' + r.quantScore + 'pt\n' +
-      '  定性スコア: ' + r.qualScore + 'pt\n' +
-      '  総合スコア: ' + r.totalScore + '/100\n' +
-      '  チームメイトからのコメント: ' + (comments.length > 0 ? comments.map(function(c) { return '「' + c + '」'; }).join(', ') : 'なし');
+      '  勝利数: ' + totalWins + '\n' +
+      '  チームメイトからのコメント: ' + (comments.length > 0 ? comments.join(', ') : 'なし');
   });
 
-  return 'あなたはフットサルイベントの評価コメントを作成するライターです。\n' +
-    '以下の全メンバーについて、定量データ（得点・勝利）とチームメイトからのコメントを踏まえた評価コメントを作成してください。\n\n' +
-    '【ルール】\n' +
-    '- 1人あたり50〜80文字程度の自然な日本語で書いてください\n' +
-    '- 「MVP選出理由: 」などのプレフィックスは不要です\n' +
-    '- 得点やコメント内容など具体的な事実を盛り込んでください\n' +
-    '- サッカー未経験者の場合はその頑張りに触れてください\n' +
-    '- 堅すぎず、フットサルの楽しい雰囲気に合ったトーンで書いてください\n' +
-    '- 順位が「MVP」「準MVP」のメンバーは選出理由として書いてください\n' +
-    '- 順位が「なし」のメンバーも、良かった点や印象に残ったプレーなどポジティブな評価コメントを書いてください\n\n' +
-    '【メンバー一覧】\n' + targetLines.join('\n\n') + '\n\n' +
+  return 'あなたはフットサルイベントのMVP選出を行う審査員です。\n' +
+    '以下のメンバー情報・試合データ・アンケートコメントを総合的に判断し、各メンバーを0〜100点で採点してください。\n\n' +
+    '【重要な評価方針】\n' +
+    '- これは社内・仲間内のフットサルイベントです。プロの試合ではありません\n' +
+    '- 得点や勝利数だけでなく、現場の雰囲気への貢献・チームメイトからの評価を重視してください\n' +
+    '- サッカー未経験者や若手が積極的に参加し頑張っている場合は、高く評価してください\n' +
+    '- 備考欄の情報（初参加、久しぶりの参加など）も考慮してください\n' +
+    '- 幹事としてイベント運営に貢献しているメンバーも評価に加味してください\n' +
+    '- チームメイトからのコメントが多い・ポジティブなメンバーは高く評価してください\n' +
+    '- 得点が多い＝MVPではありません。場を盛り上げた人、チームに貢献した人を総合的に評価してください\n\n' +
+    '【採点基準の目安】\n' +
+    '- 90〜100点: 文句なしのMVP。試合でも雰囲気でも圧倒的な貢献\n' +
+    '- 70〜89点: MVP候補。目立った活躍や周囲からの高い評価\n' +
+    '- 50〜69点: 良い活躍。チームに貢献していた\n' +
+    '- 30〜49点: 普通の参加。特筆すべき点は少ない\n' +
+    '- 0〜29点: 参加のみ。目立った活躍やコメントがない\n\n' +
+    '【メンバー情報・試合データ・コメント】\n' + memberLines.join('\n\n') + '\n\n' +
+    '【出力ルール】\n' +
+    '- 上位' + mvpCount + '名を「MVP」、次の' + subMvpCount + '名を「準MVP」としてください\n' +
+    '- 全メンバーに評価コメント（50〜80文字程度）を付けてください\n' +
+    '- MVP・準MVPのメンバーには選出理由を、それ以外のメンバーにはポジティブな評価コメントを書いてください\n' +
+    '- 堅すぎず、フットサルの楽しい雰囲気に合ったトーンで書いてください\n\n' +
     '以下のJSON配列形式で返してください（他のテキストは不要）:\n' +
-    '[{"memberId": "xxx", "reason": "評価コメント"}, ...]\n' +
-    '全メンバー分を必ず含めてください。';
+    '[{"memberId": "xxx", "score": 85, "rank": "MVP", "reason": "評価コメント"}, ...]\n' +
+    'rankは "MVP", "準MVP", "" のいずれかです。全メンバー分を必ず含めてください。';
 }
 
 /**
- * AIレスポンスから選出理由をパースする
+ * AIレスポンスをパースしてMVP結果を構築する
  * @param {string} responseText - AIレスポンスのJSON文字列
- * @return {Object} メンバーIDをキーにした選出理由のマップ、またはエラーオブジェクト
+ * @param {string[]} participantIds - 参加メンバーIDの配列
+ * @param {Object} memberMap - メンバーIDをキーにしたマップ
+ * @return {Object[]|Object} 結果配列、またはエラーオブジェクト
  */
-function parseReasons_(responseText) {
+function parseMvpResponse_(responseText, participantIds, memberMap) {
   try {
     var parsed = JSON.parse(responseText);
-    var reasons = {};
-    parsed.forEach(function(item) {
-      if (item.memberId && item.reason) {
-        reasons[item.memberId] = item.reason;
+    var results = participantIds.map(function(mId) {
+      var m = memberMap[mId] || {};
+      var item = parsed.find(function(p) { return p.memberId === mId; });
+      var score = 0;
+      var rank = '';
+      var reason = '';
+      if (item) {
+        score = Math.max(0, Math.min(100, Math.round(Number(item.score) || 0)));
+        rank = item.rank || '';
+        reason = item.reason || '';
       }
+      return {
+        memberId: mId,
+        name: m['名前'] || '不明',
+        rank: rank,
+        reason: reason,
+        totalScore: score
+      };
     });
-    return reasons;
+    // スコア降順でソート
+    results.sort(function(a, b) { return b.totalScore - a.totalScore; });
+    return results;
   } catch (e) {
-    return { success: false, message: 'AI評価コメントのレスポンス解析に失敗しました: ' + e.message };
+    return { success: false, message: 'AI評価のレスポンス解析に失敗しました: ' + e.message };
   }
-}
-
-/**
- * Gemini AI を使って全メンバーの評価コメントを生成する
- * MVP/準MVPには選出理由、それ以外のメンバーには評価コメントを作成する
- * @param {Object[]} rankedResults - ランキング済みの結果配列（rank付き）
- * @param {Object} memberMap - メンバーIDをキーにしたマップ
- * @param {Object[]} surveyComments - アンケート回答データ
- * @param {Object[]} goals - 得点データ
- * @param {string[]} matchIds - 対象マッチIDの配列
- * @return {Object} メンバーIDをキーにした評価コメントのマップ
- */
-function generateReasonsAI_(rankedResults, memberMap, surveyComments, goals, matchIds) {
-  if (rankedResults.length === 0) return {};
-
-  var prompt = buildReasonPrompt_(rankedResults, memberMap, surveyComments, goals, matchIds);
-  var responseText = callGemini_(prompt);
-  if (!responseText) {
-    return { success: false, message: 'AI評価コメントの生成に失敗しました。GEMINI_API_KEY の設定とAPIの状態を確認してください。' };
-  }
-
-  return parseReasons_(responseText);
 }
 
 // -----------------------------------
@@ -399,7 +230,7 @@ function saveMvpResults_(eventId, results) {
   var ss = getSpreadsheet_();
   var mvpSheet = ss.getSheetByName('MVP結果');
   results.forEach(function(r) {
-    mvpSheet.appendRow([eventId, r.memberId, r.name, r.rank, r.reason, r.quantScore, r.qualScore, r.totalScore]);
+    mvpSheet.appendRow([eventId, r.memberId, r.name, r.rank, r.reason, r.totalScore]);
   });
 }
 
@@ -409,7 +240,7 @@ function saveMvpResults_(eventId, results) {
 
 /**
  * MVP選出を実行する
- * 定量評価（ルールベース）50% + 定性評価（AI）50% の100点満点で評価
+ * 全データをGemini AIに渡し、総合的に0〜100点で評価する
  * @param {string} eventId - イベントID
  * @return {Object} 選出結果 { success, results, message }
  */
@@ -429,29 +260,22 @@ function selectMVP(eventId) {
     return { success: false, message: '参加メンバーがいません' };
   }
 
-  // 定量スコア（ルールベース）
-  var quantScores = calcQuantScores_(participantIds, data.memberMap, data.goals, data.matches, data.matchMembers, data.matchIds);
-
-  // 定性スコア（AI評価）
-  var qualScores = calcQualScoresAI_(participantIds, data.surveyComments, data.memberMap);
-  if (qualScores.success === false) {
-    return qualScores;
+  // Gemini AI 総合評価
+  var prompt = buildMvpPrompt_(
+    participantIds, data.memberMap, data.surveyComments,
+    data.goals, data.matches, data.matchMembers, data.matchIds,
+    mvpCount, subMvpCount
+  );
+  var responseText = callGemini_(prompt);
+  if (!responseText) {
+    return { success: false, message: 'AI評価に失敗しました。GEMINI_API_KEY の設定とAPIの状態を確認してください。' };
   }
 
-  // ランキング作成
-  var totalScores = buildRanking_(participantIds, quantScores, qualScores, data.memberMap);
-
-  // 順位付け
-  var results = assignRanks_(totalScores, mvpCount, subMvpCount);
-
-  // 評価コメント生成（AI・全メンバー対象）
-  var aiReasons = generateReasonsAI_(results, data.memberMap, data.surveyComments, data.goals, data.matchIds);
-  if (aiReasons.success === false) {
-    return aiReasons;
+  // レスポンス解析
+  var results = parseMvpResponse_(responseText, participantIds, data.memberMap);
+  if (results.success === false) {
+    return results;
   }
-  results.forEach(function(r) {
-    r.reason = aiReasons[r.memberId] || '';
-  });
 
   // 結果をスプレッドシートに保存
   saveMvpResults_(eventId, results);

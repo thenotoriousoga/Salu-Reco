@@ -84,7 +84,7 @@ function saveMvpSettings() {
 function createSurvey() { callServer('createSurveyForm', [currentEventId], function(r) { if (r.success) { showToast(r.message); openEvent(currentEventId, 'tab-results'); } else showToast(r.message, true); }); }
 function fetchSurvey() { callServer('fetchSurveyResponses', [currentEventId], function(r) { showToast(r.message, !r.success); }); }
 function runMvp() {
-  if (!confirm('MVP選出を実行しますか？\n（定量評価 + アンケートの定性評価で判定します）')) return;
+  if (!confirm('MVP選出を実行しますか？\n（AIが試合データ・アンケートを総合的に評価します）')) return;
   callServer('selectMVP', [currentEventId], function(r) { if (r.success) { showToast(r.message); renderMvpResults(r.results); } else showToast(r.message, true); });
 }
 function renderMvpResults(results) {
@@ -93,15 +93,14 @@ function renderMvpResults(results) {
   var h = '<h3 style="margin-top:16px;margin-bottom:10px;">' + svg(IC.trophy, 18) + ' MVP選出結果</h3>';
   h += results.map(function(r) {
     var rank = r['順位'] || r.rank || ''; var name = r['名前'] || r.name || '';
-    var reason = r['理由'] || r.reason || ''; var qs = r['定量スコア'] || r.quantScore || 0;
-    var ls = r['定性スコア'] || r.qualScore || 0; var ts = r['総合スコア'] || r.totalScore || 0;
+    var reason = r['理由'] || r.reason || ''; var ts = r['総合スコア'] || r.totalScore || 0;
     if (!rank) return '';
     var cc = rank === 'MVP' ? 'rank-mvp' : 'rank-sub';
     var rb = rank === 'MVP' ? '<span class="mvp-result-rank" style="background:var(--accent);color:var(--text);">MVP</span>'
       : '<span class="mvp-result-rank" style="background:#94A3B8;color:white;">準MVP</span>';
     return '<div class="mvp-result-card ' + cc + '"><div class="mvp-result-name">' + esc(name) + rb + '</div>' +
       '<div class="mvp-result-reason">' + esc(reason) + '</div>' +
-      '<div class="mvp-result-scores"><span>定量: ' + qs + 'pt</span><span>定性: ' + ls + 'pt</span><span>総合: ' + ts + 'pt</span></div></div>';
+      '<div class="mvp-result-scores"><span>総合: ' + ts + 'pt</span></div></div>';
   }).join('');
   c.innerHTML = h;
 }
