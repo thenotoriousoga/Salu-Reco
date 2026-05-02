@@ -456,15 +456,15 @@ function showAddMatch(roundId) {
   if (!round || !round.splitData) return;
   var names = round.splitData.names || [];
   var h = '<div style="margin-top:8px;padding:12px;background:var(--bg-surface);border-radius:var(--radius-sm);border:1px solid var(--border-light);">' +
-    '<div class="input-row">' +
-    '<div class="input-group" style="flex:1;"><label>ホーム</label><select id="am-a-' + roundId + '" class="input">' +
+    '<div class="input-row" style="align-items:center;">' +
+    '<select id="am-a-' + roundId + '" class="input" style="flex:1;min-width:0;">' +
     '<option value="-1">選択...</option>';
   names.forEach(function(name, idx) { h += '<option value="' + idx + '">' + esc(name) + '</option>'; });
-  h += '</select></div><div style="display:flex;align-items:center;padding:0 4px;font-weight:700;color:var(--primary);">VS</div>' +
-    '<div class="input-group" style="flex:1;"><label>アウェイ</label><select id="am-b-' + roundId + '" class="input">' +
+  h += '</select><div style="padding:0 8px;font-weight:700;color:var(--primary);">VS</div>' +
+    '<select id="am-b-' + roundId + '" class="input" style="flex:1;min-width:0;">' +
     '<option value="-1">選択...</option>';
   names.forEach(function(name, idx) { h += '<option value="' + idx + '">' + esc(name) + '</option>'; });
-  h += '</select></div></div>' +
+  h += '</select></div>' +
     '<button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="doCreateMatch(\'' + roundId + '\')">' +
     svg('<polygon points="5 3 19 12 5 21 5 3"/>', 16) + ' キックオフ！</button></div>';
   c.innerHTML = h;
