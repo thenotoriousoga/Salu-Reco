@@ -54,7 +54,7 @@ function callServer(funcName, args, onSuccess, errorMsg) {
   runner[funcName].apply(runner, args);
 }
 
-function showPage(page) {
+function showPage(page, skipHash) {
   document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
   document.querySelectorAll('.nav-btn').forEach(function(b) { b.classList.remove('active'); });
   document.getElementById('page-' + page).classList.add('active');
@@ -62,15 +62,17 @@ function showPage(page) {
   if (btn) btn.classList.add('active');
   if (page === 'home') loadRecentEvents();
   if (page === 'events') loadEventList();
+  if (!skipHash) updateHash_();
 }
 
-function switchTab(tabId) {
+function switchTab(tabId, skipHash) {
   document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
   document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
   document.getElementById(tabId).classList.add('active');
   var btn = document.querySelector('[data-tab="' + tabId + '"]');
   if (btn) btn.classList.add('active');
   if (tabId === 'tab-results') renderEventStats();
+  if (!skipHash) updateHash_();
 }
 
 function statusBadgeHtml(status) {
@@ -105,7 +107,7 @@ function loadRecentEvents() {
     var c = document.getElementById('recent-events');
     if (!events || events.length === 0) { c.innerHTML = '<div class="empty-state">イベントがありません</div>'; return; }
     c.innerHTML = events.slice(0, 5).map(function(ev) {
-      return eventItemHtml(ev, "showPage('events');setTimeout(function(){openEvent('" + ev['イベントID'] + "')},200);");
+      return eventItemHtml(ev, "showPage('events');openEvent('" + ev['イベントID'] + "')");
     }).join('');
   }).withFailureHandler(function() { document.getElementById('recent-events').innerHTML = '<div class="empty-state">読み込みエラー</div>'; }).getEvents();
 }
@@ -113,7 +115,7 @@ function loadRecentEvents() {
 // ===================================
 // イベント詳細
 // ===================================
-function openEvent(eventId, activeTab) {
+function openEvent(eventId, activeTab, skipHash) {
   currentEventId = eventId;
   callServer('getEventDetail', [eventId], function(d) {
     if (!d) { showToast('イベントが見つかりません', true); return; }
@@ -123,6 +125,7 @@ function openEvent(eventId, activeTab) {
     previewNames = [];
     currentRoundId = null;
     renderEventDetail(d, activeTab);
+    if (!skipHash) updateHash_();
   }, 'エラー');
 }
 
@@ -161,11 +164,79 @@ function backToEventList() {
   document.getElementById('event-list-view').style.display = 'block';
   currentEventId = null;
   loadEventList();
+  updateHash_();
 }
 
 function deleteCurrentEvent() {
   if (!confirm('このイベントと全データを削除しますか？')) return;
   callServer('deleteEvent', [currentEventId], function(r) { showToast(r.message, !r.success); if (r.success) backToEventList(); });
+}
+
+// ===================================
+// ハッシュルーティング
+// ===================================
+
+/** タブIDからURLパス名へのマッピング */
+var TAB_TO_PATH_ = { 'tab-members': 'members', 'tab-rounds': 'rounds', 'tab-results': 'results' };
+var PATH_TO_TAB_ = { 'members': 'tab-members', 'rounds': 'tab-rounds', 'results': 'tab-results' };
+
+/**
+ * 現在の画面状態からハッシュを生成して更新する
+ */
+function updateHash_() {
+  var hash = '';
+  var activePage = document.querySelector('.page.active');
+  if (activePage) {
+    var pageId = activePage.id.replace('page-', '');
+    if (pageId === 'events' && currentEventId) {
+      // イベント詳細が開いている場合
+      var activeTabEl = document.querySelector('.tab-content.active');
+      var tabPath = 'members';
+      if (activeTabEl && TAB_TO_PATH_[activeTabEl.id]) {
+        tabPath = TAB_TO_PATH_[activeTabEl.id];
+      }
+      hash = '#events/' + currentEventId + '/' + tabPath;
+    } else {
+      hash = '#' + pageId;
+    }
+  }
+  if (location.hash !== hash) {
+    history.replaceState(null, '', hash);
+  }
+}
+
+/**
+ * ハッシュを解析してルート情報を返す
+ * @return {{ page: string, eventId: string|null, tab: string|null }}
+ */
+function parseHash_() {
+  var hash = (location.hash || '').replace(/^#\/?/, '');
+  if (!hash) return { page: 'home', eventId: null, tab: null };
+
+  var parts = hash.split('/');
+  if (parts[0] === 'events' && parts[1]) {
+    var tabPath = parts[2] || 'members';
+    return { page: 'events', eventId: parts[1], tab: PATH_TO_TAB_[tabPath] || 'tab-members' };
+  }
+  return { page: parts[0] || 'home', eventId: null, tab: null };
+}
+
+/**
+ * ハッシュに基づいて画面を復元する
+ */
+function navigateByHash_() {
+  var route = parseHash_();
+  if (route.eventId) {
+    // イベント詳細を開く
+    showPage('events', true);
+    openEvent(route.eventId, route.tab, true);
+  } else {
+    showPage(route.page, true);
+  }
+  // ハッシュが空ならデフォルトを設定
+  if (!location.hash) {
+    history.replaceState(null, '', '#home');
+  }
 }
 
 // ===================================
@@ -176,6 +247,12 @@ document.addEventListener('DOMContentLoaded', function() {
   if (di) { var t = new Date(); di.value = t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); }
   var nameInput = document.getElementById('m-name');
   if (nameInput) { nameInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); addToQueue(); } }); }
-  loadRecentEvents();
+  // ハッシュに基づいて初期画面を復元
+  navigateByHash_();
+});
+
+// ブラウザの戻る/進むボタン対応
+window.addEventListener('hashchange', function() {
+  navigateByHash_();
 });
 </script>
