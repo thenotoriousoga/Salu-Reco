@@ -133,16 +133,6 @@ function backToEventList() {
   pushState_();
 }
 
-/** 現在のイベントを削除する */
-function deleteCurrentEvent() {
-  showConfirm('イベント削除', 'このイベントと全データを削除しますか？', function() {
-    callServer('deleteEvent', [currentEventId], function(r) {
-      showToast(r.message, !r.success);
-      if (r.success) backToEventList();
-    });
-  }, '削除する');
-}
-
 // ===================================
 // ステータス遷移
 // ===================================

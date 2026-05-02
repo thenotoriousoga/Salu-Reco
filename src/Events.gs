@@ -1,6 +1,6 @@
 // ===================================
 // イベント管理
-// イベントCRUD（作成・取得・更新・削除）
+// イベントCRUD（作成・取得・更新）
 // ===================================
 
 // ===================================
@@ -274,45 +274,4 @@ function updateMvpSettings(eventId, mvpCount, subMvpCount) {
   // 2つのセルを一括更新（setValueの繰り返しより高速）
   sheet.getRange(rowIndex, 5, 1, 2).setValues([[Number(mvpCount) || 1, Number(subMvpCount) || 1]]);
   return { success: true, message: 'MVP設定を更新しました' };
-}
-
-// ===================================
-// イベント削除
-// ===================================
-
-/**
- * イベントを削除する（関連データも全て削除）
- * @param {string} eventId - イベントID
- * @return {Object} 結果オブジェクト { success, message }
- */
-function deleteEvent(eventId) {
-  // 必要なデータを一括取得
-  var data = getMultipleSheetData_(['ラウンド', 'マッチ']);
-
-  // 関連するマッチIDを収集
-  var rounds = data['ラウンド'].filter(function(r) { return r['イベントID'] === eventId; });
-  var roundIds = rounds.map(function(r) { return r['ラウンドID']; });
-
-  var matches = data['マッチ'].filter(function(m) { return roundIds.indexOf(m['ラウンドID']) >= 0; });
-  var matchIds = matches.map(function(m) { return m['マッチID']; });
-
-  // マッチメンバーと得点を削除
-  matchIds.forEach(function(matchId) {
-    deleteRowsByMatch_('マッチメンバー', 0, matchId);
-    deleteRowsByMatch_('得点', 0, matchId);
-  });
-
-  // ラウンドに紐づくマッチを削除
-  roundIds.forEach(function(roundId) {
-    deleteRowsByMatch_('マッチ', 1, roundId);
-  });
-
-  // 関連データを削除
-  deleteRowsByMatch_('ラウンド', 1, eventId);
-  deleteRowsByMatch_('メンバー', 1, eventId);
-  deleteRowsByMatch_('アンケート回答', 0, eventId);
-  deleteRowsByMatch_('MVP結果', 0, eventId);
-  deleteRowsByMatch_('イベント', 0, eventId);
-
-  return { success: true, message: 'イベントを削除しました' };
 }
