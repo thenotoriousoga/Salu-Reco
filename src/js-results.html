@@ -278,11 +278,33 @@ function saveMvpSettings() {
   callServer('updateMvpSettings', [currentEventId, mc, sc], function(r) { showToast(r.message, !r.success); });
 }
 function fetchSurvey() { callServer('fetchSurveyResponses', [currentEventId], function(r) { showToast(r.message, !r.success); }); }
+var mvpLoadingTimer_ = null;
 function runMvp() {
   showConfirm('MVP選出', 'いよいよMVP発表！準備はいいですか？', function() {
     showLoading('AIが今日のヒーローを選出中...', 'ドラムロール...🥁');
+    // 「言い切る男」演出
+    var lines = [
+      'どうも！言い切る男です！',
+      '今日のMVPがだれか、これまだ～答え出てないですよね',
+      '僕がその答えを言い切りましょ～！'
+    ];
+    var lineIdx = 0;
+    mvpLoadingTimer_ = setInterval(function() {
+      if (lineIdx >= lines.length) { clearInterval(mvpLoadingTimer_); mvpLoadingTimer_ = null; return; }
+      var el = document.getElementById('loading');
+      var content = el.querySelector('.loading-content');
+      var sub = content.querySelector('.loading-sub');
+      if (!sub) {
+        sub = document.createElement('p');
+        sub.className = 'loading-sub';
+        content.appendChild(sub);
+      }
+      sub.textContent = lines[lineIdx];
+      lineIdx++;
+    }, 3000);
     google.script.run
       .withSuccessHandler(function(r) {
+        if (mvpLoadingTimer_) { clearInterval(mvpLoadingTimer_); mvpLoadingTimer_ = null; }
         hideLoading();
         if (r.success) {
           showToast(r.message);
@@ -301,6 +323,7 @@ function runMvp() {
         else showToast(r.message, true);
       })
       .withFailureHandler(function() {
+        if (mvpLoadingTimer_) { clearInterval(mvpLoadingTimer_); mvpLoadingTimer_ = null; }
         hideLoading();
         showToast('MVP選出に失敗しました', true);
       })
