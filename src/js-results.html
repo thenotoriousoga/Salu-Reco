@@ -323,7 +323,7 @@ function runMvp() {
       }
       sub.textContent = lines[lineIdx];
       lineIdx++;
-    }, 2000);
+    }, 2800);
     google.script.run
       .withSuccessHandler(function(r) {
         if (mvpLoadingTimer_) { clearInterval(mvpLoadingTimer_); mvpLoadingTimer_ = null; }
