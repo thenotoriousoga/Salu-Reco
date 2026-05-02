@@ -1710,4 +1710,19 @@ body:not(.role-user):not(.role-admin) .user-only { display: none !important; }
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* --- ステータス差戻リンク --- */
+.status-revert-link {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  margin-left: 12px;
+  padding: 4px 8px;
+  transition: color var(--transition);
+}
+
+.status-revert-link:hover {
+  color: var(--text-secondary);
+  text-decoration: underline;
+}
 </style>

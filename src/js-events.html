@@ -152,16 +152,12 @@ function buildStatusButtons_(status) {
       svg(IC.flag, 14) + ' イベント終了</button>';
   }
   if (status === '試合終了') {
-    return ' <button class="btn btn-sm btn-secondary" onclick="doReopenEvent()" style="margin-left:8px;">' +
-      svg('<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>', 14) +
-      ' 進行中に戻す</button>' +
-      ' <button class="btn btn-sm btn-primary" onclick="doCompleteEvent()" style="margin-left:4px;">' +
-      svg(IC.check, 14) + ' 完了にする</button>';
+    return ' <button class="btn btn-sm btn-primary" onclick="doCompleteEvent()" style="margin-left:8px;">' +
+      svg(IC.check, 14) + ' 完了にする</button>' +
+      '<a href="javascript:void(0)" class="status-revert-link" onclick="doReopenEvent()">差戻</a>';
   }
   if (status === '完了') {
-    return ' <button class="btn btn-sm btn-secondary" onclick="doUncompleteEvent()" style="margin-left:8px;">' +
-      svg('<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>', 14) +
-      ' 試合終了に戻す</button>';
+    return '<a href="javascript:void(0)" class="status-revert-link" onclick="doUncompleteEvent()" style="margin-left:8px;">差戻</a>';
   }
   return '';
 }
@@ -183,20 +179,22 @@ function canEndEvent_() {
 
 /** イベントを「試合終了」にする */
 function doEndEvent() {
-  callServer('endEvent', [currentEventId], function(r) {
-    showToast(r.message, !r.success);
-    if (r.success) openEvent(currentEventId);
-  });
+  showConfirm('イベント終了', 'イベントを終了しますか？MVP選出が可能になります。', function() {
+    callServer('endEvent', [currentEventId], function(r) {
+      showToast(r.message, !r.success);
+      if (r.success) openEvent(currentEventId);
+    });
+  }, '終了する');
 }
 
 /** イベントを「進行中」に戻す */
 function doReopenEvent() {
-  showConfirm('進行中に戻す', 'イベントを進行中に戻しますか？ラウンドや試合を追加できるようになります。', function() {
+  showConfirm('差戻確認', 'イベントを進行中に戻しますか？ラウンドや試合を追加できるようになります。', function() {
     callServer('reopenEvent', [currentEventId], function(r) {
       showToast(r.message, !r.success);
       if (r.success) openEvent(currentEventId);
     });
-  }, '戻す');
+  }, '差戻');
 }
 
 /** イベントを「完了」にする */
@@ -211,11 +209,11 @@ function doCompleteEvent() {
 
 /** イベントを「試合終了」に戻す（完了から差し戻し） */
 function doUncompleteEvent() {
-  showConfirm('試合終了に戻す', 'イベントを試合終了に戻しますか？MVP再選出やアンケート回答が可能になります。', function() {
+  showConfirm('差戻確認', 'イベントを試合終了に戻しますか？MVP再選出やアンケート回答が可能になります。', function() {
     callServer('uncompleteEvent', [currentEventId], function(r) {
       showToast(r.message, !r.success);
       if (r.success) openEvent(currentEventId);
     });
-  }, '戻す');
+  }, '差戻');
 }
 </script>
