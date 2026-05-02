@@ -498,7 +498,7 @@ function ongoingMatchHtml(m, teamColorMap) {
     '<div id="timer-display-' + m.id + '" class="match-timer" style="display:none;">' +
     '<span class="match-timer-time" id="timer-time-' + m.id + '">00:00</span>' +
     '<button class="btn btn-sm btn-danger match-timer-stop" id="timer-stop-' + m.id + '" onclick="stopTimer(\'' + m.id + '\')">' +
-    svg('<rect x="5" y="4" width="4" height="16"/><rect x="15" y="4" width="4" height="16"/>', 14) + ' 一時停止</button>' +
+    svg('<rect x="5" y="4" width="4" height="16"/><rect x="15" y="4" width="4" height="16"/>', 14) + '</button>' +
     '<button class="btn btn-sm btn-secondary" onclick="resetTimer_(\'' + m.id + '\')">' + svg('<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>', 12) + '</button>' +
     '</div>' +
     '<div class="scoreboard" style="margin:12px 0;">' +
@@ -728,7 +728,7 @@ function startTimerFromMs_(matchId, remainingMs) {
     display.classList.remove('match-timer-paused');
   }
   // 停止ボタンを一時停止表示に
-  if (stopBtn) stopBtn.innerHTML = svg('<rect x="5" y="4" width="4" height="16"/><rect x="15" y="4" width="4" height="16"/>', 14) + ' 一時停止';
+  if (stopBtn) stopBtn.innerHTML = svg('<rect x="5" y="4" width="4" height="16"/><rect x="15" y="4" width="4" height="16"/>', 14);
 
   var intervalId = setInterval(function() {
     var remaining = endTime - Date.now();
@@ -740,7 +740,7 @@ function startTimerFromMs_(matchId, remainingMs) {
       if (display) display.classList.add('match-timer-ended');
       // 一時停止ボタンをリセットボタンに変更
       if (stopBtn) {
-        stopBtn.innerHTML = svg('<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>', 14) + ' リセット';
+        stopBtn.innerHTML = svg('<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>', 14);
         stopBtn.onclick = function() { resetTimer_(matchId); };
       }
       playBeep_();
@@ -774,7 +774,7 @@ function stopTimer(matchId) {
   // 再開ボタンに切り替え
   if (stopBtn) {
     stopBtn.className = 'btn btn-sm btn-primary match-timer-stop';
-    stopBtn.innerHTML = svg('<polygon points="5 3 19 12 5 21 5 3"/>', 14) + ' 再開';
+    stopBtn.innerHTML = svg('<polygon points="5 3 19 12 5 21 5 3"/>', 14);
     stopBtn.onclick = function() { resumeTimer_(matchId); };
   }
 }
@@ -810,7 +810,7 @@ function resetTimer_(matchId) {
   // 停止ボタンを元に戻す
   if (stopBtn) {
     stopBtn.className = 'btn btn-sm btn-danger match-timer-stop';
-    stopBtn.innerHTML = svg('<rect x="6" y="6" width="12" height="12"/>', 14) + ' 停止';
+    stopBtn.innerHTML = svg('<rect x="6" y="6" width="12" height="12"/>', 14);
     stopBtn.onclick = function() { stopTimer(matchId); };
   }
 }
