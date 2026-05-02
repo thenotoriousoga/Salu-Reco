@@ -19,13 +19,13 @@
         SALU-REC
         <svg class="header-mic" viewBox="0 0 24 32" aria-hidden="true">
           <!-- マイクヘッド（カプセル） -->
-          <rect x="6" y="1" width="12" height="16" rx="6" fill="rgba(255,255,255,0.85)"/>
+          <rect x="6" y="1" width="12" height="16" rx="6" fill="#FBBF24"/>
           <!-- U字ホルダー -->
-          <path d="M4 13 a8 8 0 0 0 16 0" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2.8" stroke-linecap="round"/>
+          <path d="M4 13 a8 8 0 0 0 16 0" fill="none" stroke="#FBBF24" stroke-width="2.8" stroke-linecap="round"/>
           <!-- スタンド棒 -->
-          <line x1="12" y1="21" x2="12" y2="26" stroke="rgba(255,255,255,0.85)" stroke-width="2.8"/>
+          <line x1="12" y1="21" x2="12" y2="26" stroke="#FBBF24" stroke-width="2.8"/>
           <!-- ベース（四角） -->
-          <rect x="6" y="26" width="12" height="3.5" rx="0.5" fill="rgba(255,255,255,0.85)"/>
+          <rect x="6" y="26" width="12" height="3.5" rx="0.5" fill="#FBBF24"/>
         </svg>
       </h1>
       <button id="btn-logout" class="btn-logout" onclick="doLogout()" style="display:none;" aria-label="ログアウト">
@@ -55,7 +55,20 @@
             <path fill="url(#login-logo-grad)" d="m-1624-1700c243-153 498-303 856-424 141 117 253 307 372 492-288 275-562 544-724 756-274-25-410-2-740-60 3-244 84-499 236-764zm2904-40c271 248 537 498 724 788-55 262-105 553-180 704-234-35-536-125-820-200-138-357-231-625-340-924 210-156 417-296 616-368zm-3273 3033a2376 2376 0 0 1-378-1392l59-7c54 342 124 674 311 928-36 179-2 323 51 458zm1197-1125c365 60 717 120 1060 180 106 333 120 667 156 1000-263 218-625 287-944 420-372-240-523-508-736-768 122-281 257-561 464-832zm3013 678a2376 2376 0 0 1-925 1147l-116-5c84-127 114-297 118-488 232-111 464-463 696-772 86 30 159 72 227 118zm-2287 1527a2376 2376 0 0 1-993-251c199 74 367 143 542 83 53 75 176 134 451 168z"/>
           </svg>
         </div>
-        <h2 class="login-hero-title">SALU-REC</h2>
+        <h2 class="login-hero-title">SALU-REC
+          <svg class="login-mic" viewBox="0 0 24 32" aria-hidden="true">
+            <defs>
+              <linearGradient id="mic-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#FBBF24"/>
+                <stop offset="100%" stop-color="#D97706"/>
+              </linearGradient>
+            </defs>
+            <rect x="6" y="1" width="12" height="16" rx="6" fill="url(#mic-grad)"/>
+            <path d="M4 13 a8 8 0 0 0 16 0" fill="none" stroke="#D97706" stroke-width="2.8" stroke-linecap="round"/>
+            <line x1="12" y1="21" x2="12" y2="26" stroke="#D97706" stroke-width="2.8"/>
+            <rect x="6" y="26" width="12" height="3.5" rx="0.5" fill="url(#mic-grad)"/>
+          </svg>
+        </h2>
         <p class="login-hero-sub">イベントコードを入力して参加</p>
       </div>
       <div class="card login-card">
