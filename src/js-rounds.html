@@ -415,14 +415,10 @@ function renderRoundsList(rounds) {
         addMatchArea;
     }
 
-    var deleteRoundBtn = isAdmin()
-      ? ' <button class="btn btn-sm btn-danger" onclick="delRound(\'' + round.id + '\')" style="margin-left:4px;">' + svg(IC.trash, 14) + '</button>'
-      : '';
-
     return '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
       '<h3 style="margin:0;">ラウンド' + round.roundNumber + '</h3>' +
       '<div>' + statusBadgeHtml(round.status) +
-      deleteRoundBtn + '</div></div>' +
+      '</div></div>' +
       teamsH + matchesH + roundBottomH + '</div>';
   }).join('');
 
@@ -469,12 +465,6 @@ function doCreateMatch(roundId) {
     if (r.success) { showToast(r.message); openEvent(currentEventId, 'tab-rounds'); }
     else showToast(r.message, true);
   });
-}
-
-function delRound(roundId) {
-  showConfirm('ラウンド削除', 'このラウンドと全試合を削除しますか？', function() {
-    callServer('deleteRound', [roundId], function(r) { showToast(r.message, !r.success); if (r.success) openEvent(currentEventId, 'tab-rounds'); });
-  }, '削除する');
 }
 
 function doEndRound(roundId) {
@@ -556,8 +546,7 @@ function endedMatchHtml(m, teamColorMap) {
     editBtn = '<div style="display:flex;justify-content:flex-end;gap:6px;margin-top:8px;">' +
       '<button class="btn btn-sm btn-secondary" onclick="reopenMatch(\'' + m.id + '\')">' +
       svg('<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>', 14) +
-      ' 編集</button>' +
-      '<button class="btn btn-sm btn-danger" onclick="delMatch(\'' + m.id + '\')">' + svg(IC.trash, 14) + '</button></div>';
+      ' 編集</button></div>';
   }
   return '<div class="match-result" style="display:flex;justify-content:center;align-items:center;gap:12px;padding:12px 0;">' +
     '<div class="match-result-team' + resultA + '" style="text-align:center;padding:8px 16px;border-radius:var(--radius-sm);flex:1;">' +
@@ -627,12 +616,6 @@ function recalcScores(matchId) {
 
 function endMatch(matchId) {
   callServer('endMatch', [matchId], function(r) { if (r.success) { showToast(r.message); openEvent(currentEventId, 'tab-rounds'); } });
-}
-
-function delMatch(matchId) {
-  showConfirm('試合削除', 'この試合を削除しますか？', function() {
-    callServer('deleteMatch', [matchId], function(r) { showToast(r.message, !r.success); if (r.success) openEvent(currentEventId, 'tab-rounds'); });
-  }, '削除する');
 }
 
 /** 終了した試合を再開して編集可能にする */

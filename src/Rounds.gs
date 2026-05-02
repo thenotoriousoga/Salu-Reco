@@ -88,22 +88,6 @@ function getRounds(eventId) {
   }).sort(function(a, b) { return a.roundNumber - b.roundNumber; });
 }
 
-/**
- * ラウンドを削除する（配下のマッチも全て削除）
- * @param {string} roundId - ラウンドID
- * @return {Object} 結果オブジェクト
- */
-function deleteRound(roundId) {
-  var matches = getSheetData_('マッチ').filter(function(m) { return m['ラウンドID'] === roundId; });
-  matches.forEach(function(m) {
-    deleteRowsByMatch_('マッチメンバー', 0, m['マッチID']);
-    deleteRowsByMatch_('得点', 0, m['マッチID']);
-  });
-  deleteRowsByMatch_('マッチ', 1, roundId);
-  deleteRowsByMatch_('ラウンド', 0, roundId);
-  return { success: true, message: 'ラウンドを削除しました' };
-}
-
 // ===================================
 // マッチ（2チーム対戦）
 // ===================================
@@ -212,18 +196,6 @@ function reopenMatch(matchId) {
 
   sheet.getRange(rowIndex, 8).setValue('進行中');
   return { success: true, message: '試合を再開しました。スコアを編集できます' };
-}
-
-/**
- * マッチを削除する
- * @param {string} matchId - マッチID
- * @return {Object} 結果オブジェクト
- */
-function deleteMatch(matchId) {
-  deleteRowsByMatch_('マッチメンバー', 0, matchId);
-  deleteRowsByMatch_('得点', 0, matchId);
-  deleteRowsByMatch_('マッチ', 0, matchId);
-  return { success: true, message: '試合を削除しました' };
 }
 
 /**
