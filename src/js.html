@@ -142,6 +142,15 @@ function doLoginWithCode() {
   }, 'ログインに失敗しました');
 }
 
+/** 管理者ログインフォームの表示切り替え */
+function toggleAdminLogin() {
+  var form = document.getElementById('admin-login-form');
+  form.style.display = form.style.display === 'none' ? 'block' : 'none';
+  if (form.style.display === 'block') {
+    document.getElementById('login-password').focus();
+  }
+}
+
 /** ログアウト */
 function doLogout() {
   currentRole = null;
