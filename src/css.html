@@ -969,6 +969,35 @@ body {
   opacity: 0.6;
 }
 
+/* --- ラウンド・マッチ折りたたみ --- */
+.round-body-collapsed {
+  display: none;
+}
+
+.match-body-collapsed {
+  display: none;
+}
+
+.round-card-collapsed {
+  cursor: pointer;
+}
+
+.round-expand-icon {
+  width: 16px;
+  height: 16px;
+  stroke: var(--text-muted);
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform var(--transition);
+  flex-shrink: 0;
+}
+
+.round-expand-icon-open {
+  transform: rotate(180deg);
+}
+
 /* --- ローディング --- */
 .loading {
   position: fixed;

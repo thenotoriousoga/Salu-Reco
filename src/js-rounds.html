@@ -394,7 +394,14 @@ function renderRoundsList(rounds) {
           ? '<span class="event-status-badge badge-ongoing">進行中</span>'
           : '<span class="event-status-badge badge-done">終了</span>';
         var scoreH = ongoing ? ongoingMatchHtml(m, teamColorMap) : endedMatchHtml(m, teamColorMap);
-        return '<div class="round-card" style="margin-left:0;"><div class="round-header"><span class="round-title">第' + m.matchNumber + '試合</span>' + badge + '</div>' + scoreH + '</div>';
+        if (ongoing) {
+          return '<div class="round-card" style="margin-left:0;"><div class="round-header"><span class="round-title">第' + m.matchNumber + '試合</span>' + badge + '</div>' + scoreH + '</div>';
+        } else {
+          return '<div class="round-card round-card-collapsed" style="margin-left:0;" onclick="toggleMatchBody(this)">' +
+            '<div class="round-header"><span class="round-title">第' + m.matchNumber + '試合</span>' + badge +
+            ' <svg class="round-expand-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></div>' +
+            '<div class="match-body match-body-collapsed">' + scoreH + '</div></div>';
+        }
       }).join('');
     }
 
@@ -415,11 +422,16 @@ function renderRoundsList(rounds) {
         addMatchArea;
     }
 
-    return '<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
+    var isRoundEnded = round.status === '終了';
+    var roundBodyClass = isRoundEnded ? 'round-body round-body-collapsed' : 'round-body';
+    var roundToggle = isRoundEnded ? ' onclick="toggleRoundBody(this)" style="cursor:pointer;"' : '';
+    var expandIcon = isRoundEnded ? ' <svg class="round-expand-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>' : '';
+
+    return '<div class="card"><div' + roundToggle + ' style="display:flex;justify-content:space-between;align-items:center;margin-bottom:' + (isRoundEnded ? '0' : '8') + 'px;">' +
       '<h3 style="margin:0;">ラウンド' + round.roundNumber + '</h3>' +
-      '<div>' + statusBadgeHtml(round.status) +
-      '</div></div>' +
-      teamsH + matchesH + roundBottomH + '</div>';
+      '<div style="display:flex;align-items:center;gap:4px;">' + statusBadgeHtml(round.status) +
+      expandIcon + '</div></div>' +
+      '<div class="' + roundBodyClass + '">' + teamsH + matchesH + roundBottomH + '</div></div>';
   }).join('');
 
   goalCounts = {};
@@ -469,6 +481,23 @@ function doCreateMatch(roundId) {
 
 function doEndRound(roundId) {
   callServer('endRound', [roundId], function(r) { showToast(r.message, !r.success); if (r.success) openEvent(currentEventId, 'tab-rounds'); });
+}
+
+/** 終了ラウンドの展開/折りたたみ */
+function toggleRoundBody(headerEl) {
+  var body = headerEl.nextElementSibling;
+  if (body) body.classList.toggle('round-body-collapsed');
+  var icon = headerEl.querySelector('.round-expand-icon');
+  if (icon) icon.classList.toggle('round-expand-icon-open');
+}
+
+/** 終了マッチの展開/折りたたみ */
+function toggleMatchBody(cardEl) {
+  var body = cardEl.querySelector('.match-body');
+  if (body) body.classList.toggle('match-body-collapsed');
+  cardEl.classList.toggle('round-card-collapsed');
+  var icon = cardEl.querySelector('.round-expand-icon');
+  if (icon) icon.classList.toggle('round-expand-icon-open');
 }
 
 // ===================================
