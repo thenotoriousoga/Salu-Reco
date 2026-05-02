@@ -259,9 +259,6 @@ document.addEventListener('DOMContentLoaded', function() {
   var nameInput = document.getElementById('m-name');
   if (nameInput) { nameInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); addToQueue(); } }); }
 
-  // 初期表示: イベント一覧を即座に読み込む
-  loadEventList();
-
   // ブラウザの戻る/進むボタン対応
   google.script.history.setChangeHandler(function(e) {
     var params = (e && e.location && e.location.parameter) ? e.location.parameter : {};
@@ -274,7 +271,9 @@ document.addEventListener('DOMContentLoaded', function() {
     var params = (location && location.parameter) ? location.parameter : {};
     var route = parseParams_(params);
     if (route.eventId) {
-      navigateToRoute_(route);
+      // イベント詳細に直接遷移
+      document.getElementById('page-events').classList.add('active');
+      openEvent(route.eventId, route.tab, true);
     } else {
       showPage('events', true);
       google.script.history.replace({ page: 'events' }, { page: 'events' });
