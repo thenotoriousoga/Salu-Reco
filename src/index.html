@@ -17,29 +17,26 @@
 
     <!-- ===== ログイン画面 ===== -->
     <div id="page-login" class="page active">
+      <div class="login-hero">
+        <div class="login-hero-icon">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 0 20 10 10 0 0 1 0-20m4.5 5.5L13 10l3.5 2.5-1.5 4h-6l-1.5-4L11 10 7.5 7.5"/></svg>
+        </div>
+        <h2 class="login-hero-title">Futsal Manager</h2>
+        <p class="login-hero-sub">イベントコードを入力して参加</p>
+      </div>
       <div class="card login-card">
-        <div class="login-logo">
-          <svg viewBox="0 0 24 24" class="login-logo-icon"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 0 20 10 10 0 0 1 0-20m4.5 5.5L13 10l3.5 2.5-1.5 4h-6l-1.5-4L11 10 7.5 7.5"/></svg>
-          <h2>Futsal Manager</h2>
+        <div class="login-code-input-wrap">
+          <input type="text" id="login-code" placeholder="コードを入力" class="login-code-input" maxlength="10" autocomplete="off" aria-label="イベントコード">
         </div>
-        <div class="login-section">
-          <h3>
-            <svg class="section-icon" style="width:18px;height:18px;" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            イベントに参加
-          </h3>
-          <p class="login-desc">イベントコードを入力して参加します</p>
-          <div class="input-group">
-            <label for="login-code">コード</label>
-            <input type="text" id="login-code" placeholder="例: AB12" class="input" maxlength="4" style="text-transform:uppercase;font-family:'Fira Code',monospace;font-size:1.2rem;letter-spacing:0.1em;text-align:center;">
-          </div>
-          <button class="btn btn-primary btn-large" onclick="doLoginWithCode()">
-            <svg class="btn-icon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-            参加する
-          </button>
-        </div>
-        <div class="login-section login-admin-toggle">
-          <a href="javascript:void(0)" onclick="toggleAdminLogin()" class="admin-toggle-link">管理者はこちら</a>
-          <div id="admin-login-form" style="display:none;margin-top:12px;">
+        <button class="btn btn-primary btn-large" onclick="doLoginWithCode()">
+          <svg class="btn-icon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          参加する
+        </button>
+      </div>
+      <div class="login-admin-area">
+        <a href="javascript:void(0)" onclick="toggleAdminLogin()" class="admin-toggle-link">管理者はこちら</a>
+        <div id="admin-login-form" style="display:none;">
+          <div class="card login-card" style="margin-top:12px;">
             <div class="input-group">
               <label for="login-password">パスワード</label>
               <input type="password" id="login-password" placeholder="管理者パスワード" class="input">
