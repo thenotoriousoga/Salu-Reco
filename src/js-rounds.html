@@ -402,14 +402,17 @@ function renderRoundsList(rounds) {
     var roundActionsH = '';
     var roundBottomH = '';
     if (round.status !== '終了') {
+      var addMatchBtn = '';
+      var addMatchArea = '';
       if (sd.teams && sd.teams.length >= 2) {
-        addMatchH = '<div style="margin-top:8px;">' +
-          '<button class="btn btn-sm btn-primary" onclick="showAddMatch(\'' + round.id + '\')">' +
-          svg('<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>', 14) + ' 次の試合へ</button>' +
-          '<div id="add-match-' + round.id + '" style="display:none;"></div></div>';
+        addMatchBtn = '<button class="btn btn-sm btn-primary" onclick="showAddMatch(\'' + round.id + '\')">' +
+          svg('<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>', 14) + ' 次の試合へ</button>';
+        addMatchArea = '<div id="add-match-' + round.id + '" style="display:none;"></div>';
       }
-      roundBottomH = '<div style="display:flex;justify-content:flex-end;margin-top:12px;padding-top:8px;border-top:1px solid var(--border-light);">' +
-        '<button class="btn btn-sm btn-secondary" onclick="doEndRound(\'' + round.id + '\')">' + svg(IC.flag, 14) + ' ラウンド終了</button></div>';
+      roundBottomH = '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:8px;border-top:1px solid var(--border-light);">' +
+        addMatchBtn +
+        '<button class="btn btn-sm btn-secondary" onclick="doEndRound(\'' + round.id + '\')" style="margin-left:auto;">' + svg(IC.flag, 14) + ' ラウンド終了</button></div>' +
+        addMatchArea;
     }
 
     var deleteRoundBtn = isAdmin()
@@ -420,7 +423,7 @@ function renderRoundsList(rounds) {
       '<h3 style="margin:0;">ラウンド' + round.roundNumber + '</h3>' +
       '<div>' + statusBadgeHtml(round.status) +
       deleteRoundBtn + '</div></div>' +
-      teamsH + matchesH + addMatchH + roundBottomH + '</div>';
+      teamsH + matchesH + roundBottomH + '</div>';
   }).join('');
 
   goalCounts = {};
