@@ -81,11 +81,14 @@ function renderEventDetail(d, activeTab) {
   var ev = d.event;
   currentEventStatus = ev['ステータス'] || '準備中';
 
-  // タイトル
-  document.getElementById('ev-detail-title').innerHTML =
-    '<svg class="section-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>' +
+  // タイトル（管理者の場合は日付の横に参加コードを小さく表示）
+  var titleH = '<svg class="section-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>' +
     '<line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> ' +
     esc(ev['名称'] || '') + ' <span class="event-date" style="margin-left:8px;">' + esc(String(ev['日付'] || '')) + '</span>';
+  if (isAdmin() && ev['コード']) {
+    titleH += '<span class="event-code-inline">' + esc(ev['コード']) + '</span>';
+  }
+  document.getElementById('ev-detail-title').innerHTML = titleH;
 
   // ステータスと遷移ボタン（管理者のみ）
   var statusH = statusBadgeHtml(ev['ステータス']);
@@ -93,12 +96,6 @@ function renderEventDetail(d, activeTab) {
     statusH += buildStatusButtons_(ev['ステータス']);
   }
   document.getElementById('ev-detail-status').innerHTML = statusH;
-
-  // イベントコード表示（管理者のみ）
-  var codeEl = document.getElementById('ev-detail-code');
-  if (codeEl && ev['コード']) {
-    codeEl.innerHTML = '<div class="event-code">参加コード: <span class="event-code-value">' + esc(ev['コード']) + '</span></div>';
-  }
 
   // 各セクションを描画
   renderMemberList(d.members);
