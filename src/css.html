@@ -1177,4 +1177,87 @@ body:not(.role-user):not(.role-admin) .user-only { display: none !important; }
 .mb-sm { margin-bottom: 8px; }
 .mb-md { margin-bottom: 12px; }
 .hidden { display: none; }
+
+/* --- メンバー登録フォーム --- */
+.member-form-name {
+  margin-bottom: 14px;
+}
+
+.input-name {
+  font-size: 1.1rem;
+  font-weight: 500;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+}
+
+.member-form-attrs {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.attr-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.attr-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.attr-input {
+  padding: 8px 10px;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.attr-label-cb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  height: 100%;
+  padding-top: 22px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.attr-label-cb input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.member-form-note {
+  margin-bottom: 14px;
+}
+
+.note-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color var(--transition);
+}
+
+.note-toggle:hover {
+  color: var(--text-secondary);
+}
+
+@media (max-width: 374px) {
+  .member-form-attrs {
+    grid-template-columns: 1fr 1fr;
+  }
+}
 </style>

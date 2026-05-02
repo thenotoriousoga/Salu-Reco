@@ -3,6 +3,17 @@
 // メンバー管理
 // ===================================
 var memberQueue = [];
+
+/** 備考フィールドの表示/非表示を切り替える */
+function toggleNoteField() {
+  var field = document.getElementById('note-field');
+  if (field.style.display === 'none') {
+    field.style.display = 'block';
+    document.getElementById('m-note').focus();
+  } else {
+    field.style.display = 'none';
+  }
+}
 function renderMemberList(members) {
   var c = document.getElementById('member-list');
   if (!members || members.length === 0) {
@@ -38,12 +49,17 @@ function addToQueue() {
   var years = document.getElementById('m-years').value;
   var exp = document.getElementById('m-exp').value === 'true';
   var org = document.getElementById('m-organizer').checked;
-  var note = document.getElementById('m-note').value.trim();
+  var noteEl = document.getElementById('m-note');
+  var note = noteEl ? noteEl.value.trim() : '';
   if (!name) { showToast('名前を入力してください', true); return; }
   if (memberQueue.find(function(q) { return q.name === name; })) { showToast(name + ' は既にリストにあります', true); return; }
   memberQueue.push({ name: name, years: Number(years) || 1, exp: exp, org: org, note: note });
   document.getElementById('m-name').value = '';
-  document.getElementById('m-note').value = '';
+  var noteEl = document.getElementById('m-note');
+  if (noteEl) noteEl.value = '';
+  // 備考フィールドを閉じる
+  var noteField = document.getElementById('note-field');
+  if (noteField) noteField.style.display = 'none';
   document.getElementById('m-name').focus();
   renderQueue();
   showToast(name + ' をリストに追加');

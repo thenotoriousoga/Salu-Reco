@@ -116,41 +116,49 @@
               <svg class="section-icon" style="width:18px;height:18px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
               メンバー登録
             </h3>
-            <div class="input-group">
-              <label for="m-name">名前</label>
-              <input type="text" id="m-name" placeholder="名前" class="input" aria-label="名前">
+            <!-- 名前（メイン入力） -->
+            <div class="member-form-name">
+              <input type="text" id="m-name" placeholder="名前を入力" class="input input-name" aria-label="名前">
             </div>
-            <div class="input-row">
-              <div class="input-group" style="flex:1;">
-                <label for="m-years">年次</label>
-                <input type="number" id="m-years" value="1" min="1" max="50" class="input">
+            <!-- 属性グリッド -->
+            <div class="member-form-attrs">
+              <div class="attr-item">
+                <label for="m-years" class="attr-label">年次</label>
+                <input type="number" id="m-years" value="1" min="1" max="50" class="input attr-input">
               </div>
-              <div class="input-group" style="flex:1;">
-                <label for="m-exp">経験</label>
-                <select id="m-exp" class="input">
+              <div class="attr-item">
+                <label for="m-exp" class="attr-label">経験</label>
+                <select id="m-exp" class="input attr-input">
                   <option value="false">なし</option>
                   <option value="true">あり</option>
                 </select>
               </div>
+              <div class="attr-item">
+                <label class="attr-label attr-label-cb">
+                  <input type="checkbox" id="m-organizer"> 幹事
+                </label>
+              </div>
             </div>
-            <div class="input-group">
-              <label class="checkbox-label">
-                <input type="checkbox" id="m-organizer"> 幹事
-              </label>
+            <!-- 備考（トグル） -->
+            <div class="member-form-note">
+              <a href="javascript:void(0)" class="note-toggle" onclick="toggleNoteField()">
+                <svg aria-hidden="true" style="width:14px;height:14px;display:inline;vertical-align:middle;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                備考を追加
+              </a>
+              <div id="note-field" style="display:none;margin-top:8px;">
+                <input type="text" id="m-note" placeholder="初参加、久しぶり、役職など" class="input" aria-label="備考">
+              </div>
             </div>
-            <div class="input-group">
-              <label for="m-note">備考</label>
-              <input type="text" id="m-note" placeholder="役職、スキルなど" class="input" aria-label="備考">
-            </div>
-            <button class="btn btn-secondary" onclick="addToQueue()" style="width:100%;">
+            <!-- 追加ボタン -->
+            <button class="btn btn-secondary btn-large" onclick="addToQueue()">
               <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               リストに追加
             </button>
 
             <!-- 追加待ちリスト -->
-            <div id="member-queue" style="margin-top:12px;"></div>
+            <div id="member-queue" class="mt-md"></div>
 
-            <button class="btn btn-primary btn-large" id="btn-register-all" onclick="registerAllMembers()" style="display:none;margin-top:10px;">
+            <button class="btn btn-primary btn-large mt-sm" id="btn-register-all" onclick="registerAllMembers()" style="display:none;">
               <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
               まとめて登録
             </button>
