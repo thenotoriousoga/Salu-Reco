@@ -299,6 +299,7 @@ function openEvent(eventId, activeTab, skipHash) {
     if (!d) { showToast('イベントが見つかりません', true); return; }
     currentMembers = d.members;
     cachedRounds = d.rounds;
+    cachedMvpData = d.mvpResults || [];
     previewTeams = [];
     previewNames = [];
     currentRoundId = null;

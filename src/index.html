@@ -291,6 +291,10 @@
               <svg class="section-icon" style="width:18px;height:18px;" viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
               イベント内成績
             </h3>
+            <div id="stats-segment" class="segment-bar" style="display:none;">
+              <button class="segment-btn active" data-mode="goals" onclick="switchStatsMode('goals')">⚽ 得点</button>
+              <button class="segment-btn" data-mode="points" onclick="switchStatsMode('points')">🏆 勝ち点</button>
+            </div>
             <div id="event-stats">読み込み中...</div>
           </div>
           <div class="card" id="post-match-section">

@@ -174,8 +174,10 @@ function buildMvpPrompt_(participantIds, memberMap, surveyComments, goals, match
     '- MVP・準MVPのメンバーには選出理由を、それ以外のメンバーにはポジティブな評価コメントを書いてください\n' +
     '- 堅すぎず、フットサルの楽しい雰囲気に合ったトーンで書いてください\n\n' +
     '以下のJSON配列形式で返してください（他のテキストは不要）:\n' +
-    '[{"memberId": "xxx", "score": 85, "rank": "MVP", "reason": "評価コメント"}, ...]\n' +
-    'rankは "MVP", "準MVP", "" のいずれかです。全メンバー分を必ず含めてください。';
+    '[{"memberId": "xxx", "score": 85, "rank": "MVP", "reason": "評価コメント", "rating": 7.5, "comment": "個人評価コメント"}, ...]\n' +
+    'rankは "MVP", "準MVP", "" のいずれかです。全メンバー分を必ず含めてください。\n' +
+    'ratingは0.0〜10.0の小数第一位までの数値です（Sofascore風の10段階評価）。\n' +
+    'commentは全メンバーに対する個人評価コメント（50〜80文字程度）です。reasonとは別に、その人のプレー全体を評価するコメントを書いてください。';
 }
 
 /**
@@ -199,12 +201,20 @@ function parseMvpResponse_(responseText, participantIds, memberMap) {
         rank = item.rank || '';
         reason = item.reason || '';
       }
+      var rating = 0;
+      var comment = '';
+      if (item) {
+        rating = Math.max(0, Math.min(10, Math.round((Number(item.rating) || 0) * 10) / 10));
+        comment = item.comment || '';
+      }
       return {
         memberId: mId,
         name: m['名前'] || '不明',
         rank: rank,
         reason: reason,
-        totalScore: score
+        totalScore: score,
+        rating: rating,
+        comment: comment
       };
     });
     // スコア降順でソート
@@ -230,7 +240,7 @@ function saveMvpResults_(eventId, results) {
   var ss = getSpreadsheet_();
   var mvpSheet = ss.getSheetByName('MVP結果');
   results.forEach(function(r) {
-    mvpSheet.appendRow([eventId, r.memberId, r.name, r.rank, r.reason, r.totalScore]);
+    mvpSheet.appendRow([eventId, r.memberId, r.name, r.rank, r.reason, r.totalScore, r.rating, r.comment]);
   });
 }
 

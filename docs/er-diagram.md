@@ -77,6 +77,8 @@ erDiagram
         string 順位 "MVP / 準MVP / 空文字"
         string 理由
         number 総合スコア "0〜100点（Gemini AI総合評価）"
+        number レーティング "0.0〜10.0（Sofascore風10段階評価）"
+        string 評価コメント "個人への評価コメント"
     }
 
     イベント ||--o{ メンバー : "has"
