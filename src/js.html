@@ -99,6 +99,44 @@ function eventItemHtml(ev, onclickExpr) {
 // ログイン・ロール管理
 // ===================================
 
+/** セッション有効期限: 24時間（ミリ秒） */
+var SESSION_TTL_ = 24 * 60 * 60 * 1000;
+
+/**
+ * ログイン状態をlocalStorageに保存する
+ */
+function saveSession_() {
+  try {
+    var data = { role: currentRole, eventId: currentEventId, ts: Date.now() };
+    localStorage.setItem('futsal_session', JSON.stringify(data));
+  } catch (e) { /* localStorage使用不可の場合は無視 */ }
+}
+
+/**
+ * localStorageからログイン状態を復元する
+ * @return {Object|null} { role, eventId } または期限切れ/未保存の場合null
+ */
+function loadSession_() {
+  try {
+    var raw = localStorage.getItem('futsal_session');
+    if (!raw) return null;
+    var data = JSON.parse(raw);
+    if (!data.role || !data.ts) return null;
+    if (Date.now() - data.ts > SESSION_TTL_) {
+      localStorage.removeItem('futsal_session');
+      return null;
+    }
+    return { role: data.role, eventId: data.eventId || null };
+  } catch (e) { return null; }
+}
+
+/**
+ * localStorageのセッションを削除する
+ */
+function clearSession_() {
+  try { localStorage.removeItem('futsal_session'); } catch (e) { /* 無視 */ }
+}
+
 /**
  * ロールを設定し、bodyクラスでUI出し分けを制御する
  * @param {string} role - 'admin' or 'user'
@@ -118,6 +156,7 @@ function doLoginAdmin() {
   callServer('loginAdmin', [password], function(r) {
     if (r.success) {
       setRole_('admin');
+      saveSession_();
       showPage('events');
     } else {
       showToast(r.message, true);
@@ -136,6 +175,8 @@ function doLoginWithCode() {
       document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
       document.getElementById('page-events').classList.add('active');
       openEvent(r.eventId);
+      // openEvent完了後にeventIdが設定されるので少し遅延して保存
+      setTimeout(function() { saveSession_(); }, 500);
     } else {
       showToast(r.message, true);
     }
@@ -156,6 +197,7 @@ function doLogout() {
   currentRole = null;
   currentEventId = null;
   document.body.classList.remove('role-admin', 'role-user');
+  clearSession_();
   document.getElementById('login-code').value = '';
   document.getElementById('login-password').value = '';
   showPage('login');
@@ -357,7 +399,22 @@ document.addEventListener('DOMContentLoaded', function() {
     navigateToRoute_(route);
   });
 
-  // 初回読み込み: ログイン画面を表示
-  showPage('login', true);
+  // 初回読み込み: セッション復元またはログイン画面を表示
+  var session = loadSession_();
+  if (session) {
+    setRole_(session.role);
+    if (session.role === 'admin') {
+      showPage('events', true);
+      google.script.history.replace({ page: 'events' }, { page: 'events' });
+    } else if (session.eventId) {
+      document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+      document.getElementById('page-events').classList.add('active');
+      openEvent(session.eventId, null, true);
+    } else {
+      showPage('login', true);
+    }
+  } else {
+    showPage('login', true);
+  }
 });
 </script>
