@@ -134,12 +134,98 @@ function updateEventField_(eventId, colIndex, value) {
 /**
  * イベントのステータスを更新する
  * @param {string} eventId - イベントID
- * @param {string} status - ステータス（準備中/進行中/完了）
+ * @param {string} status - ステータス（準備中/進行中/試合終了/完了）
  * @return {Object} 結果オブジェクト { success }
  */
 function updateEventStatus(eventId, status) {
   updateEventField_(eventId, 4, status);
   return { success: true };
+}
+
+/**
+ * イベントを「試合終了」状態にする
+ * 全ラウンド・全マッチが終了している必要がある
+ * @param {string} eventId - イベントID
+ * @return {Object} 結果オブジェクト { success, message }
+ */
+function endEvent(eventId) {
+  var event = findEvent_(eventId);
+  if (!event) return { success: false, message: 'イベントが見つかりません' };
+
+  var status = event['ステータス'];
+  if (status !== '進行中') {
+    return { success: false, message: '進行中のイベントのみ終了できます' };
+  }
+
+  // 全ラウンド・全マッチが終了しているかチェック
+  var data = getMultipleSheetData_(['ラウンド', 'マッチ']);
+  var rounds = data['ラウンド'].filter(function(r) { return r['イベントID'] === eventId; });
+
+  if (rounds.length === 0) {
+    return { success: false, message: 'ラウンドがありません' };
+  }
+
+  var hasOngoingRound = rounds.some(function(r) { return r['ステータス'] !== '終了'; });
+  if (hasOngoingRound) {
+    return { success: false, message: '進行中のラウンドがあります。先にラウンドを終了してください' };
+  }
+
+  var roundIds = rounds.map(function(r) { return r['ラウンドID']; });
+  var matches = data['マッチ'].filter(function(m) { return roundIds.indexOf(m['ラウンドID']) >= 0; });
+  var hasOngoingMatch = matches.some(function(m) { return m['ステータス'] !== '終了'; });
+  if (hasOngoingMatch) {
+    return { success: false, message: '進行中の試合があります。先に試合を終了してください' };
+  }
+
+  updateEventStatus(eventId, '試合終了');
+  return { success: true, message: 'イベントを終了しました。MVP選出が可能です' };
+}
+
+/**
+ * イベントを「進行中」状態に戻す
+ * @param {string} eventId - イベントID
+ * @return {Object} 結果オブジェクト { success, message }
+ */
+function reopenEvent(eventId) {
+  var event = findEvent_(eventId);
+  if (!event) return { success: false, message: 'イベントが見つかりません' };
+
+  var status = event['ステータス'];
+  if (status !== '試合終了') {
+    return { success: false, message: '試合終了状態のイベントのみ再開できます' };
+  }
+
+  updateEventStatus(eventId, '進行中');
+  return { success: true, message: 'イベントを進行中に戻しました' };
+}
+
+/**
+ * イベントを「完了」状態にする
+ * Googleフォームの回答受付も停止する
+ * @param {string} eventId - イベントID
+ * @return {Object} 結果オブジェクト { success, message }
+ */
+function completeEvent(eventId) {
+  var event = findEvent_(eventId);
+  if (!event) return { success: false, message: 'イベントが見つかりません' };
+
+  var status = event['ステータス'];
+  if (status !== '試合終了') {
+    return { success: false, message: '試合終了状態のイベントのみ完了にできます' };
+  }
+
+  // Googleフォームの回答受付を停止
+  if (event['フォームID']) {
+    try {
+      var form = FormApp.openById(event['フォームID']);
+      form.setAcceptingResponses(false);
+    } catch (e) {
+      // フォームが見つからない場合は無視
+    }
+  }
+
+  updateEventStatus(eventId, '完了');
+  return { success: true, message: 'イベントを完了しました' };
 }
 
 /**

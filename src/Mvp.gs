@@ -267,12 +267,19 @@ function saveMvpResults_(eventId, results) {
 /**
  * MVP選出を実行する
  * 全データをGemini AIに渡し、総合的に0〜100点で評価する
+ * イベントが「試合終了」状態の場合のみ実行可能
  * @param {string} eventId - イベントID
  * @return {Object} 選出結果 { success, results, message }
  */
 function selectMVP(eventId) {
   var event = findEvent_(eventId);
   if (!event) return { success: false, message: 'イベントが見つかりません' };
+
+  // ステータスチェック
+  var status = event['ステータス'];
+  if (status !== '試合終了') {
+    return { success: false, message: 'MVP選出は試合終了後のみ可能です' };
+  }
 
   var mvpCount = Number(event['MVP人数']) || 1;
   var subMvpCount = Number(event['準MVP人数']) || 1;
@@ -310,7 +317,6 @@ function selectMVP(eventId) {
 
   // 結果をスプレッドシートに保存
   saveMvpResults_(eventId, results);
-  updateEventStatus(eventId, '完了');
 
   return { success: true, results: results, message: 'MVP選出が完了しました' };
 }

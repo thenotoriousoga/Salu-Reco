@@ -16,6 +16,9 @@ function toggleNoteField() {
 }
 function renderMemberList(members) {
   var c = document.getElementById('member-list');
+  // 試合終了・完了時はメンバー編集不可
+  var canEdit = currentEventStatus === '準備中' || currentEventStatus === '進行中';
+
   if (!members || members.length === 0) {
     c.innerHTML = '<div class="empty-state">' +
       '<svg aria-hidden="true" style="width:48px;height:48px;stroke:var(--border);fill:none;stroke-width:1.5;" viewBox="0 0 24 24">' +
@@ -26,13 +29,19 @@ function renderMemberList(members) {
     return;
   }
   c.innerHTML = members.map(function(m) {
-    var deleteBtn = isAdmin()
+    var deleteBtn = (isAdmin() && canEdit)
       ? '<button class="btn btn-sm btn-danger" onclick="deleteMember(\'' + m['メンバーID'] + '\')">' + svg(IC.trash, 14) + '</button>'
       : '';
     return '<div class="member-item"><div><span class="member-name">' + esc(m['名前']) + '</span>' +
       '<div class="member-badges">' + memberBadgesHtml(m) + '</div></div>' +
       deleteBtn + '</div>';
   }).join('');
+
+  // メンバー登録フォームの表示制御
+  var formSection = document.getElementById('member-form-section');
+  if (formSection) {
+    formSection.style.display = (isAdmin() && canEdit) ? '' : 'none';
+  }
 }
 function memberBadgesHtml(m, isQueue) {
   var years = isQueue ? m.years : m['年次'];

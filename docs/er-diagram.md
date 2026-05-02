@@ -13,7 +13,7 @@ erDiagram
         string イベントID PK "UUID先頭8文字"
         date 日付
         string 名称
-        string ステータス "準備中 / 進行中 / 完了"
+        string ステータス "準備中 / 進行中 / 試合終了 / 完了"
         number MVP人数 "1〜5"
         number 準MVP人数 "1〜5"
         string フォームURL "Googleフォームの公開URL"

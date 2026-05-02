@@ -90,6 +90,7 @@ function renderEventDetail(d, activeTab) {
   // ステータスと削除ボタン（管理者のみ）
   var statusH = statusBadgeHtml(ev['ステータス']);
   if (isAdmin()) {
+    statusH += buildStatusButtons_(ev['ステータス']);
     statusH += ' <button class="btn btn-sm btn-danger" onclick="deleteCurrentEvent()" style="margin-left:8px;">' + svg(IC.trash, 14) + '</button>';
   }
   document.getElementById('ev-detail-status').innerHTML = statusH;
@@ -114,9 +115,11 @@ function renderEventDetail(d, activeTab) {
   boardState = { pool: [], teams: [] };
   boardNames = [];
 
-  // 進行中ラウンドがあればチーム分けUIを非表示
+  // ラウンド作成セクションの表示制御
+  // 進行中ラウンドがある、または試合終了/完了の場合は非表示
   var hasOngoing = (d.rounds || []).some(function(r) { return r.status !== '終了'; });
-  document.getElementById('round-create-section').style.display = hasOngoing ? 'none' : '';
+  var canCreateRound = currentEventStatus === '進行中' && !hasOngoing;
+  document.getElementById('round-create-section').style.display = canCreateRound ? '' : 'none';
 
   updateTeamCountOptions();
   switchTab(activeTab || 'tab-members');
@@ -139,5 +142,76 @@ function deleteCurrentEvent() {
       if (r.success) backToEventList();
     });
   }, '削除する');
+}
+
+// ===================================
+// ステータス遷移
+// ===================================
+
+/**
+ * ステータスに応じた遷移ボタンのHTMLを生成する
+ * @param {string} status - 現在のステータス
+ * @return {string} ボタンHTML
+ */
+function buildStatusButtons_(status) {
+  if (status === '進行中') {
+    // 全ラウンド・全マッチが終了しているかチェック
+    var canEnd = canEndEvent_();
+    var disabledAttr = canEnd ? '' : ' disabled';
+    var tooltip = canEnd ? '' : ' title="全てのラウンドと試合を終了してください"';
+    return ' <button class="btn btn-sm btn-accent" onclick="doEndEvent()"' + disabledAttr + tooltip + ' style="margin-left:8px;">' +
+      svg(IC.flag, 14) + ' イベント終了</button>';
+  }
+  if (status === '試合終了') {
+    return ' <button class="btn btn-sm btn-secondary" onclick="doReopenEvent()" style="margin-left:8px;">' +
+      svg('<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>', 14) +
+      ' 進行中に戻す</button>' +
+      ' <button class="btn btn-sm btn-primary" onclick="doCompleteEvent()" style="margin-left:4px;">' +
+      svg(IC.check, 14) + ' 完了にする</button>';
+  }
+  return '';
+}
+
+/**
+ * イベントを終了できるかチェックする
+ * 全ラウンドが終了かつ全マッチが終了している必要がある
+ * @return {boolean}
+ */
+function canEndEvent_() {
+  if (!cachedRounds || cachedRounds.length === 0) return false;
+  var hasOngoingRound = cachedRounds.some(function(r) { return r.status !== '終了'; });
+  if (hasOngoingRound) return false;
+  var hasOngoingMatch = cachedRounds.some(function(r) {
+    return r.matches && r.matches.some(function(m) { return m.status !== '終了'; });
+  });
+  return !hasOngoingMatch;
+}
+
+/** イベントを「試合終了」にする */
+function doEndEvent() {
+  callServer('endEvent', [currentEventId], function(r) {
+    showToast(r.message, !r.success);
+    if (r.success) openEvent(currentEventId);
+  });
+}
+
+/** イベントを「進行中」に戻す */
+function doReopenEvent() {
+  showConfirm('進行中に戻す', 'イベントを進行中に戻しますか？ラウンドや試合を追加できるようになります。', function() {
+    callServer('reopenEvent', [currentEventId], function(r) {
+      showToast(r.message, !r.success);
+      if (r.success) openEvent(currentEventId);
+    });
+  }, '戻す');
+}
+
+/** イベントを「完了」にする */
+function doCompleteEvent() {
+  showConfirm('イベント完了', 'イベントを完了にしますか？完了後は全ての変更ができなくなります。', function() {
+    callServer('completeEvent', [currentEventId], function(r) {
+      showToast(r.message, !r.success);
+      if (r.success) openEvent(currentEventId);
+    });
+  }, '完了にする');
 }
 </script>

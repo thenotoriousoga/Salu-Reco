@@ -375,6 +375,9 @@ function renderRoundsList(rounds) {
   if (!rounds || rounds.length === 0) { c.innerHTML = ''; return; }
   var mm = {}; currentMembers.forEach(function(m) { mm[m['メンバーID']] = m; });
 
+  // 試合終了・完了時はマッチ操作不可
+  var canEditMatch = currentEventStatus === '進行中';
+
   c.innerHTML = rounds.map(function(round) {
     var sd = round.splitData || { names: [], teams: [] };
     var teamsH = renderRoundTeamsHtml(sd, mm);
@@ -393,8 +396,9 @@ function renderRoundsList(rounds) {
         var badge = ongoing
           ? '<span class="event-status-badge badge-ongoing">進行中</span>'
           : '<span class="event-status-badge badge-done">終了</span>';
-        var scoreH = ongoing ? ongoingMatchHtml(m, teamColorMap) : endedMatchHtml(m, teamColorMap);
-        if (ongoing) {
+        // 進行中マッチは編集可能な場合のみ操作UIを表示
+        var scoreH = (ongoing && canEditMatch) ? ongoingMatchHtml(m, teamColorMap) : endedMatchHtml(m, teamColorMap);
+        if (ongoing && canEditMatch) {
           return '<div class="round-card" style="margin-left:0;"><div class="round-header"><span class="round-title">第' + m.matchNumber + '試合</span><div style="display:flex;align-items:center;gap:4px;">' + badge + '</div></div>' + scoreH + '</div>';
         } else {
           return '<div class="round-card round-card-collapsed" style="margin-left:0;" onclick="toggleMatchBody(this)">' +
@@ -408,7 +412,8 @@ function renderRoundsList(rounds) {
     var addMatchH = '';
     var roundActionsH = '';
     var roundBottomH = '';
-    if (round.status !== '終了') {
+    // 進行中のラウンドかつイベントが進行中の場合のみ操作ボタンを表示
+    if (round.status !== '終了' && canEditMatch) {
       var addMatchBtn = '';
       var addMatchArea = '';
       if (sd.teams && sd.teams.length >= 2) {
@@ -572,7 +577,7 @@ function endedMatchHtml(m, teamColorMap) {
     }
   }
   var editBtn = '';
-  if (currentEventStatus !== '完了') {
+  if (currentEventStatus === '進行中') {
     editBtn = '<div style="display:flex;justify-content:flex-end;gap:6px;margin-top:8px;">' +
       '<button class="btn btn-sm btn-secondary" onclick="reopenMatch(\'' + m.id + '\')">' +
       svg('<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>', 14) +

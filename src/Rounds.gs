@@ -242,7 +242,7 @@ function endMatch(matchId) {
 
 /**
  * 終了した試合を再開する（スコア・得点を編集可能にする）
- * イベントが「完了」の場合は再開不可
+ * イベントが「試合終了」または「完了」の場合は再開不可
  * @param {string} matchId - マッチID
  * @return {Object} 結果オブジェクト { success, message }
  */
@@ -262,7 +262,8 @@ function reopenMatch(matchId) {
   if (!roundData) return { success: false, message: 'ラウンドが見つかりません' };
 
   var event = data['イベント'].find(function(e) { return e['イベントID'] === roundData['イベントID']; });
-  if (event && event['ステータス'] === '完了') {
+  var eventStatus = event ? event['ステータス'] : '';
+  if (eventStatus === '試合終了' || eventStatus === '完了') {
     return { success: false, message: 'イベント終了後は編集できません' };
   }
 
