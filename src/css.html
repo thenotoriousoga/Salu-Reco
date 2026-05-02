@@ -669,8 +669,10 @@ body {
 /* 試合終了後の得点者サマリー */
 .match-goals-summary {
   display: flex;
-  justify-content: space-between;
-  padding: 8px 16px;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 4px 0 8px;
   font-size: 0.8rem;
   color: var(--text-secondary);
 }
@@ -678,6 +680,7 @@ body {
 .match-goals-col {
   flex: 1;
   text-align: center;
+  padding: 0 16px;
 }
 
 .match-goals-col div {

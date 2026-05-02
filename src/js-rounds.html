@@ -672,11 +672,12 @@ function endedMatchHtml(m, teamColorMap) {
   if (ownGoalB > 0) listB.push('OG' + (ownGoalB > 1 ? ' ×' + ownGoalB : ''));
   if (unknownB > 0) listB.push('不明' + (unknownB > 1 ? ' ×' + unknownB : ''));
 
-  // 得点者サマリー（左右に分けて縦並び）
+  // 得点者サマリー（スコアボードと同じ構造で左右に配置）
   var goalsSummary = '';
   if (listA.length > 0 || listB.length > 0) {
     goalsSummary = '<div class="match-goals-summary">' +
       '<div class="match-goals-col">' + listA.map(function(n) { return '<div>' + n + '</div>'; }).join('') + '</div>' +
+      '<div style="width:20px;"></div>' +
       '<div class="match-goals-col">' + listB.map(function(n) { return '<div>' + n + '</div>'; }).join('') + '</div>' +
       '</div>';
   }
