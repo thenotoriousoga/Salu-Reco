@@ -515,7 +515,12 @@ function ongoingMatchHtml(m, teamColorMap) {
 
   h += '<div style="display:flex;gap:8px;margin-top:12px;">' +
     '<button class="btn btn-accent" style="flex:1;" onclick="endMatch(\'' + m.id + '\')">' + svg(IC.flag, 16) + ' ホイッスル！</button>' +
+    '<button class="btn btn-sm btn-secondary" id="timer-btn-' + m.id + '" onclick="startTimerPrompt(\'' + m.id + '\')">' + svg('<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>', 16) + '</button>' +
     '<button class="btn btn-sm btn-danger" onclick="delMatch(\'' + m.id + '\')">' + svg(IC.trash, 14) + '</button></div>';
+  // タイマー表示エリア
+  h += '<div id="timer-display-' + m.id + '" class="match-timer" style="display:none;">' +
+    '<span class="match-timer-time" id="timer-time-' + m.id + '">00:00</span>' +
+    '<button class="btn btn-sm btn-secondary match-timer-cancel" onclick="cancelTimer(\'' + m.id + '\')">' + svg(IC.x, 12) + '</button></div>';
   return h;
 }
 
@@ -627,5 +632,144 @@ function reopenMatch(matchId) {
     showToast(r.message, !r.success);
     if (r.success) openEvent(currentEventId, 'tab-rounds');
   }, '試合の再開に失敗しました');
+}
+
+// ===================================
+// タイマー機能
+// ===================================
+var matchTimers_ = {};
+var timerAudioCtx_ = null;
+
+/** AudioContextを初期化（ユーザー操作時に呼ぶ） */
+function initAudioCtx_() {
+  if (!timerAudioCtx_) {
+    timerAudioCtx_ = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (timerAudioCtx_.state === 'suspended') {
+    timerAudioCtx_.resume();
+  }
+}
+
+/** ビープ音を鳴らす */
+function playBeep_() {
+  if (!timerAudioCtx_) return;
+  try {
+    var osc = timerAudioCtx_.createOscillator();
+    var gain = timerAudioCtx_.createGain();
+    osc.connect(gain);
+    gain.connect(timerAudioCtx_.destination);
+    osc.frequency.value = 880;
+    osc.type = 'square';
+    gain.gain.value = 0.3;
+    var now = timerAudioCtx_.currentTime;
+    // ピピピッ（3回短いビープ）
+    osc.start(now);
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.setValueAtTime(0, now + 0.1);
+    gain.gain.setValueAtTime(0.3, now + 0.2);
+    gain.gain.setValueAtTime(0, now + 0.3);
+    gain.gain.setValueAtTime(0.3, now + 0.4);
+    gain.gain.setValueAtTime(0, now + 0.5);
+    osc.stop(now + 0.6);
+  } catch (e) {
+    // 音声再生に失敗しても無視
+  }
+}
+
+/** 振動（Android対応） */
+function vibrate_() {
+  if (navigator.vibrate) {
+    navigator.vibrate([200, 100, 200, 100, 200]);
+  }
+}
+
+/** タイマー開始プロンプト */
+function startTimerPrompt(matchId) {
+  // 既にタイマー動作中なら何もしない
+  if (matchTimers_[matchId]) return;
+  // AudioContext初期化（ユーザー操作のタイミング）
+  initAudioCtx_();
+
+  var modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
+  modal.innerHTML = '<div class="modal-box">' +
+    '<h3>' + svg('<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>', 18) + ' タイマー設定</h3>' +
+    '<p>試合時間を分単位で入力してください</p>' +
+    '<div class="input-group"><label for="timer-input">時間（分）</label>' +
+    '<input type="number" id="timer-input" class="input" value="5" min="1" max="120" style="width:80px;text-align:center;"></div>' +
+    '<div class="modal-actions">' +
+    '<button class="btn btn-secondary" id="timer-cancel-btn">キャンセル</button>' +
+    '<button class="btn btn-primary" id="timer-start-btn">スタート</button></div></div>';
+  document.body.appendChild(modal);
+
+  var input = document.getElementById('timer-input');
+  input.focus();
+  input.select();
+
+  document.getElementById('timer-cancel-btn').onclick = function() { modal.remove(); };
+  modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
+  document.getElementById('timer-start-btn').onclick = function() {
+    var minutes = Math.max(1, Math.min(120, parseInt(input.value) || 5));
+    modal.remove();
+    startTimer(matchId, minutes);
+  };
+  input.onkeydown = function(e) {
+    if (e.key === 'Enter') {
+      var minutes = Math.max(1, Math.min(120, parseInt(input.value) || 5));
+      modal.remove();
+      startTimer(matchId, minutes);
+    }
+  };
+}
+
+/** タイマー開始 */
+function startTimer(matchId, minutes) {
+  var durationMs = minutes * 60 * 1000;
+  var endTime = Date.now() + durationMs;
+
+  var display = document.getElementById('timer-display-' + matchId);
+  var timeEl = document.getElementById('timer-time-' + matchId);
+  var btn = document.getElementById('timer-btn-' + matchId);
+  if (display) display.style.display = 'flex';
+  if (btn) btn.style.display = 'none';
+
+  var intervalId = setInterval(function() {
+    var remaining = endTime - Date.now();
+    if (remaining <= 0) {
+      clearInterval(intervalId);
+      delete matchTimers_[matchId];
+      if (timeEl) timeEl.textContent = '00:00';
+      if (display) display.classList.add('match-timer-ended');
+      playBeep_();
+      vibrate_();
+      showToast('タイムアップ！');
+      return;
+    }
+    var totalSec = Math.ceil(remaining / 1000);
+    var min = Math.floor(totalSec / 60);
+    var sec = totalSec % 60;
+    if (timeEl) timeEl.textContent = (min < 10 ? '0' : '') + min + ':' + (sec < 10 ? '0' : '') + sec;
+    // 残り30秒で警告色
+    if (totalSec <= 30 && display) display.classList.add('match-timer-warning');
+  }, 250);
+
+  matchTimers_[matchId] = intervalId;
+}
+
+/** タイマーキャンセル */
+function cancelTimer(matchId) {
+  if (matchTimers_[matchId]) {
+    clearInterval(matchTimers_[matchId]);
+    delete matchTimers_[matchId];
+  }
+  var display = document.getElementById('timer-display-' + matchId);
+  var btn = document.getElementById('timer-btn-' + matchId);
+  if (display) {
+    display.style.display = 'none';
+    display.classList.remove('match-timer-warning', 'match-timer-ended');
+  }
+  if (btn) btn.style.display = '';
 }
 </script>

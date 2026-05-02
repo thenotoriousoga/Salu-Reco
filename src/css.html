@@ -879,6 +879,51 @@ body {
   border-left: 3px solid var(--accent);
 }
 
+/* --- マッチタイマー --- */
+.match-timer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 10px 16px;
+  background: var(--bg-surface);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.match-timer-time {
+  font-family: 'Fira Code', monospace;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.05em;
+}
+
+.match-timer-cancel {
+  min-width: 36px;
+  min-height: 36px;
+  padding: 6px;
+}
+
+.match-timer-warning {
+  border-color: var(--accent);
+  background: #FFFBEB;
+}
+
+.match-timer-warning .match-timer-time {
+  color: var(--accent-dark);
+}
+
+.match-timer-ended {
+  border-color: var(--primary);
+  background: var(--bg-surface);
+}
+
+.match-timer-ended .match-timer-time {
+  color: var(--primary);
+}
+
 /* --- ローディング --- */
 .loading {
   position: fixed;
