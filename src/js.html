@@ -469,16 +469,25 @@ document.addEventListener('DOMContentLoaded', function() {
   var session = loadSession_();
   if (session) {
     setRole_(session.role);
-    if (session.role === 'admin') {
-      showPage('events', true);
-      google.script.history.replace({ page: 'events' }, { page: 'events' });
-    } else if (session.eventId) {
-      document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
-      document.getElementById('page-events').classList.add('active');
-      openEvent(session.eventId, null, true);
-    } else {
-      showPage('login', true);
-    }
+    // URLパラメータを確認し、eventがあればそちらを優先
+    google.script.url.getLocation(function(location) {
+      var params = (location && location.parameter) ? location.parameter : {};
+      var route = parseParams_(params);
+      if (route.eventId) {
+        document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+        document.getElementById('page-events').classList.add('active');
+        openEvent(route.eventId, route.tab, true);
+      } else if (session.role === 'admin') {
+        showPage('events', true);
+        google.script.history.replace({ page: 'events' }, { page: 'events' });
+      } else if (session.eventId) {
+        document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+        document.getElementById('page-events').classList.add('active');
+        openEvent(session.eventId, null, true);
+      } else {
+        showPage('login', true);
+      }
+    });
   } else {
     showPage('login', true);
   }
