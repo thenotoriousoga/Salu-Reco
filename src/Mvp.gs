@@ -194,6 +194,12 @@ function buildMvpPrompt_(participantIds, memberMap, surveyComments, goals, match
     '- 上位' + mvpCount + '名 → rank: "MVP"\n' +
     '- 次の' + subMvpCount + '名 → rank: "準MVP"\n' +
     '- それ以外 → rank: ""\n\n' +
+    '## 文字数ルール（厳守）\n' +
+    '| 対象 | フィールド | 文字数 |\n' +
+    '|------|------------|--------|\n' +
+    '| MVP・準MVP | reason | 必ず500文字以上書く |\n' +
+    '| 全員 | comment | 必ず300文字以上書く |\n\n' +
+    '短すぎるコメントはNG！しっかり書いてください。\n\n' +
     '## フィールド\n' +
     '| フィールド | 説明 |\n' +
     '|------------|------|\n' +
@@ -201,9 +207,9 @@ function buildMvpPrompt_(participantIds, memberMap, surveyComments, goals, match
     '| score | 0〜100の整数 |\n' +
     '| rank | "MVP" / "準MVP" / "" |\n' +
     '| title | 全員に称号（例: ゴールハンター、縁の下の力持ち、成長株、ムードメーカー） |\n' +
-    '| reason | MVP・準MVP: 選出理由600字程度。入力データの事実のみ使用！ |\n' +
+    '| reason | MVP・準MVPのみ選出理由を書く。それ以外は空文字"" |\n' +
     '| rating | 0.0〜10.0（小数第一位） |\n' +
-    '| comment | 「〇〇さんへ」で始まる本人へのメッセージ400字程度。熱く！愛あるイジりもOK |\n\n' +
+    '| comment | 「〇〇さんへ」で始まる本人へのメッセージ。熱く！愛あるイジりもOK |\n\n' +
     '## NGワード\n' +
     '人格否定、容姿いじり、差別的表現\n\n' +
     '## 出力形式\n' +
