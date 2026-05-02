@@ -1,4 +1,4 @@
-# AGENTS.md — Futsal Manager
+# AGENTS.md — Salu-Rec
 
 ## プロジェクト概要
 

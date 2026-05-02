@@ -1,4 +1,4 @@
-# Futsal Manager
+# Salu-Rec
 
 フットサルの試合管理・MVP選出を行うWebアプリです。
 Google Apps Script（GAS）で完結し、スマホブラウザから利用できます。
