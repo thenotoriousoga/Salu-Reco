@@ -71,11 +71,18 @@ function getEventDetail(eventId) {
 
   var mvpResults = data['MVP結果'].filter(function(r) { return r['イベントID'] === eventId; });
 
+  // アンケート回答者を取得
+  var surveyVoters = [];
+  if (event['フォームID']) {
+    surveyVoters = getSurveyVoters(eventId);
+  }
+
   return {
     event: event,
     members: members,
     rounds: rounds,
-    mvpResults: mvpResults
+    mvpResults: mvpResults,
+    surveyVoters: surveyVoters
   };
 }
 

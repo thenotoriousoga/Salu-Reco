@@ -239,7 +239,6 @@ function renderPostMatch(event, rounds, mvpResults) {
   var allMatches = [];
   rounds.forEach(function(r) { if (r.matches) r.matches.forEach(function(m) { allMatches.push(m); }); });
   var ended = allMatches.filter(function(m) { return m.status === '終了'; });
-  var formUrl = event['フォームURL'] || '';
 
   // 試合がない場合
   if (ended.length === 0) {
@@ -261,18 +260,6 @@ function renderPostMatch(event, rounds, mvpResults) {
       '<button class="btn btn-sm btn-secondary" onclick="saveMvpSettings()">設定を保存</button></div>';
   }
 
-  // アンケートフォーム（完了時は非表示）
-  h += '<div style="margin-bottom:14px;">';
-  if (status !== '完了') {
-    if (formUrl) {
-      h += '<p style="font-size:0.85rem;margin-bottom:8px;">アンケートフォーム作成済み:</p>' +
-        '<a href="' + esc(formUrl) + '" target="_blank" class="survey-link">' + svg(IC.file, 16) + ' アンケートに回答する</a>';
-    } else if (isAdmin()) {
-      h += '<button class="btn btn-accent btn-large" onclick="createSurvey()">' + svg(IC.file, 18) + ' アンケートフォームを作成</button>';
-    }
-  }
-  h += '</div>';
-
   // MVP選出ボタン（管理者のみ、試合終了時のみ）
   if (isAdmin() && status === '試合終了') {
     h += '<button class="btn btn-primary btn-large" onclick="runMvp()">' + svg(IC.trophy, 18) + ' MVPを発表</button>';
@@ -290,7 +277,6 @@ function saveMvpSettings() {
   var mc = document.getElementById('mvp-count').value; var sc = document.getElementById('sub-mvp-count').value;
   callServer('updateMvpSettings', [currentEventId, mc, sc], function(r) { showToast(r.message, !r.success); });
 }
-function createSurvey() { callServer('createSurveyForm', [currentEventId], function(r) { if (r.success) { showToast(r.message); openEvent(currentEventId, 'tab-results'); } else showToast(r.message, true); }); }
 function fetchSurvey() { callServer('fetchSurveyResponses', [currentEventId], function(r) { showToast(r.message, !r.success); }); }
 function runMvp() {
   showConfirm('MVP選出', 'いよいよMVP発表！準備はいいですか？', function() {

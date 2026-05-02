@@ -62,6 +62,7 @@ function openEvent(eventId, activeTab, skipHash) {
     currentMembers = d.members;
     cachedRounds = d.rounds;
     cachedMvpData = d.mvpResults || [];
+    cachedSurveyVoters = d.surveyVoters || [];
     previewTeams = [];
     previewNames = [];
     renderEventDetail(d, activeTab);
@@ -97,8 +98,11 @@ function renderEventDetail(d, activeTab) {
   }
   document.getElementById('ev-detail-status').innerHTML = statusH;
 
+  // アンケートリンク（完了時以外）
+  renderSurveyLink(ev);
+
   // 各セクションを描画
-  renderMemberList(d.members);
+  renderMemberList(d.members, d.surveyVoters);
   renderParticipantCB(d.members);
   renderRoundsList(d.rounds);
   renderPostMatch(ev, d.rounds, d.mvpResults);
@@ -258,5 +262,73 @@ function doUncompleteEvent() {
       if (r.success) openEvent(currentEventId);
     });
   }, '差戻');
+}
+
+// ===================================
+// アンケート
+// ===================================
+var cachedSurveyVoters = [];
+
+/**
+ * アンケートリンクを描画する
+ * @param {Object} ev - イベントオブジェクト
+ */
+function renderSurveyLink(ev) {
+  var c = document.getElementById('ev-survey-area');
+  if (!c) return;
+
+  var status = ev['ステータス'] || '準備中';
+  var formUrl = ev['フォームURL'] || '';
+  var hasMembers = currentMembers && currentMembers.length > 0;
+
+  // 完了時は非表示
+  if (status === '完了') {
+    c.innerHTML = '';
+    return;
+  }
+
+  var h = '';
+
+  if (formUrl) {
+    // アンケートリンク表示
+    h += '<a href="' + esc(formUrl) + '" target="_blank" class="survey-link-compact">' +
+      svg(IC.file, 14) + ' アンケートに回答</a>';
+    // 再作成リンク（管理者のみ、目立たなく）
+    if (isAdmin()) {
+      h += '<a href="javascript:void(0)" class="survey-recreate-link" onclick="recreateSurvey()">再作成</a>';
+    }
+  } else if (isAdmin() && hasMembers) {
+    // 作成ボタン（管理者のみ）
+    h += '<button class="btn btn-sm btn-secondary" onclick="createSurvey()">' +
+      svg(IC.file, 14) + ' アンケート作成</button>';
+  }
+
+  c.innerHTML = h;
+}
+
+/** アンケートフォームを作成する */
+function createSurvey() {
+  callServer('createSurveyForm', [currentEventId], function(r) {
+    if (r.success) {
+      showToast(r.message);
+      openEvent(currentEventId);
+    } else {
+      showToast(r.message, true);
+    }
+  });
+}
+
+/** アンケートフォームを再作成する */
+function recreateSurvey() {
+  showConfirm('アンケート再作成', 'メンバーを追加した場合は再作成が必要です。既存の回答は引き継がれません。再作成しますか？', function() {
+    callServer('createSurveyForm', [currentEventId], function(r) {
+      if (r.success) {
+        showToast(r.message);
+        openEvent(currentEventId);
+      } else {
+        showToast(r.message, true);
+      }
+    });
+  }, '再作成');
 }
 </script>

@@ -9,6 +9,7 @@
 
 /**
  * MVPアンケートフォームを作成する
+ * 既存フォームがある場合は再作成（メンバー追加対応）
  * @param {string} eventId - イベントID
  * @return {Object} 結果オブジェクト { success, formUrl, message }
  */
@@ -22,6 +23,15 @@ function createSurveyForm(eventId) {
 
   if (names.length === 0) {
     return { success: false, message: 'メンバーがいません。先にメンバーを登録してください。' };
+  }
+
+  // 既存フォームがある場合は削除
+  if (event['フォームID']) {
+    try {
+      DriveApp.getFileById(event['フォームID']).setTrashed(true);
+    } catch (e) {
+      // フォームが見つからない場合は無視
+    }
   }
 
   // Googleフォーム作成
@@ -59,7 +69,12 @@ function createSurveyForm(eventId) {
     sheet.getRange(rowIndex, 8).setValue(formId);
   }
 
-  return { success: true, formUrl: formUrl, message: 'アンケートフォームを作成しました' };
+  // 既存の回答データをクリア（再作成時）
+  deleteRowsByMatch_('アンケート回答', 0, eventId);
+
+  var isRecreate = !!event['フォームID'];
+  var message = isRecreate ? 'アンケートフォームを再作成しました' : 'アンケートフォームを作成しました';
+  return { success: true, formUrl: formUrl, message: message };
 }
 
 // ===================================
@@ -68,9 +83,9 @@ function createSurveyForm(eventId) {
 
 /**
  * アンケート回答を取得してスプレッドシートに保存する
- * 既存回答をクリアしてから再取得する（冪等性を確保）
+ * 同じ回答者の既存回答は上書きする
  * @param {string} eventId - イベントID
- * @return {Object} 結果オブジェクト { success, message, responseCount, commentCount }
+ * @return {Object} 結果オブジェクト { success, message, responseCount, commentCount, voters }
  */
 function fetchSurveyResponses(eventId) {
   var event = findEvent_(eventId);
@@ -82,7 +97,7 @@ function fetchSurveyResponses(eventId) {
   var responses = form.getResponses();
 
   if (responses.length === 0) {
-    return { success: true, message: 'まだ回答がありません', responseCount: 0, commentCount: 0 };
+    return { success: true, message: 'まだ回答がありません', responseCount: 0, commentCount: 0, voters: [] };
   }
 
   // メンバー名→IDマップ
@@ -96,19 +111,32 @@ function fetchSurveyResponses(eventId) {
   var ss = getSpreadsheet_();
   var surveySheet = ensureSheet_(ss, 'アンケート回答');
   var totalComments = 0;
+  var voterNames = [];
 
+  // 同じ回答者の最新回答のみを使用（タイムスタンプでソート）
+  var latestResponses = {};
   responses.forEach(function(response) {
     var itemResponses = response.getItemResponses();
     var voterName = '';
-
-    // 投票者名を探す（タイトルで判定）
     itemResponses.forEach(function(ir) {
       if (ir.getItem().getTitle() === 'あなたの名前') {
         voterName = String(ir.getResponse());
       }
     });
+    if (voterName) {
+      var timestamp = response.getTimestamp().getTime();
+      if (!latestResponses[voterName] || latestResponses[voterName].timestamp < timestamp) {
+        latestResponses[voterName] = { response: response, timestamp: timestamp };
+      }
+    }
+  });
 
-    // 各メンバーへのコメントを保存
+  // 最新回答のみを保存
+  Object.keys(latestResponses).forEach(function(voterName) {
+    var response = latestResponses[voterName].response;
+    var itemResponses = response.getItemResponses();
+    voterNames.push(voterName);
+
     itemResponses.forEach(function(ir) {
       var title = ir.getItem().getTitle();
       if (title === 'あなたの名前') return;
@@ -125,8 +153,40 @@ function fetchSurveyResponses(eventId) {
 
   return {
     success: true,
-    message: responses.length + '件の回答から' + totalComments + '件のコメントを取得しました',
-    responseCount: responses.length,
-    commentCount: totalComments
+    message: voterNames.length + '人の回答から' + totalComments + '件のコメントを取得しました',
+    responseCount: voterNames.length,
+    commentCount: totalComments,
+    voters: voterNames
   };
+}
+
+/**
+ * アンケート回答者一覧を取得する
+ * @param {string} eventId - イベントID
+ * @return {string[]} 回答者名の配列
+ */
+function getSurveyVoters(eventId) {
+  var event = findEvent_(eventId);
+  if (!event || !event['フォームID']) {
+    return [];
+  }
+
+  try {
+    var form = FormApp.openById(event['フォームID']);
+    var responses = form.getResponses();
+    var voterSet = {};
+
+    responses.forEach(function(response) {
+      var itemResponses = response.getItemResponses();
+      itemResponses.forEach(function(ir) {
+        if (ir.getItem().getTitle() === 'あなたの名前') {
+          voterSet[String(ir.getResponse())] = true;
+        }
+      });
+    });
+
+    return Object.keys(voterSet);
+  } catch (e) {
+    return [];
+  }
 }

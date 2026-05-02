@@ -1820,4 +1820,51 @@ body:not(.role-user):not(.role-admin) .user-only { display: none !important; }
   letter-spacing: 0.05em;
   vertical-align: middle;
 }
+
+/* --- アンケートリンク（コンパクト版） --- */
+.survey-link-compact {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--team-a);
+  text-decoration: none;
+  padding: 6px 12px;
+  background: var(--team-a-bg);
+  border: 1px solid var(--team-a-border);
+  border-radius: var(--radius-xs);
+  transition: all var(--transition);
+}
+
+.survey-link-compact:hover {
+  background: var(--team-a);
+  color: white;
+}
+
+.survey-link-compact svg {
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+}
+
+.survey-recreate-link {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  margin-left: 10px;
+  padding: 4px 6px;
+}
+
+.survey-recreate-link:hover {
+  color: var(--text-secondary);
+  text-decoration: underline;
+}
+
+/* --- アンケート回答済みバッジ --- */
+.badge-survey {
+  background: var(--team-a-bg);
+  color: var(--team-a);
+  border: 1px solid var(--team-a-border);
+}
 </style>
