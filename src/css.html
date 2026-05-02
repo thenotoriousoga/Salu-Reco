@@ -1726,6 +1726,87 @@ body:not(.role-user):not(.role-admin) .user-only { display: none !important; }
   text-decoration: underline;
 }
 
+/* --- ステータス三点メニュー --- */
+.status-menu-wrap {
+  display: inline-block;
+  position: relative;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.status-menu-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.status-menu-btn:hover {
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+}
+
+.status-menu-btn svg {
+  stroke: currentColor;
+  fill: currentColor;
+}
+
+.status-menu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  min-width: 140px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  z-index: 50;
+  overflow: hidden;
+}
+
+.status-menu.open {
+  display: block;
+}
+
+.status-menu-item {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  background: none;
+  font-family: 'Fira Sans', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--transition);
+}
+
+.status-menu-item:hover {
+  background: var(--bg-surface);
+}
+
+.status-menu-item-disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.status-menu-item-disabled:hover {
+  background: none;
+}
+
 /* --- イベントコード（インライン表示） --- */
 .event-code-inline {
   font-family: 'Fira Code', monospace;

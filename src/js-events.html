@@ -135,29 +135,75 @@ function backToEventList() {
 // ===================================
 
 /**
- * ステータスに応じた遷移ボタンのHTMLを生成する
+ * ステータスに応じた三点メニューのHTMLを生成する
  * @param {string} status - 現在のステータス
- * @return {string} ボタンHTML
+ * @return {string} メニューHTML
  */
 function buildStatusButtons_(status) {
+  var items = getStatusMenuItems_(status);
+  if (items.length === 0) return '';
+
+  var menuH = '<div class="status-menu-wrap">' +
+    '<button class="status-menu-btn" onclick="toggleStatusMenu(event)" aria-label="ステータス操作">' +
+    svg(IC.more, 16) + '</button>' +
+    '<div class="status-menu" id="status-menu">';
+  items.forEach(function(item) {
+    var disabledClass = item.disabled ? ' status-menu-item-disabled' : '';
+    var disabledAttr = item.disabled ? ' aria-disabled="true"' : '';
+    var tooltip = item.tooltip ? ' title="' + esc(item.tooltip) + '"' : '';
+    menuH += '<button class="status-menu-item' + disabledClass + '" onclick="' + item.action + '"' + disabledAttr + tooltip + '>' +
+      item.label + '</button>';
+  });
+  menuH += '</div></div>';
+  return menuH;
+}
+
+/**
+ * ステータスに応じたメニュー項目を取得する
+ * @param {string} status - 現在のステータス
+ * @return {Object[]} メニュー項目配列
+ */
+function getStatusMenuItems_(status) {
+  if (status === '準備中') {
+    return [];
+  }
   if (status === '進行中') {
-    // 全ラウンド・全マッチが終了しているかチェック
     var canEnd = canEndEvent_();
-    var disabledAttr = canEnd ? '' : ' disabled';
-    var tooltip = canEnd ? '' : ' title="全てのラウンドと試合を終了してください"';
-    return ' <button class="btn btn-sm btn-accent" onclick="doEndEvent()"' + disabledAttr + tooltip + ' style="margin-left:8px;">' +
-      svg(IC.flag, 14) + ' イベント終了</button>';
+    return [{
+      label: 'イベント終了',
+      action: 'doEndEvent()',
+      disabled: !canEnd,
+      tooltip: canEnd ? '' : '全てのラウンドと試合を終了してください'
+    }];
   }
   if (status === '試合終了') {
-    return ' <button class="btn btn-sm btn-primary" onclick="doCompleteEvent()" style="margin-left:8px;">' +
-      svg(IC.check, 14) + ' 完了にする</button>' +
-      '<a href="javascript:void(0)" class="status-revert-link" onclick="doReopenEvent()">差戻</a>';
+    return [
+      { label: '完了にする', action: 'doCompleteEvent()' },
+      { label: '進行中に戻す', action: 'doReopenEvent()' }
+    ];
   }
   if (status === '完了') {
-    return '<a href="javascript:void(0)" class="status-revert-link" onclick="doUncompleteEvent()" style="margin-left:8px;">差戻</a>';
+    return [
+      { label: '試合終了に戻す', action: 'doUncompleteEvent()' }
+    ];
   }
-  return '';
+  return [];
 }
+
+/** 三点メニューの開閉 */
+function toggleStatusMenu(e) {
+  e.stopPropagation();
+  var menu = document.getElementById('status-menu');
+  if (menu) {
+    menu.classList.toggle('open');
+  }
+}
+
+/** メニュー外クリックで閉じる */
+document.addEventListener('click', function() {
+  var menu = document.getElementById('status-menu');
+  if (menu) menu.classList.remove('open');
+});
 
 /**
  * イベントを終了できるかチェックする
