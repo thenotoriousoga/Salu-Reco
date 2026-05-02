@@ -212,7 +212,7 @@ function setRole_(role) {
 /** 管理者ログイン */
 function doLoginAdmin() {
   var password = document.getElementById('login-password').value;
-  if (!password) { showToast('パスワードを入力してください', true); return; }
+  if (!password) { showToast('パスワードを入力してください 🔑', true); return; }
   callServer('loginAdmin', [password], function(r) {
     if (r.success) {
       setRole_('admin');
@@ -227,7 +227,7 @@ function doLoginAdmin() {
 /** イベントコードでログイン */
 function doLoginWithCode() {
   var code = document.getElementById('login-code').value;
-  if (!code) { showToast('コードを入力してください', true); return; }
+  if (!code) { showToast('参加コードを入力してね', true); return; }
   callServer('loginWithCode', [code], function(r) {
     if (r.success) {
       setRole_('user');
@@ -277,7 +277,7 @@ function isAdmin() {
 function loadEventList() { callServer('getEvents', [], function(events) { renderEventList(events); }, '読み込みエラー'); }
 function renderEventList(events) {
   var c = document.getElementById('event-list');
-  if (!events || events.length === 0) { c.innerHTML = '<div class="empty-state">イベントがありません</div>'; return; }
+  if (!events || events.length === 0) { c.innerHTML = '<div class="empty-state">まだイベントがありません。最初の一歩を踏み出そう！</div>'; return; }
   c.innerHTML = events.map(function(ev) { return eventItemHtml(ev, "openEvent('" + ev['イベントID'] + "')"); }).join('');
 }
 function createNewEvent() {

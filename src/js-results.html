@@ -10,7 +10,7 @@ function renderEventStats() {
     c.innerHTML = '<div class="empty-state">' +
       '<svg aria-hidden="true" style="width:48px;height:48px;stroke:var(--border);fill:none;stroke-width:1.5;" viewBox="0 0 24 24">' +
       '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>' +
-      '<p>試合データがありません</p>' +
+      '<p>まだ試合が行われていません</p>' +
       '<p class="empty-sub">試合タブからラウンドを作成してください</p></div>';
     return;
   }
@@ -22,7 +22,7 @@ function renderEventStats() {
     c.innerHTML = '<div class="empty-state">' +
       '<svg aria-hidden="true" style="width:48px;height:48px;stroke:var(--border);fill:none;stroke-width:1.5;" viewBox="0 0 24 24">' +
       '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>' +
-      '<p>試合データがありません</p>' +
+      '<p>まだ試合が行われていません</p>' +
       '<p class="empty-sub">試合タブからラウンドを作成してください</p></div>';
     return;
   }
@@ -76,7 +76,7 @@ function renderPostMatch(event, rounds, mvpResults) {
       '<svg aria-hidden="true" style="width:48px;height:48px;stroke:var(--border);fill:none;stroke-width:1.5;" viewBox="0 0 24 24">' +
       '<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 9 7 12 7s5-3 7.5-3a2.5 2.5 0 0 1 0 5H18"/>' +
       '<path d="M18 9v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9"/><path d="M12 7v14"/></svg>' +
-      '<p>試合が終了するとアンケート・MVP選出が利用できます</p></div>';
+      '<p>全試合終了後にMVP発表ができます。まずはピッチで暴れよう！</p></div>';
     return;
   }
   var h = '';
@@ -89,7 +89,7 @@ function renderPostMatch(event, rounds, mvpResults) {
   h += '<div style="margin-bottom:14px;">';
   if (formUrl) {
     h += '<p style="font-size:0.85rem;margin-bottom:8px;">アンケートフォーム作成済み:</p>' +
-      '<a href="' + esc(formUrl) + '" target="_blank" class="survey-link">' + svg(IC.file, 16) + ' アンケートを開く</a>';
+      '<a href="' + esc(formUrl) + '" target="_blank" class="survey-link">' + svg(IC.file, 16) + ' アンケートに回答する</a>';
     if (isAdmin()) {
       h += '<button class="btn btn-sm btn-secondary" style="margin-top:8px;" onclick="fetchSurvey()">' +
         svg('<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>', 14) + ' 回答を取得</button>';
@@ -99,7 +99,7 @@ function renderPostMatch(event, rounds, mvpResults) {
   }
   h += '</div>';
   if (isAdmin()) {
-    h += '<button class="btn btn-primary btn-large" onclick="runMvp()">' + svg(IC.trophy, 18) + ' MVP選出を実行</button>';
+    h += '<button class="btn btn-primary btn-large" onclick="runMvp()">' + svg(IC.trophy, 18) + ' MVPを発表</button>';
   }
   h += '<div id="mvp-results-area"></div>';
   c.innerHTML = h;
@@ -112,8 +112,8 @@ function saveMvpSettings() {
 function createSurvey() { callServer('createSurveyForm', [currentEventId], function(r) { if (r.success) { showToast(r.message); openEvent(currentEventId, 'tab-results'); } else showToast(r.message, true); }); }
 function fetchSurvey() { callServer('fetchSurveyResponses', [currentEventId], function(r) { showToast(r.message, !r.success); }); }
 function runMvp() {
-  showConfirm('MVP選出', 'MVP選出を実行しますか？\nAIが試合データ・アンケートを総合的に評価します。', function() {
-    showLoading('AIがMVPを選出中...', '10〜30秒ほどかかります');
+  showConfirm('MVP選出', 'いよいよMVP発表！準備はいいですか？', function() {
+    showLoading('AIが今日のヒーローを選出中...', 'ドラムロール...🥁');
     google.script.run
       .withSuccessHandler(function(r) {
         hideLoading();
@@ -125,7 +125,7 @@ function runMvp() {
         showToast('MVP選出に失敗しました', true);
       })
       .selectMVP(currentEventId);
-  }, '実行する');
+  }, '発表する');
 }
 function renderMvpResults(results) {
   var c = document.getElementById('mvp-results-area');

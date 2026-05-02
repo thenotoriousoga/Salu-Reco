@@ -93,13 +93,13 @@ function resetSplitBoard() {
   document.getElementById('btn-create-round').style.display = 'none';
   updateStepIndicator(2);
   renderSplitBoard();
-  showToast('リセットしました');
+  showToast('チーム分けをリセット！');
 }
 
 /** AI自動配置: 未割当メンバーをAIで各チームに配置する */
 function doAutoAssign() {
   var unassigned = boardState.pool.slice();
-  if (unassigned.length === 0) { showToast('未割当のメンバーがいません', true); return; }
+  if (unassigned.length === 0) { showToast('全員配置済みです', true); return; }
 
   // 既にチームにメンバーがいるか判定
   var hasExisting = boardState.teams.some(function(t) { return t.length > 0; });
@@ -119,7 +119,7 @@ function doAutoAssign() {
       boardState.pool = [];
       renderSplitBoard();
       checkBoardComplete();
-      showToast(hasExisting ? 'AI自動配置完了（既存チームのバランスを考慮）' : 'AI自動配置完了');
+      showToast('AIがベストな布陣を組みました！');
     } else {
       showToast(r.message, true);
     }
@@ -168,7 +168,7 @@ function checkBoardComplete() {
   var btn = document.getElementById('btn-create-round');
   if (allAssigned && allTeamsHave) {
     btn.style.display = 'flex';
-    btn.innerHTML = svg('<polygon points="5 3 19 12 5 21 5 3"/>', 18) + ' このチーム分けでラウンド作成';
+    btn.innerHTML = svg('<polygon points="5 3 19 12 5 21 5 3"/>', 18) + ' この布陣で試合開始！';
     updateStepIndicator(3);
   } else {
     btn.style.display = 'none';
@@ -326,11 +326,11 @@ function doCreateRound() {
   previewTeams = boardState.teams;
   previewNames = boardNames;
   if (previewTeams.length === 0 || previewTeams.some(function(t) { return t.length === 0; })) {
-    showToast('全チームにメンバーを配置してください', true);
+    showToast('まだ空のチームがあります！', true);
     return;
   }
   if (boardState.pool.length > 0) {
-    showToast('未割当のメンバーがいます', true);
+    showToast('まだベンチにいるメンバーがいます！', true);
     return;
   }
   callServer('createRound', [currentEventId, previewNames, previewTeams], function(r) {
@@ -397,10 +397,10 @@ function renderRoundsList(rounds) {
       if (sd.teams && sd.teams.length >= 2) {
         addMatchH = '<div style="margin-top:8px;">' +
           '<button class="btn btn-sm btn-primary" onclick="showAddMatch(\'' + round.id + '\')">' +
-          svg('<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>', 14) + ' 試合を追加</button>' +
+          svg('<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>', 14) + ' 次の試合へ</button>' +
           '<div id="add-match-' + round.id + '" style="display:none;"></div></div>';
       }
-      roundActionsH = '<button class="btn btn-sm btn-secondary" onclick="doEndRound(\'' + round.id + '\')" style="margin-left:4px;">' + svg(IC.flag, 14) + ' 終了</button>';
+      roundActionsH = '<button class="btn btn-sm btn-secondary" onclick="doEndRound(\'' + round.id + '\')" style="margin-left:4px;">' + svg(IC.flag, 14) + ' ラウンド終了</button>';
     }
 
     var deleteRoundBtn = isAdmin()
@@ -440,7 +440,7 @@ function showAddMatch(roundId) {
   names.forEach(function(name, idx) { h += '<option value="' + idx + '">' + esc(name) + '</option>'; });
   h += '</select></div></div>' +
     '<button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="doCreateMatch(\'' + roundId + '\')">' +
-    svg('<polygon points="5 3 19 12 5 21 5 3"/>', 16) + ' 試合開始</button></div>';
+    svg('<polygon points="5 3 19 12 5 21 5 3"/>', 16) + ' キックオフ！</button></div>';
   c.innerHTML = h;
   c.style.display = 'block';
 }
@@ -450,7 +450,7 @@ function doCreateMatch(roundId) {
   if (!round || !round.splitData) return;
   var aIdx = parseInt(document.getElementById('am-a-' + roundId).value);
   var bIdx = parseInt(document.getElementById('am-b-' + roundId).value);
-  if (aIdx < 0 || bIdx < 0 || aIdx === bIdx) { showToast('異なる2チームを選択してください', true); return; }
+  if (aIdx < 0 || bIdx < 0 || aIdx === bIdx) { showToast('対戦する2チームを選んでください', true); return; }
   var names = round.splitData.names;
   var teams = round.splitData.teams;
   callServer('createMatch', [roundId, names[aIdx], names[bIdx], teams[aIdx], teams[bIdx]], function(r) {
@@ -500,7 +500,7 @@ function ongoingMatchHtml(m) {
     }).join('') + '</div>';
 
   h += '<div style="display:flex;gap:8px;margin-top:12px;">' +
-    '<button class="btn btn-accent" style="flex:1;" onclick="endMatch(\'' + m.id + '\')">' + svg(IC.flag, 16) + ' 試合終了</button>' +
+    '<button class="btn btn-accent" style="flex:1;" onclick="endMatch(\'' + m.id + '\')">' + svg(IC.flag, 16) + ' ホイッスル！</button>' +
     '<button class="btn btn-sm btn-danger" onclick="delMatch(\'' + m.id + '\')">' + svg(IC.trash, 14) + '</button></div>';
   return h;
 }

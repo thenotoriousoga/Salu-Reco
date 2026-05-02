@@ -21,7 +21,7 @@ function renderMemberList(members) {
       '<svg aria-hidden="true" style="width:48px;height:48px;stroke:var(--border);fill:none;stroke-width:1.5;" viewBox="0 0 24 24">' +
       '<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/>' +
       '<line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>' +
-      '<p>まだメンバーがいません</p>' +
+      '<p>まだ誰もいません...仲間を集めよう！</p>' +
       '<p class="empty-sub">上のフォームからメンバーを追加してください</p></div>';
     return;
   }
@@ -51,8 +51,8 @@ function addToQueue() {
   var org = document.getElementById('m-organizer').checked;
   var noteEl = document.getElementById('m-note');
   var note = noteEl ? noteEl.value.trim() : '';
-  if (!name) { showToast('名前を入力してください', true); return; }
-  if (memberQueue.find(function(q) { return q.name === name; })) { showToast(name + ' は既にリストにあります', true); return; }
+  if (!name) { showToast('名前を入力してください ✏️', true); return; }
+  if (memberQueue.find(function(q) { return q.name === name; })) { showToast(name + ' はもう追加済みです', true); return; }
   memberQueue.push({ name: name, years: Number(years) || 1, exp: exp, org: org, note: note });
   document.getElementById('m-name').value = '';
   var noteEl = document.getElementById('m-note');
@@ -62,7 +62,7 @@ function addToQueue() {
   if (noteField) noteField.style.display = 'none';
   document.getElementById('m-name').focus();
   renderQueue();
-  showToast(name + ' をリストに追加');
+  showToast(name + ' がエントリー！');
 }
 function removeFromQueue(index) { memberQueue.splice(index, 1); renderQueue(); }
 function renderQueue() {
@@ -76,7 +76,7 @@ function renderQueue() {
         '<button class="btn btn-sm btn-danger" onclick="removeFromQueue(' + i + ')">' + svg(IC.x, 12) + '</button></div>';
     }).join('');
   btn.style.display = 'flex';
-  btn.innerHTML = svg('<polyline points="20 6 9 17 4 12"/>', 18) + ' まとめて登録（' + memberQueue.length + '人）';
+  btn.innerHTML = svg('<polyline points="20 6 9 17 4 12"/>', 18) + ' 全員エントリー！（' + memberQueue.length + '人）';
 }
 function registerAllMembers() {
   if (memberQueue.length === 0) return;
