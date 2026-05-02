@@ -1,31 +1,41 @@
 <script>
 // ===================================
-// Salu-Rec - クライアントサイドJS
+// Salu-Rec - クライアントサイドJS（コア）
+// 状態管理、ユーティリティ、ページ遷移
 // ===================================
 
-// --- 状態 ---
+// --- グローバル状態 ---
 var currentEventId = null;
 var currentMembers = [];
 var cachedRounds = [];    // ラウンド一覧（マッチ含む）
 var previewTeams = [];    // チーム分けプレビュー: [ [id,...], ... ]
 var previewNames = [];    // チーム名: [ 'チームA', ... ]
-var selectedMatchA = -1;
-var selectedMatchB = -1;
-var currentRoundId = null; // 現在操作中のラウンドID
 var goalCounts = {};
 var currentRole = null;    // 'admin' or 'user' or null
 var currentEventStatus = null; // イベントのステータス
 
-// --- チームカラーマッピング ---
+// --- 定数 ---
 var TEAM_CLASSES_ = ['a', 'b', 'c', 'd', 'e'];
+var SESSION_TTL_ = 24 * 60 * 60 * 1000; // セッション有効期限: 24時間（ミリ秒）
 
-// --- SVGアイコンヘルパー ---
+// ===================================
+// SVGアイコンヘルパー
+// ===================================
+
+/**
+ * SVGアイコンを生成する
+ * @param {string} paths - SVGのpath要素
+ * @param {number} [size=14] - アイコンサイズ
+ * @return {string} SVG HTML文字列
+ */
 function svg(paths, size) {
   size = size || 14;
   return '<svg aria-hidden="true" style="width:' + size + 'px;height:' + size + 'px;display:inline;vertical-align:middle;' +
     'stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;" viewBox="0 0 24 24">' +
     paths + '</svg>';
 }
+
+/** アイコン定義 */
 var IC = {
   goal: '<circle cx="12" cy="12" r="10"/>',
   trophy: '<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 9 7 12 7s5-3 7.5-3a2.5 2.5 0 0 1 0 5H18"/><path d="M18 9v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9"/><path d="M12 7v14"/>',
@@ -37,8 +47,26 @@ var IC = {
   flag: '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>'
 };
 
-// --- ユーティリティ ---
-function esc(t) { var d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+// ===================================
+// ユーティリティ関数
+// ===================================
+
+/**
+ * HTMLエスケープ
+ * @param {string} t - エスケープする文字列
+ * @return {string} エスケープ済み文字列
+ */
+function esc(t) {
+  var d = document.createElement('div');
+  d.textContent = t;
+  return d.innerHTML;
+}
+
+/**
+ * ローディング表示
+ * @param {string} [msg] - メッセージ
+ * @param {string} [sub] - サブメッセージ
+ */
 function showLoading(msg, sub) {
   var el = document.getElementById('loading');
   var content = el.querySelector('.loading-content');
@@ -50,13 +78,20 @@ function showLoading(msg, sub) {
   }
   el.style.display = 'flex';
 }
+
+/** ローディング非表示 */
 function hideLoading() {
   var el = document.getElementById('loading');
   el.style.display = 'none';
-  // スピナーを元に戻す
   var content = el.querySelector('.loading-content');
   content.innerHTML = '<div class="spinner"></div>';
 }
+
+/**
+ * トースト通知を表示
+ * @param {string} msg - メッセージ
+ * @param {boolean} [err] - エラーかどうか
+ */
 function showToast(msg, err) {
   var t = document.getElementById('toast');
   t.textContent = msg;
@@ -64,6 +99,13 @@ function showToast(msg, err) {
   setTimeout(function() { t.className = 'toast'; }, 2500);
 }
 
+/**
+ * サーバー関数を呼び出す（ローディング・エラーハンドリング付き）
+ * @param {string} funcName - サーバー関数名
+ * @param {Array} args - 引数配列
+ * @param {Function} onSuccess - 成功時コールバック
+ * @param {string} [errorMsg] - エラー時メッセージ
+ */
 function callServer(funcName, args, onSuccess, errorMsg) {
   showLoading();
   var runner = google.script.run
@@ -94,9 +136,12 @@ function showConfirm(title, message, onConfirm, confirmLabel) {
   document.getElementById('modal-overlay').onclick = function(e) {
     if (e.target === this) container.innerHTML = '';
   };
-  // フォーカスを確認ボタンに移動
   document.getElementById('modal-confirm').focus();
 }
+
+// ===================================
+// UI更新ヘルパー
+// ===================================
 
 /**
  * ステップインジケーターを更新する
@@ -111,13 +156,48 @@ function updateStepIndicator(activeStep) {
   });
 }
 
+/**
+ * ステータスバッジのHTMLを生成
+ * @param {string} status - ステータス文字列
+ * @return {string} バッジHTML
+ */
+function statusBadgeHtml(status) {
+  var s = status || '準備中';
+  var bc = s === '完了' ? 'badge-done' : (s === '進行中' ? 'badge-ongoing' : 'badge-preparing');
+  return '<span class="event-status-badge ' + bc + '">' + esc(s) + '</span>';
+}
+
+/**
+ * イベントリストアイテムのHTMLを生成
+ * @param {Object} ev - イベントオブジェクト
+ * @param {string} onclickExpr - onclick式
+ * @return {string} HTML文字列
+ */
+function eventItemHtml(ev, onclickExpr) {
+  return '<div class="event-item" onclick="' + onclickExpr + '">' +
+    '<div class="event-info"><div class="event-name">' + esc(ev['名称'] || '') + '</div>' +
+    '<div class="event-date">' + esc(String(ev['日付'] || '')) + '</div></div>' +
+    statusBadgeHtml(ev['ステータス']) + '</div>';
+}
+
+// ===================================
+// ページ遷移
+// ===================================
+
+/**
+ * ページを表示する
+ * @param {string} page - ページID
+ * @param {boolean} [skipHash] - URL更新をスキップするか
+ */
 function showPage(page, skipHash) {
   // ホームへのアクセスはログイン状態に応じてリダイレクト
   if (page === 'home') page = currentRole ? 'events' : 'login';
   // 未ログインでイベント一覧にアクセスした場合はログインへ
   if (page === 'events' && !currentRole) page = 'login';
+
   document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
   document.getElementById('page-' + page).classList.add('active');
+
   // イベント一覧に戻る場合、詳細ビューをリセット
   if (page === 'events' && currentRole === 'admin') {
     currentEventId = null;
@@ -128,6 +208,11 @@ function showPage(page, skipHash) {
   if (!skipHash) pushState_();
 }
 
+/**
+ * タブを切り替える
+ * @param {string} tabId - タブID
+ * @param {boolean} [skipHash] - URL更新をスキップするか
+ */
 function switchTab(tabId, skipHash) {
   document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
   document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
@@ -136,228 +221,6 @@ function switchTab(tabId, skipHash) {
   if (btn) btn.classList.add('active');
   if (tabId === 'tab-results') renderEventStats();
   if (!skipHash) pushState_();
-}
-
-function statusBadgeHtml(status) {
-  var s = status || '準備中';
-  var bc = s === '完了' ? 'badge-done' : (s === '進行中' ? 'badge-ongoing' : 'badge-preparing');
-  return '<span class="event-status-badge ' + bc + '">' + esc(s) + '</span>';
-}
-
-function eventItemHtml(ev, onclickExpr) {
-  return '<div class="event-item" onclick="' + onclickExpr + '">' +
-    '<div class="event-info"><div class="event-name">' + esc(ev['名称'] || '') + '</div>' +
-    '<div class="event-date">' + esc(String(ev['日付'] || '')) + '</div></div>' +
-    statusBadgeHtml(ev['ステータス']) + '</div>';
-}
-
-// ===================================
-// ログイン・ロール管理
-// ===================================
-
-/** セッション有効期限: 24時間（ミリ秒） */
-var SESSION_TTL_ = 24 * 60 * 60 * 1000;
-
-/**
- * ログイン状態をlocalStorageに保存する
- */
-function saveSession_() {
-  try {
-    var data = { role: currentRole, eventId: currentEventId, ts: Date.now() };
-    localStorage.setItem('futsal_session', JSON.stringify(data));
-  } catch (e) { /* localStorage使用不可の場合は無視 */ }
-}
-
-/**
- * localStorageからログイン状態を復元する
- * @return {Object|null} { role, eventId } または期限切れ/未保存の場合null
- */
-function loadSession_() {
-  try {
-    var raw = localStorage.getItem('futsal_session');
-    if (!raw) return null;
-    var data = JSON.parse(raw);
-    if (!data.role || !data.ts) return null;
-    if (Date.now() - data.ts > SESSION_TTL_) {
-      localStorage.removeItem('futsal_session');
-      return null;
-    }
-    return { role: data.role, eventId: data.eventId || null };
-  } catch (e) { return null; }
-}
-
-/**
- * localStorageのセッションを削除する
- */
-function clearSession_() {
-  try { localStorage.removeItem('futsal_session'); } catch (e) { /* 無視 */ }
-}
-
-/**
- * ロールを設定し、bodyクラスでUI出し分けを制御する
- * @param {string} role - 'admin' or 'user'
- */
-function setRole_(role) {
-  currentRole = role;
-  document.body.classList.remove('role-admin', 'role-user');
-  if (role) {
-    document.body.classList.add('role-' + role);
-  }
-  // ヘッダーのログアウトボタン表示制御
-  var logoutBtn = document.getElementById('btn-logout');
-  if (logoutBtn) {
-    logoutBtn.style.display = role ? 'flex' : 'none';
-  }
-}
-
-/** 管理者ログイン */
-function doLoginAdmin() {
-  var password = document.getElementById('login-password').value;
-  if (!password) { showToast('パスワードを入力してください 🔑', true); return; }
-  callServer('loginAdmin', [password], function(r) {
-    if (r.success) {
-      setRole_('admin');
-      saveSession_();
-      showPage('events');
-    } else {
-      showToast(r.message, true);
-    }
-  }, 'ログインに失敗しました');
-}
-
-/** イベントコードでログイン */
-function doLoginWithCode() {
-  var code = document.getElementById('login-code').value;
-  if (!code) { showToast('参加コードを入力してね', true); return; }
-  callServer('loginWithCode', [code], function(r) {
-    if (r.success) {
-      setRole_('user');
-      // イベント詳細に直接遷移
-      document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
-      document.getElementById('page-events').classList.add('active');
-      openEvent(r.eventId);
-      // openEvent完了後にeventIdが設定されるので少し遅延して保存
-      setTimeout(function() { saveSession_(); }, 500);
-    } else {
-      showToast(r.message, true);
-    }
-  }, 'ログインに失敗しました');
-}
-
-/** 管理者ログインフォームの表示切り替え */
-function toggleAdminLogin() {
-  var form = document.getElementById('admin-login-form');
-  form.style.display = form.style.display === 'none' ? 'block' : 'none';
-  if (form.style.display === 'block') {
-    document.getElementById('login-password').focus();
-  }
-}
-
-/** ログアウト */
-function doLogout() {
-  currentRole = null;
-  currentEventId = null;
-  document.body.classList.remove('role-admin', 'role-user');
-  clearSession_();
-  // ヘッダーのログアウトボタンを非表示
-  var logoutBtn = document.getElementById('btn-logout');
-  if (logoutBtn) { logoutBtn.style.display = 'none'; }
-  document.getElementById('login-code').value = '';
-  document.getElementById('login-password').value = '';
-  showPage('login');
-}
-
-/** 現在のロールが管理者かどうか */
-function isAdmin() {
-  return currentRole === 'admin';
-}
-
-// ===================================
-// イベント一覧
-// ===================================
-function loadEventList() { callServer('getEvents', [], function(events) { renderEventList(events); }, '読み込みエラー'); }
-function renderEventList(events) {
-  var c = document.getElementById('event-list');
-  if (!events || events.length === 0) { c.innerHTML = '<div class="empty-state">まだイベントがありません。最初の一歩を踏み出そう！</div>'; return; }
-  c.innerHTML = events.map(function(ev) { return eventItemHtml(ev, "openEvent('" + ev['イベントID'] + "')"); }).join('');
-}
-function createNewEvent() {
-  var name = document.getElementById('ev-name').value.trim() || 'フットサル';
-  var date = document.getElementById('ev-date').value || new Date().toLocaleDateString('ja-JP');
-  var code = document.getElementById('ev-code').value.trim();
-  if (!code) { showToast('参加コードを入力してください', true); return; }
-  callServer('createNewEvent', [date, name, code], function(r) { if (r.success) { showToast(r.message); openEvent(r.eventId); } else showToast(r.message, true); });
-}
-
-
-// ===================================
-// イベント詳細
-// ===================================
-function openEvent(eventId, activeTab, skipHash) {
-  currentEventId = eventId;
-  callServer('getEventDetail', [eventId], function(d) {
-    if (!d) { showToast('イベントが見つかりません', true); return; }
-    currentMembers = d.members;
-    cachedRounds = d.rounds;
-    cachedMvpData = d.mvpResults || [];
-    previewTeams = [];
-    previewNames = [];
-    currentRoundId = null;
-    renderEventDetail(d, activeTab);
-    if (!skipHash) pushState_();
-  }, 'エラー');
-}
-
-function renderEventDetail(d, activeTab) {
-  document.getElementById('event-list-view').style.display = 'none';
-  document.getElementById('event-detail-view').style.display = 'block';
-  var ev = d.event;
-  currentEventStatus = ev['ステータス'] || '準備中';
-  document.getElementById('ev-detail-title').innerHTML =
-    '<svg class="section-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>' +
-    '<line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> ' +
-    esc(ev['名称'] || '') + ' <span class="event-date" style="margin-left:8px;">' + esc(String(ev['日付'] || '')) + '</span>';
-  // ステータスと削除ボタン（管理者のみ）
-  var statusH = statusBadgeHtml(ev['ステータス']);
-  if (isAdmin()) {
-    statusH += ' <button class="btn btn-sm btn-danger" onclick="deleteCurrentEvent()" style="margin-left:8px;">' + svg(IC.trash, 14) + '</button>';
-  }
-  document.getElementById('ev-detail-status').innerHTML = statusH;
-  // イベントコード表示（管理者のみ）
-  var codeEl = document.getElementById('ev-detail-code');
-  if (codeEl && ev['コード']) {
-    codeEl.innerHTML = '<div class="event-code">参加コード: <span class="event-code-value">' + esc(ev['コード']) + '</span></div>';
-  }
-  renderMemberList(d.members);
-  renderParticipantCB(d.members);
-  renderRoundsList(d.rounds);
-  renderPostMatch(ev, d.rounds, d.mvpResults);
-  // チーム分けボードリセット
-  document.getElementById('split-step1').style.display = 'block';
-  document.getElementById('split-step2').style.display = 'none';
-  document.getElementById('split-board').innerHTML = '';
-  document.getElementById('btn-create-round').style.display = 'none';
-  boardState = { pool: [], teams: [] };
-  boardNames = [];
-  // 進行中ラウンドがあればチーム分けUIを非表示
-  var hasOngoing = (d.rounds || []).some(function(r) { return r.status !== '終了'; });
-  document.getElementById('round-create-section').style.display = hasOngoing ? 'none' : '';
-  updateTeamCountOptions();
-  switchTab(activeTab || 'tab-members');
-}
-
-function backToEventList() {
-  document.getElementById('event-detail-view').style.display = 'none';
-  document.getElementById('event-list-view').style.display = 'block';
-  currentEventId = null;
-  loadEventList();
-  pushState_();
-}
-
-function deleteCurrentEvent() {
-  showConfirm('イベント削除', 'このイベントと全データを削除しますか？', function() {
-    callServer('deleteEvent', [currentEventId], function(r) { showToast(r.message, !r.success); if (r.success) backToEventList(); });
-  }, '削除する');
 }
 
 // ===================================
@@ -447,16 +310,38 @@ function navigateToRoute_(route) {
 // ===================================
 // 初期化
 // ===================================
+
 document.addEventListener('DOMContentLoaded', function() {
+  // 日付入力の初期値設定
   var di = document.getElementById('ev-date');
-  if (di) { var t = new Date(); di.value = t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); }
+  if (di) {
+    var t = new Date();
+    di.value = t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0');
+  }
+
+  // メンバー名入力でEnterキー対応
   var nameInput = document.getElementById('m-name');
-  if (nameInput) { nameInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); addToQueue(); } }); }
+  if (nameInput) {
+    nameInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); addToQueue(); }
+    });
+  }
+
   // ログインコード入力でEnterキー対応
   var codeInput = document.getElementById('login-code');
-  if (codeInput) { codeInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); doLoginWithCode(); } }); }
+  if (codeInput) {
+    codeInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); doLoginWithCode(); }
+    });
+  }
+
+  // パスワード入力でEnterキー対応
   var passInput = document.getElementById('login-password');
-  if (passInput) { passInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); doLoginAdmin(); } }); }
+  if (passInput) {
+    passInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); doLoginAdmin(); }
+    });
+  }
 
   // ブラウザの戻る/進むボタン対応
   google.script.history.setChangeHandler(function(e) {

@@ -3,14 +3,9 @@
 // AI自動分け（経験・年次考慮）/ ランダム分け
 // ===================================
 
-/**
- * チームラベルを返す（A, B, C, D, E, ...）
- * @param {number} index - 0始まりのインデックス
- * @return {string} チームラベル
- */
-function teamLabel_(index) {
-  return String.fromCharCode(65 + index);
-}
+// ===================================
+// ユーティリティ
+// ===================================
 
 /**
  * 選択人数から最大チーム数を計算する（1チーム最低3人）
@@ -20,6 +15,30 @@ function teamLabel_(index) {
 function maxTeamCount_(playerCount) {
   return Math.max(2, Math.floor(playerCount / 3));
 }
+
+/**
+ * 空のチーム配列を生成する
+ * @param {number} teamCount - チーム数
+ * @return {string[][]} 空配列の配列
+ */
+function createEmptyTeams_(teamCount) {
+  var teams = [];
+  for (var i = 0; i < teamCount; i++) { teams.push([]); }
+  return teams;
+}
+
+/**
+ * メンバーデータを取得し、IDをキーにしたマップを返す
+ * @return {Object} メンバーマップ
+ */
+function getMemberMap_() {
+  var members = getSheetData_('メンバー');
+  return buildMap_(members, 'メンバーID');
+}
+
+// ===================================
+// スコアリング
+// ===================================
 
 /**
  * メンバー1人分のスコアを計算する（チーム分け用）
@@ -48,6 +67,10 @@ function scoreMembersForSplit_(memberIds, memberMap) {
   return scored;
 }
 
+// ===================================
+// バリデーション
+// ===================================
+
 /**
  * チーム分けの入力バリデーション
  * @param {string[]} memberIds - メンバーIDの配列
@@ -68,25 +91,9 @@ function validateSplitInput_(memberIds, teamCount) {
   return null;
 }
 
-/**
- * メンバーデータを取得し、IDをキーにしたマップを返す
- * @return {Object} メンバーマップ
- */
-function getMemberMap_() {
-  var members = getSheetData_('メンバー');
-  return buildMap_(members, 'メンバーID');
-}
-
-/**
- * 空のチーム配列を生成する
- * @param {number} teamCount - チーム数
- * @return {string[][]} 空配列の配列
- */
-function createEmptyTeams_(teamCount) {
-  var teams = [];
-  for (var i = 0; i < teamCount; i++) { teams.push([]); }
-  return teams;
-}
+// ===================================
+// チーム分けアルゴリズム
+// ===================================
 
 /**
  * 既存チームのバランスを考慮して未割当メンバーを配置する（貪欲法）
@@ -151,14 +158,20 @@ function assignToExistingTeams_(memberIds, existingTeams, memberMap) {
 function snakeDraftSplit_(memberIds, teamCount, memberMap) {
   var scored = scoreMembersForSplit_(memberIds, memberMap);
   var teams = createEmptyTeams_(teamCount);
+
   scored.forEach(function(p, i) {
     var round = Math.floor(i / teamCount);
     var pos = i % teamCount;
     var teamIdx = (round % 2 === 0) ? pos : (teamCount - 1 - pos);
     teams[teamIdx].push(p.id);
   });
+
   return { success: true, teams: teams };
 }
+
+// ===================================
+// 公開関数
+// ===================================
 
 /**
  * AI自動チーム分け（経験・年次考慮、Nチーム対応）

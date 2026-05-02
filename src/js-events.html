@@ -1,0 +1,143 @@
+<script>
+// ===================================
+// イベント一覧・詳細管理
+// ===================================
+
+// ===================================
+// イベント一覧
+// ===================================
+
+/** イベント一覧を読み込む */
+function loadEventList() {
+  callServer('getEvents', [], function(events) {
+    renderEventList(events);
+  }, '読み込みエラー');
+}
+
+/**
+ * イベント一覧を描画する
+ * @param {Object[]} events - イベント配列
+ */
+function renderEventList(events) {
+  var c = document.getElementById('event-list');
+  if (!events || events.length === 0) {
+    c.innerHTML = '<div class="empty-state">まだイベントがありません。最初の一歩を踏み出そう！</div>';
+    return;
+  }
+  c.innerHTML = events.map(function(ev) {
+    return eventItemHtml(ev, "openEvent('" + ev['イベントID'] + "')");
+  }).join('');
+}
+
+/** 新規イベントを作成する */
+function createNewEvent() {
+  var name = document.getElementById('ev-name').value.trim() || 'フットサル';
+  var date = document.getElementById('ev-date').value || new Date().toLocaleDateString('ja-JP');
+  var code = document.getElementById('ev-code').value.trim();
+  if (!code) { showToast('参加コードを入力してください', true); return; }
+  callServer('createNewEvent', [date, name, code], function(r) {
+    if (r.success) {
+      showToast(r.message);
+      openEvent(r.eventId);
+    } else {
+      showToast(r.message, true);
+    }
+  });
+}
+
+// ===================================
+// イベント詳細
+// ===================================
+
+/**
+ * イベント詳細を開く
+ * @param {string} eventId - イベントID
+ * @param {string} [activeTab] - 初期表示タブ
+ * @param {boolean} [skipHash] - URL更新をスキップするか
+ */
+function openEvent(eventId, activeTab, skipHash) {
+  currentEventId = eventId;
+  callServer('getEventDetail', [eventId], function(d) {
+    if (!d) { showToast('イベントが見つかりません', true); return; }
+    currentMembers = d.members;
+    cachedRounds = d.rounds;
+    cachedMvpData = d.mvpResults || [];
+    previewTeams = [];
+    previewNames = [];
+    renderEventDetail(d, activeTab);
+    if (!skipHash) pushState_();
+  }, 'エラー');
+}
+
+/**
+ * イベント詳細を描画する
+ * @param {Object} d - イベント詳細データ
+ * @param {string} [activeTab] - 初期表示タブ
+ */
+function renderEventDetail(d, activeTab) {
+  document.getElementById('event-list-view').style.display = 'none';
+  document.getElementById('event-detail-view').style.display = 'block';
+
+  var ev = d.event;
+  currentEventStatus = ev['ステータス'] || '準備中';
+
+  // タイトル
+  document.getElementById('ev-detail-title').innerHTML =
+    '<svg class="section-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>' +
+    '<line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> ' +
+    esc(ev['名称'] || '') + ' <span class="event-date" style="margin-left:8px;">' + esc(String(ev['日付'] || '')) + '</span>';
+
+  // ステータスと削除ボタン（管理者のみ）
+  var statusH = statusBadgeHtml(ev['ステータス']);
+  if (isAdmin()) {
+    statusH += ' <button class="btn btn-sm btn-danger" onclick="deleteCurrentEvent()" style="margin-left:8px;">' + svg(IC.trash, 14) + '</button>';
+  }
+  document.getElementById('ev-detail-status').innerHTML = statusH;
+
+  // イベントコード表示（管理者のみ）
+  var codeEl = document.getElementById('ev-detail-code');
+  if (codeEl && ev['コード']) {
+    codeEl.innerHTML = '<div class="event-code">参加コード: <span class="event-code-value">' + esc(ev['コード']) + '</span></div>';
+  }
+
+  // 各セクションを描画
+  renderMemberList(d.members);
+  renderParticipantCB(d.members);
+  renderRoundsList(d.rounds);
+  renderPostMatch(ev, d.rounds, d.mvpResults);
+
+  // チーム分けボードリセット
+  document.getElementById('split-step1').style.display = 'block';
+  document.getElementById('split-step2').style.display = 'none';
+  document.getElementById('split-board').innerHTML = '';
+  document.getElementById('btn-create-round').style.display = 'none';
+  boardState = { pool: [], teams: [] };
+  boardNames = [];
+
+  // 進行中ラウンドがあればチーム分けUIを非表示
+  var hasOngoing = (d.rounds || []).some(function(r) { return r.status !== '終了'; });
+  document.getElementById('round-create-section').style.display = hasOngoing ? 'none' : '';
+
+  updateTeamCountOptions();
+  switchTab(activeTab || 'tab-members');
+}
+
+/** イベント一覧に戻る */
+function backToEventList() {
+  document.getElementById('event-detail-view').style.display = 'none';
+  document.getElementById('event-list-view').style.display = 'block';
+  currentEventId = null;
+  loadEventList();
+  pushState_();
+}
+
+/** 現在のイベントを削除する */
+function deleteCurrentEvent() {
+  showConfirm('イベント削除', 'このイベントと全データを削除しますか？', function() {
+    callServer('deleteEvent', [currentEventId], function(r) {
+      showToast(r.message, !r.success);
+      if (r.success) backToEventList();
+    });
+  }, '削除する');
+}
+</script>

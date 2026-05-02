@@ -1,10 +1,11 @@
 // ===================================
 // MVP選出（Gemini AI 総合評価）
+// 詳細は docs/mvp-logic.md を参照
 // ===================================
 
-// -----------------------------------
-// データ取得ヘルパー
-// -----------------------------------
+// ===================================
+// データ取得
+// ===================================
 
 /**
  * MVP選出に必要なデータをまとめて取得する
@@ -17,6 +18,7 @@ function getMvpData_(eventId) {
 
   var rounds = getSheetData_('ラウンド').filter(function(r) { return r['イベントID'] === eventId; });
   var roundIds = rounds.map(function(r) { return r['ラウンドID']; });
+
   var allMatches = getSheetData_('マッチ');
   var matches = allMatches.filter(function(m) { return roundIds.indexOf(m['ラウンドID']) >= 0; });
   var matchIds = matches.map(function(m) { return m['マッチID']; });
@@ -36,9 +38,9 @@ function getMvpData_(eventId) {
   };
 }
 
-// -----------------------------------
+// ===================================
 // 参加メンバー抽出
-// -----------------------------------
+// ===================================
 
 /**
  * マッチに出場した参加メンバーIDの一覧を取得する（重複なし）
@@ -58,9 +60,9 @@ function getParticipantIds_(matchMembers, matchIds) {
   return participantIds;
 }
 
-// -----------------------------------
+// ===================================
 // 試合データ集計（AI入力用）
-// -----------------------------------
+// ===================================
 
 /**
  * メンバーの得点数を集計する
@@ -88,8 +90,10 @@ function countWins_(matches, matchMembers, matchIds, memberId) {
   matchIds.forEach(function(mMatchId) {
     var mm = matchMembers.find(function(mm) { return mm['マッチID'] === mMatchId && mm['メンバーID'] === memberId; });
     if (!mm) return;
+
     var match = matches.find(function(mt) { return mt['マッチID'] === mMatchId; });
     if (!match || match['ステータス'] !== '終了') return;
+
     var sA = Number(match['スコアA']);
     var sB = Number(match['スコアB']);
     if ((mm['チーム'] === 'A' && sA > sB) || (mm['チーム'] === 'B' && sB > sA)) {
@@ -112,9 +116,9 @@ function countPlayed_(matchMembers, matchIds, memberId) {
   }).length;
 }
 
-// -----------------------------------
+// ===================================
 // Gemini AI 総合評価
-// -----------------------------------
+// ===================================
 
 /**
  * AI総合評価用のプロンプトを組み立てる
@@ -193,20 +197,21 @@ function parseMvpResponse_(responseText, participantIds, memberMap) {
     var results = participantIds.map(function(mId) {
       var m = memberMap[mId] || {};
       var item = parsed.find(function(p) { return p.memberId === mId; });
+
       var score = 0;
       var rank = '';
       var reason = '';
+      var rating = 0;
+      var comment = '';
+
       if (item) {
         score = Math.max(0, Math.min(100, Math.round(Number(item.score) || 0)));
         rank = item.rank || '';
         reason = item.reason || '';
-      }
-      var rating = 0;
-      var comment = '';
-      if (item) {
         rating = Math.max(0, Math.min(10, Math.round((Number(item.rating) || 0) * 10) / 10));
         comment = item.comment || '';
       }
+
       return {
         memberId: mId,
         name: m['名前'] || '不明',
@@ -217,6 +222,7 @@ function parseMvpResponse_(responseText, participantIds, memberMap) {
         comment: comment
       };
     });
+
     // スコア降順でソート
     results.sort(function(a, b) { return b.totalScore - a.totalScore; });
     return results;
@@ -225,9 +231,9 @@ function parseMvpResponse_(responseText, participantIds, memberMap) {
   }
 }
 
-// -----------------------------------
+// ===================================
 // 結果保存
-// -----------------------------------
+// ===================================
 
 /**
  * MVP選出結果をスプレッドシートに保存する
@@ -237,6 +243,7 @@ function parseMvpResponse_(responseText, participantIds, memberMap) {
  */
 function saveMvpResults_(eventId, results) {
   deleteRowsByMatch_('MVP結果', 0, eventId);
+
   var ss = getSpreadsheet_();
   var mvpSheet = ss.getSheetByName('MVP結果');
   results.forEach(function(r) {
@@ -244,9 +251,9 @@ function saveMvpResults_(eventId, results) {
   });
 }
 
-// -----------------------------------
-// MVP選出メイン処理（公開関数）
-// -----------------------------------
+// ===================================
+// 公開関数
+// ===================================
 
 /**
  * MVP選出を実行する
@@ -295,6 +302,7 @@ function selectMVP(eventId) {
   // 結果をスプレッドシートに保存
   saveMvpResults_(eventId, results);
   updateEventStatus(eventId, '完了');
+
   return { success: true, results: results, message: 'MVP選出が完了しました' };
 }
 

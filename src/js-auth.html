@@ -1,0 +1,134 @@
+<script>
+// ===================================
+// ログイン・ロール管理
+// ===================================
+
+// ===================================
+// セッション管理
+// ===================================
+
+/**
+ * ログイン状態をlocalStorageに保存する
+ */
+function saveSession_() {
+  try {
+    var data = { role: currentRole, eventId: currentEventId, ts: Date.now() };
+    localStorage.setItem('futsal_session', JSON.stringify(data));
+  } catch (e) { /* localStorage使用不可の場合は無視 */ }
+}
+
+/**
+ * localStorageからログイン状態を復元する
+ * @return {Object|null} { role, eventId } または期限切れ/未保存の場合null
+ */
+function loadSession_() {
+  try {
+    var raw = localStorage.getItem('futsal_session');
+    if (!raw) return null;
+    var data = JSON.parse(raw);
+    if (!data.role || !data.ts) return null;
+    if (Date.now() - data.ts > SESSION_TTL_) {
+      localStorage.removeItem('futsal_session');
+      return null;
+    }
+    return { role: data.role, eventId: data.eventId || null };
+  } catch (e) { return null; }
+}
+
+/**
+ * localStorageのセッションを削除する
+ */
+function clearSession_() {
+  try { localStorage.removeItem('futsal_session'); } catch (e) { /* 無視 */ }
+}
+
+// ===================================
+// ロール管理
+// ===================================
+
+/**
+ * ロールを設定し、bodyクラスでUI出し分けを制御する
+ * @param {string} role - 'admin' or 'user'
+ */
+function setRole_(role) {
+  currentRole = role;
+  document.body.classList.remove('role-admin', 'role-user');
+  if (role) {
+    document.body.classList.add('role-' + role);
+  }
+  // ヘッダーのログアウトボタン表示制御
+  var logoutBtn = document.getElementById('btn-logout');
+  if (logoutBtn) {
+    logoutBtn.style.display = role ? 'flex' : 'none';
+  }
+}
+
+/**
+ * 現在のロールが管理者かどうか
+ * @return {boolean}
+ */
+function isAdmin() {
+  return currentRole === 'admin';
+}
+
+// ===================================
+// ログイン処理
+// ===================================
+
+/** 管理者ログイン */
+function doLoginAdmin() {
+  var password = document.getElementById('login-password').value;
+  if (!password) { showToast('パスワードを入力してください 🔑', true); return; }
+  callServer('loginAdmin', [password], function(r) {
+    if (r.success) {
+      setRole_('admin');
+      saveSession_();
+      showPage('events');
+    } else {
+      showToast(r.message, true);
+    }
+  }, 'ログインに失敗しました');
+}
+
+/** イベントコードでログイン */
+function doLoginWithCode() {
+  var code = document.getElementById('login-code').value;
+  if (!code) { showToast('参加コードを入力してね', true); return; }
+  callServer('loginWithCode', [code], function(r) {
+    if (r.success) {
+      setRole_('user');
+      // イベント詳細に直接遷移
+      document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+      document.getElementById('page-events').classList.add('active');
+      openEvent(r.eventId);
+      // openEvent完了後にeventIdが設定されるので少し遅延して保存
+      setTimeout(function() { saveSession_(); }, 500);
+    } else {
+      showToast(r.message, true);
+    }
+  }, 'ログインに失敗しました');
+}
+
+/** 管理者ログインフォームの表示切り替え */
+function toggleAdminLogin() {
+  var form = document.getElementById('admin-login-form');
+  form.style.display = form.style.display === 'none' ? 'block' : 'none';
+  if (form.style.display === 'block') {
+    document.getElementById('login-password').focus();
+  }
+}
+
+/** ログアウト */
+function doLogout() {
+  currentRole = null;
+  currentEventId = null;
+  document.body.classList.remove('role-admin', 'role-user');
+  clearSession_();
+  // ヘッダーのログアウトボタンを非表示
+  var logoutBtn = document.getElementById('btn-logout');
+  if (logoutBtn) { logoutBtn.style.display = 'none'; }
+  document.getElementById('login-code').value = '';
+  document.getElementById('login-password').value = '';
+  showPage('login');
+}
+</script>

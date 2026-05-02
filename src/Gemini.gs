@@ -1,5 +1,6 @@
 // ===================================
 // Gemini API 連携
+// プロンプト送信・レスポンス取得
 // ===================================
 
 /**
@@ -14,6 +15,7 @@ function callGemini_(prompt) {
     Logger.log('GEMINI_API_KEY が設定されていません');
     return null;
   }
+
   var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + apiKey;
   var payload = {
     contents: [{ parts: [{ text: prompt }] }],
@@ -22,6 +24,7 @@ function callGemini_(prompt) {
       responseMimeType: 'application/json'
     }
   };
+
   try {
     var res = UrlFetchApp.fetch(url, {
       method: 'post',
@@ -29,11 +32,13 @@ function callGemini_(prompt) {
       payload: JSON.stringify(payload),
       muteHttpExceptions: true
     });
+
     var code = res.getResponseCode();
     if (code !== 200) {
       Logger.log('Gemini API エラー: ' + code + ' ' + res.getContentText());
       return null;
     }
+
     var json = JSON.parse(res.getContentText());
     return json.candidates[0].content.parts[0].text;
   } catch (e) {

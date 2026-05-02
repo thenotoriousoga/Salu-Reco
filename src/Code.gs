@@ -1,5 +1,10 @@
 // ===================================
 // Salu-Rec - メインスクリプト
+// 共通処理（スプレッドシート取得、シート初期化、ユーティリティ関数）
+// ===================================
+
+// ===================================
+// 定数
 // ===================================
 
 /**
@@ -17,6 +22,17 @@ var SHEET_HEADERS_ = {
   'MVP結果': ['イベントID', 'メンバーID', '名前', '順位', '理由', '総合スコア', 'レーティング', '評価コメント']
 };
 
+// ===================================
+// スプレッドシート取得
+// ===================================
+
+/**
+ * スプレッドシートを取得する
+ * 1. スクリプトプロパティ SPREADSHEET_ID から取得
+ * 2. コンテナバインドスクリプトの場合は自動取得
+ * @return {Spreadsheet} スプレッドシート
+ * @throws {Error} スプレッドシートが見つからない場合
+ */
 function getSpreadsheet_() {
   // 1. スクリプトプロパティから取得
   var props = PropertiesService.getScriptProperties();
@@ -36,6 +52,10 @@ function getSpreadsheet_() {
   );
 }
 
+// ===================================
+// シート操作
+// ===================================
+
 /**
  * シートが存在しなければ作成してヘッダーを設定する
  * @param {Spreadsheet} ss - スプレッドシート
@@ -54,7 +74,10 @@ function ensureSheet_(ss, sheetName) {
   return sheet;
 }
 
-// --- シート初期化 ---
+/**
+ * 全シートを初期化する
+ * @return {string} 完了メッセージ
+ */
 function initializeSheets() {
   var ss = getSpreadsheet_();
 
@@ -73,7 +96,14 @@ function initializeSheets() {
   return 'シートの初期化が完了しました';
 }
 
-// --- Webアプリのエントリーポイント ---
+// ===================================
+// Webアプリのエントリーポイント
+// ===================================
+
+/**
+ * GETリクエストを処理する（Webアプリのエントリーポイント）
+ * @return {HtmlOutput} HTMLページ
+ */
 function doGet() {
   var template = HtmlService.createTemplateFromFile('index');
   return template.evaluate()
@@ -82,21 +112,40 @@ function doGet() {
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 
+/**
+ * HTMLファイルをインクルードする
+ * @param {string} filename - ファイル名
+ * @return {string} HTMLコンテンツ
+ */
 function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
 
-// --- ユーティリティ ---
+// ===================================
+// ユーティリティ関数
+// ===================================
+
+/**
+ * 8文字のUUIDを生成する
+ * @return {string} UUID先頭8文字
+ */
 function generateId_() {
   return Utilities.getUuid().substring(0, 8);
 }
 
+/**
+ * シートデータをオブジェクト配列として取得する
+ * @param {string} sheetName - シート名
+ * @return {Object[]} データ配列
+ */
 function getSheetData_(sheetName) {
   var ss = getSpreadsheet_();
   var sheet = ss.getSheetByName(sheetName);
   if (!sheet || sheet.getLastRow() < 2) return [];
+
   var data = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
   var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+
   return data.map(function(row) {
     var obj = {};
     headers.forEach(function(h, i) {
@@ -111,10 +160,17 @@ function getSheetData_(sheetName) {
   });
 }
 
+/**
+ * 指定列の値が一致する行を削除する
+ * @param {string} sheetName - シート名
+ * @param {number} colIndex - 列インデックス（0始まり）
+ * @param {string} value - 検索値
+ */
 function deleteRowsByMatch_(sheetName, colIndex, value) {
   var ss = getSpreadsheet_();
   var sheet = ss.getSheetByName(sheetName);
   if (!sheet || sheet.getLastRow() < 2) return;
+
   var data = sheet.getDataRange().getValues();
   for (var i = data.length - 1; i >= 1; i--) {
     if (String(data[i][colIndex]) === String(value)) {
@@ -125,7 +181,6 @@ function deleteRowsByMatch_(sheetName, colIndex, value) {
 
 /**
  * 指定シートで特定列の値が一致する行を検索し、行インデックス（1始まり）を返す
- * 見つからない場合は -1 を返す
  * @param {Sheet} sheet - 対象シート
  * @param {number} colIndex - 検索対象の列インデックス（0始まり）
  * @param {string} value - 検索値

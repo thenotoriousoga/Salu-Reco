@@ -1,7 +1,17 @@
 // ===================================
 // アンケート（Googleフォーム連携）
+// Googleフォーム自動生成、アンケート回答取得
 // ===================================
 
+// ===================================
+// フォーム作成
+// ===================================
+
+/**
+ * MVPアンケートフォームを作成する
+ * @param {string} eventId - イベントID
+ * @return {Object} 結果オブジェクト { success, formUrl, message }
+ */
 function createSurveyForm(eventId) {
   var event = findEvent_(eventId);
   if (!event) return { success: false, message: 'イベントが見つかりません' };
@@ -52,6 +62,16 @@ function createSurveyForm(eventId) {
   return { success: true, formUrl: formUrl, message: 'アンケートフォームを作成しました' };
 }
 
+// ===================================
+// 回答取得
+// ===================================
+
+/**
+ * アンケート回答を取得してスプレッドシートに保存する
+ * 既存回答をクリアしてから再取得する（冪等性を確保）
+ * @param {string} eventId - イベントID
+ * @return {Object} 結果オブジェクト { success, message, responseCount, commentCount }
+ */
 function fetchSurveyResponses(eventId) {
   var event = findEvent_(eventId);
   if (!event || !event['フォームID']) {
@@ -88,9 +108,11 @@ function fetchSurveyResponses(eventId) {
       }
     });
 
+    // 各メンバーへのコメントを保存
     itemResponses.forEach(function(ir) {
       var title = ir.getItem().getTitle();
       if (title === 'あなたの名前') return;
+
       var comment = String(ir.getResponse() || '').trim();
       if (comment) {
         var targetName = title.replace(' へのコメント', '');
@@ -108,5 +130,3 @@ function fetchSurveyResponses(eventId) {
     commentCount: totalComments
   };
 }
-
-
