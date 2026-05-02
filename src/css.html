@@ -888,9 +888,8 @@ body {
   margin-bottom: 4px;
 }
 
-.match-timer-input {
-  width: 52px;
-  padding: 6px 4px;
+.match-timer-select {
+  padding: 6px 8px;
   border: 2px solid var(--border);
   border-radius: var(--radius-xs);
   font-family: 'Fira Code', monospace;
@@ -901,9 +900,10 @@ body {
   background: var(--bg-card);
   -webkit-appearance: none;
   appearance: none;
+  cursor: pointer;
 }
 
-.match-timer-input:focus {
+.match-timer-select:focus {
   outline: none;
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
@@ -959,6 +959,10 @@ body {
 
 .match-timer-ended .match-timer-time {
   color: var(--primary);
+}
+
+.match-timer-paused .match-timer-time {
+  opacity: 0.6;
 }
 
 /* --- ローディング --- */
