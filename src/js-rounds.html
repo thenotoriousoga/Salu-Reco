@@ -49,106 +49,296 @@ function getTeamNames() {
   for (var i = 0; i < count; i++) { var el = document.getElementById('r-team-' + i); names.push(el ? el.value : ('チーム' + String.fromCharCode(65 + i))); }
   return names;
 }
-function handleSplitResult(r, toastMsg) {
-  if (r.success) { previewTeams = r.teams; previewNames = getTeamNames(); document.getElementById('manual-split-area').style.display = 'none'; renderTeamPreview(); updateStepIndicator(3); showToast(toastMsg); }
-  else showToast(r.message, true);
-}
-function doAutoSplit() {
-  var ids = getSelectedIds(); var tc = getTeamCount();
-  if (ids.length < 4) { showToast('4人以上選択してください', true); return; }
-  updateStepIndicator(2);
-  callServer('autoSplitTeams', [currentEventId, ids, tc], function(r) { handleSplitResult(r, 'AI分け完了'); });
-}
-function doManualSplit() {
+
+// ===================================
+// ドラッグ&ドロップ チーム分けボード
+// ===================================
+
+/** ボード上のメンバー配置状態: { pool: [id,...], teams: [[id,...], ...] } */
+var boardState = { pool: [], teams: [] };
+/** ボード用のチーム名 */
+var boardNames = [];
+/** ドラッグ中のメンバーID */
+var dragMemberId = null;
+
+/** ステップ1 → ステップ2（ボード表示）に進む */
+function goToSplitBoard() {
   var ids = getSelectedIds();
-  var tc = getTeamCount();
   if (ids.length < 4) { showToast('4人以上選択してください', true); return; }
+  var tc = getTeamCount();
+  boardNames = getTeamNames();
+  boardState.pool = ids.slice();
+  boardState.teams = [];
+  for (var i = 0; i < tc; i++) { boardState.teams.push([]); }
+  document.getElementById('split-step1').style.display = 'none';
+  document.getElementById('split-step2').style.display = 'block';
   updateStepIndicator(2);
-  var names = getTeamNames();
-  var mm = {};
-  currentMembers.forEach(function(m) { mm[m['メンバーID']] = m; });
+  renderSplitBoard();
+}
 
-  var h = '<div style="margin-top:12px;padding:12px;background:var(--bg-surface);border-radius:var(--radius-sm);border:1px solid var(--border-light);">' +
-    '<div style="font-size:0.85rem;font-weight:600;color:var(--text-secondary);margin-bottom:8px;">各メンバーのチームを選択</div>';
-  ids.forEach(function(id) {
-    var m = mm[id] || {};
-    var exp = m['サッカー経験'] === 'あり' ? ' *' : '';
-    h += '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-light);">' +
-      '<span style="flex:1;font-size:0.9rem;font-weight:500;">' + esc(m['名前'] || '?') + exp + '</span>' +
-      '<select id="ms-' + id + '" class="input" style="width:auto;flex:0 0 auto;">';
-    names.forEach(function(name, idx) {
-      h += '<option value="' + idx + '">' + esc(name) + '</option>';
-    });
-    h += '</select></div>';
-  });
-  h += '<button class="btn btn-primary" style="width:100%;margin-top:10px;" onclick="applyManualSplit()">チーム分けを確定</button></div>';
-
-  document.getElementById('manual-split-area').innerHTML = h;
-  document.getElementById('manual-split-area').style.display = 'block';
-  // プレビューを一旦非表示
-  document.getElementById('teams-preview').style.display = 'none';
+/** ステップ2 → ステップ1に戻る */
+function backToStep1() {
+  document.getElementById('split-step2').style.display = 'none';
+  document.getElementById('split-step1').style.display = 'block';
   document.getElementById('btn-create-round').style.display = 'none';
+  updateStepIndicator(1);
 }
 
-function applyManualSplit() {
-  var ids = getSelectedIds();
-  var tc = getTeamCount();
-  var teams = [];
-  for (var i = 0; i < tc; i++) { teams.push([]); }
+/** ボードをリセット（全員を未割当に戻す） */
+function resetSplitBoard() {
+  var allIds = boardState.pool.slice();
+  boardState.teams.forEach(function(t) { allIds = allIds.concat(t); });
+  boardState.pool = allIds;
+  boardState.teams = boardState.teams.map(function() { return []; });
+  document.getElementById('btn-create-round').style.display = 'none';
+  updateStepIndicator(2);
+  renderSplitBoard();
+  showToast('リセットしました');
+}
 
-  ids.forEach(function(id) {
-    var sel = document.getElementById('ms-' + id);
-    if (sel) {
-      var idx = parseInt(sel.value);
-      if (idx >= 0 && idx < tc) teams[idx].push(id);
+/** AI自動配置: 未割当メンバーをAIで各チームに配置する */
+function doAutoAssign() {
+  var unassigned = boardState.pool.slice();
+  if (unassigned.length === 0) { showToast('未割当のメンバーがいません', true); return; }
+  // 既にチームにいるメンバーはそのまま維持
+  callServer('autoSplitTeams', [currentEventId, unassigned, boardState.teams.length], function(r) {
+    if (r.success) {
+      // AIの結果を既存のチームにマージ
+      r.teams.forEach(function(aiTeam, idx) {
+        if (idx < boardState.teams.length) {
+          boardState.teams[idx] = boardState.teams[idx].concat(aiTeam);
+        }
+      });
+      boardState.pool = [];
+      renderSplitBoard();
+      checkBoardComplete();
+      showToast('AI自動配置完了');
+    } else {
+      showToast(r.message, true);
     }
   });
-
-  // 空チームチェック
-  var emptyTeams = [];
-  var names = getTeamNames();
-  teams.forEach(function(t, idx) {
-    if (t.length === 0) emptyTeams.push(names[idx]);
-  });
-  if (emptyTeams.length > 0) {
-    showToast(emptyTeams.join(', ') + ' にメンバーがいません', true);
-    return;
-  }
-
-  previewTeams = teams;
-  previewNames = names;
-  document.getElementById('manual-split-area').style.display = 'none';
-  renderTeamPreview();
-  updateStepIndicator(3);
-  showToast('手動分け完了');
 }
+
+/** メンバーチップのHTMLを生成する */
+function chipHtml(id) {
+  var mm = {};
+  currentMembers.forEach(function(m) { mm[m['メンバーID']] = m; });
+  var m = mm[id] || {};
+  var exp = m['サッカー経験'] === 'あり' ? '<span class="chip-exp">*</span>' : '';
+  return '<div class="split-chip" draggable="true" data-member-id="' + id + '" ' +
+    'ontouchstart="onChipTouchStart(event)" ontouchmove="onChipTouchMove(event)" ontouchend="onChipTouchEnd(event)" ' +
+    'ondragstart="onChipDragStart(event)" ondragend="onChipDragEnd(event)">' +
+    esc(m['名前'] || '?') + exp + '</div>';
+}
+
+/** ボード全体を描画する */
+function renderSplitBoard() {
+  var c = document.getElementById('split-board');
+  // 未割当プール
+  var h = '<div class="split-pool" id="drop-pool" ondragover="onZoneDragOver(event)" ondrop="onZoneDrop(event, -1)">' +
+    '<div class="split-pool-label">未割当 <span class="split-team-count">' + boardState.pool.length + '人</span></div>' +
+    '<div class="split-pool-members" id="pool-members">' +
+    boardState.pool.map(function(id) { return chipHtml(id); }).join('') +
+    '</div></div>';
+  // チームゾーン
+  boardState.teams.forEach(function(team, idx) {
+    var cls = TEAM_CLASSES_[idx] || 'a';
+    var name = boardNames[idx] || ('チーム' + String.fromCharCode(65 + idx));
+    h += '<div class="split-drop-zone team-' + cls + '-zone" id="drop-team-' + idx + '" ' +
+      'ondragover="onZoneDragOver(event)" ondrop="onZoneDrop(event, ' + idx + ')">' +
+      '<div class="split-pool-label">' + esc(name) + ' <span class="split-team-count">' + team.length + '人</span></div>' +
+      '<div class="split-pool-members">' +
+      team.map(function(id) { return chipHtml(id); }).join('') +
+      '</div></div>';
+  });
+  c.innerHTML = h;
+}
+
+/** ボードが完成しているか（未割当0人 + 全チームに1人以上）チェックし、ラウンド作成ボタンを表示 */
+function checkBoardComplete() {
+  var allAssigned = boardState.pool.length === 0;
+  var allTeamsHave = boardState.teams.every(function(t) { return t.length > 0; });
+  var btn = document.getElementById('btn-create-round');
+  if (allAssigned && allTeamsHave) {
+    btn.style.display = 'flex';
+    btn.innerHTML = svg('<polygon points="5 3 19 12 5 21 5 3"/>', 18) + ' このチーム分けでラウンド作成';
+    updateStepIndicator(3);
+  } else {
+    btn.style.display = 'none';
+    updateStepIndicator(2);
+  }
+}
+
+// --- HTML5 ドラッグ&ドロップ（デスクトップ） ---
+function onChipDragStart(e) {
+  dragMemberId = e.target.getAttribute('data-member-id');
+  e.target.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+function onChipDragEnd(e) {
+  e.target.classList.remove('dragging');
+  dragMemberId = null;
+}
+function onZoneDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  var zone = e.currentTarget;
+  zone.classList.add('drag-over');
+}
+function onZoneDrop(e, teamIdx) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (!dragMemberId) return;
+  moveMember(dragMemberId, teamIdx);
+  dragMemberId = null;
+}
+
+// --- タッチ ドラッグ&ドロップ（スマホ） ---
+var touchChip = null;
+var touchClone = null;
+var touchStartX = 0;
+var touchStartY = 0;
+var touchMoved = false;
+
+function onChipTouchStart(e) {
+  var chip = e.currentTarget;
+  dragMemberId = chip.getAttribute('data-member-id');
+  touchChip = chip;
+  touchMoved = false;
+  var touch = e.touches[0];
+  touchStartX = touch.clientX;
+  touchStartY = touch.clientY;
+}
+
+function onChipTouchMove(e) {
+  if (!touchChip) return;
+  e.preventDefault();
+  var touch = e.touches[0];
+  var dx = touch.clientX - touchStartX;
+  var dy = touch.clientY - touchStartY;
+  if (!touchMoved && Math.abs(dx) + Math.abs(dy) > 10) {
+    touchMoved = true;
+    // ドラッグ中のクローンを作成
+    touchClone = touchChip.cloneNode(true);
+    touchClone.style.position = 'fixed';
+    touchClone.style.zIndex = '9999';
+    touchClone.style.pointerEvents = 'none';
+    touchClone.style.opacity = '0.8';
+    touchClone.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
+    document.body.appendChild(touchClone);
+    touchChip.classList.add('dragging');
+  }
+  if (touchClone) {
+    touchClone.style.left = (touch.clientX - 40) + 'px';
+    touchClone.style.top = (touch.clientY - 20) + 'px';
+  }
+  // ドロップゾーンのハイライト
+  highlightDropZone(touch.clientX, touch.clientY);
+}
+
+function onChipTouchEnd(e) {
+  if (!touchChip) return;
+  if (touchClone) {
+    document.body.removeChild(touchClone);
+    touchClone = null;
+  }
+  touchChip.classList.remove('dragging');
+  // ドロップゾーンのハイライトを解除
+  document.querySelectorAll('.drag-over').forEach(function(el) { el.classList.remove('drag-over'); });
+  if (touchMoved) {
+    var touch = e.changedTouches[0];
+    var targetIdx = findDropZone(touch.clientX, touch.clientY);
+    if (targetIdx !== null) {
+      moveMember(dragMemberId, targetIdx);
+    }
+  }
+  touchChip = null;
+  dragMemberId = null;
+  touchMoved = false;
+}
+
+/** 座標からドロップゾーンを特定する */
+function findDropZone(x, y) {
+  var pool = document.getElementById('drop-pool');
+  if (pool && isInside(pool, x, y)) return -1;
+  for (var i = 0; i < boardState.teams.length; i++) {
+    var zone = document.getElementById('drop-team-' + i);
+    if (zone && isInside(zone, x, y)) return i;
+  }
+  return null;
+}
+
+/** 座標がドロップゾーンのハイライトを更新する */
+function highlightDropZone(x, y) {
+  document.querySelectorAll('.drag-over').forEach(function(el) { el.classList.remove('drag-over'); });
+  var pool = document.getElementById('drop-pool');
+  if (pool && isInside(pool, x, y)) { pool.classList.add('drag-over'); return; }
+  for (var i = 0; i < boardState.teams.length; i++) {
+    var zone = document.getElementById('drop-team-' + i);
+    if (zone && isInside(zone, x, y)) { zone.classList.add('drag-over'); return; }
+  }
+}
+
+/** 要素の矩形内に座標があるか判定する */
+function isInside(el, x, y) {
+  var r = el.getBoundingClientRect();
+  return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+}
+
+/** メンバーを移動する（pool ↔ team） */
+function moveMember(memberId, targetTeamIdx) {
+  // 現在の場所から削除
+  var poolIdx = boardState.pool.indexOf(memberId);
+  if (poolIdx >= 0) boardState.pool.splice(poolIdx, 1);
+  boardState.teams.forEach(function(team) {
+    var idx = team.indexOf(memberId);
+    if (idx >= 0) team.splice(idx, 1);
+  });
+  // 移動先に追加
+  if (targetTeamIdx < 0) {
+    boardState.pool.push(memberId);
+  } else if (targetTeamIdx < boardState.teams.length) {
+    boardState.teams[targetTeamIdx].push(memberId);
+  }
+  renderSplitBoard();
+  checkBoardComplete();
+}
+
+// ===================================
+// ラウンド作成
+// ===================================
+
 function teamMemberHtml(id, memberMap) {
   var m = memberMap[id] || {};
   return '<div class="team-member">' + esc(m['名前'] || '?') + (m['サッカー経験'] === 'あり' ? ' *' : '') + '</div>';
 }
-function renderTeamPreview() {
-  var mm = {}; currentMembers.forEach(function(m) { mm[m['メンバーID']] = m; });
-  var c = document.getElementById('teams-preview');
-  c.innerHTML = '<div class="teams-preview">' + previewTeams.map(function(team, idx) {
-    var cls = TEAM_CLASSES_[idx] || 'a';
-    var name = previewNames[idx] || ('チーム' + String.fromCharCode(65 + idx));
-    return '<div class="team-box team-' + cls + '"><h4>' + esc(name) + '</h4>' +
-      team.map(function(id) { return teamMemberHtml(id, mm); }).join('') + '</div>';
-  }).join('') + '</div>';
-  c.style.display = 'block';
-  // ラウンド作成ボタンを表示
-  document.getElementById('match-selector').style.display = 'none';
-  document.getElementById('btn-create-round').style.display = 'flex';
-  document.getElementById('btn-create-round').innerHTML =
-    svg('<polygon points="5 3 19 12 5 21 5 3"/>', 18) + ' このチーム分けでラウンド作成';
-}
 
-/** ラウンドを作成する（チーム分け結果をサーバーに保存） */
+/** ラウンドを作成する（ボードの状態をサーバーに保存） */
 function doCreateRound() {
-  if (previewTeams.length === 0) { showToast('先にチーム分けを行ってください', true); return; }
+  // ボードの状態からpreviewTeams/previewNamesを設定
+  previewTeams = boardState.teams;
+  previewNames = boardNames;
+  if (previewTeams.length === 0 || previewTeams.some(function(t) { return t.length === 0; })) {
+    showToast('全チームにメンバーを配置してください', true);
+    return;
+  }
+  if (boardState.pool.length > 0) {
+    showToast('未割当のメンバーがいます', true);
+    return;
+  }
   callServer('createRound', [currentEventId, previewNames, previewTeams], function(r) {
-    if (r.success) { showToast(r.message); previewTeams = []; previewNames = []; openEvent(currentEventId, 'tab-rounds'); }
-    else showToast(r.message, true);
+    if (r.success) {
+      showToast(r.message);
+      previewTeams = [];
+      previewNames = [];
+      boardState = { pool: [], teams: [] };
+      // ステップ1に戻す
+      document.getElementById('split-step2').style.display = 'none';
+      document.getElementById('split-step1').style.display = 'block';
+      openEvent(currentEventId, 'tab-rounds');
+    } else {
+      showToast(r.message, true);
+    }
   });
 }
 
@@ -180,10 +370,8 @@ function renderRoundsList(rounds) {
 
   c.innerHTML = rounds.map(function(round) {
     var sd = round.splitData || { names: [], teams: [] };
-    // チーム分け結果表示
     var teamsH = renderRoundTeamsHtml(sd, mm);
 
-    // マッチ一覧
     var matchesH = '';
     if (round.matches && round.matches.length > 0) {
       matchesH = round.matches.map(function(m) {
@@ -196,7 +384,6 @@ function renderRoundsList(rounds) {
       }).join('');
     }
 
-    // 対戦カード追加UI（進行中のラウンドのみ）
     var addMatchH = '';
     var roundActionsH = '';
     if (round.status !== '終了') {
@@ -220,7 +407,6 @@ function renderRoundsList(rounds) {
       teamsH + matchesH + addMatchH + '</div>';
   }).join('');
 
-  // ゴールカウント初期化
   goalCounts = {};
   rounds.forEach(function(round) {
     round.matches.forEach(function(m) {
@@ -252,7 +438,6 @@ function showAddMatch(roundId) {
   c.style.display = 'block';
 }
 
-/** マッチを作成する */
 function doCreateMatch(roundId) {
   var round = cachedRounds.find(function(r) { return r.id === roundId; });
   if (!round || !round.splitData) return;
@@ -331,13 +516,11 @@ function chScore(matchId, team, delta) {
   var el = document.getElementById('s' + team.toLowerCase() + '-' + matchId);
   var v = Math.max(0, (parseInt(el.textContent) || 0) + delta);
   el.textContent = v;
-  // スコアバウンスアニメーション
   el.classList.remove('updated');
   void el.offsetWidth;
   el.classList.add('updated');
   var a = parseInt(document.getElementById('sa-' + matchId).textContent) || 0;
   var b = parseInt(document.getElementById('sb-' + matchId).textContent) || 0;
-  // デバウンス: 500ms以内の連続操作をまとめて1回のサーバー呼び出しに
   clearTimeout(scoreTimers_[matchId]);
   scoreTimers_[matchId] = setTimeout(function() {
     google.script.run
@@ -352,7 +535,6 @@ function chGoal(matchId, mId, team, delta) {
   goalCounts[key] = Math.max(0, (goalCounts[key] || 0) + delta);
   var el = document.getElementById('g-' + matchId + '-' + mId);
   if (el) el.textContent = goalCounts[key];
-  // デバウンス: 500ms以内の連続操作をまとめる
   clearTimeout(goalTimers_[key]);
   var count = goalCounts[key];
   goalTimers_[key] = setTimeout(function() {
@@ -377,7 +559,6 @@ function recalcScores(matchId) {
   var eB = document.getElementById('sb-' + matchId);
   if (eA) { eA.textContent = sA; eA.classList.remove('updated'); void eA.offsetWidth; eA.classList.add('updated'); }
   if (eB) { eB.textContent = sB; eB.classList.remove('updated'); void eB.offsetWidth; eB.classList.add('updated'); }
-  // デバウンスでスコア保存
   clearTimeout(scoreTimers_[matchId]);
   scoreTimers_[matchId] = setTimeout(function() {
     google.script.run

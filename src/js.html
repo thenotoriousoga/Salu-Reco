@@ -329,14 +329,13 @@ function renderEventDetail(d, activeTab) {
   renderParticipantCB(d.members);
   renderRoundsList(d.rounds);
   renderPostMatch(ev, d.rounds, d.mvpResults);
-  // チーム分けプレビューリセット
-  document.getElementById('manual-split-area').style.display = 'none';
-  document.getElementById('manual-split-area').innerHTML = '';
-  document.getElementById('teams-preview').style.display = 'none';
-  document.getElementById('teams-preview').innerHTML = '';
-  document.getElementById('match-selector').style.display = 'none';
-  document.getElementById('match-selector').innerHTML = '';
+  // チーム分けボードリセット
+  document.getElementById('split-step1').style.display = 'block';
+  document.getElementById('split-step2').style.display = 'none';
+  document.getElementById('split-board').innerHTML = '';
   document.getElementById('btn-create-round').style.display = 'none';
+  boardState = { pool: [], teams: [] };
+  boardNames = [];
   // 進行中ラウンドがあればチーム分けUIを非表示
   var hasOngoing = (d.rounds || []).some(function(r) { return r.status !== '終了'; });
   document.getElementById('round-create-section').style.display = hasOngoing ? 'none' : '';
