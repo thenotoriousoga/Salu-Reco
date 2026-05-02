@@ -111,7 +111,7 @@ function loginAdmin(password) {
   if (!adminPassword) {
     return { success: false, message: '管理者パスワードが設定されていません。スクリプトプロパティ ADMIN_PASSWORD を設定してください。' };
   }
-  if (String(password) === String(adminPassword)) {
+  if (String(password).trim() === String(adminPassword).trim()) {
     return { success: true, role: 'admin' };
   }
   return { success: false, message: 'パスワードが正しくありません' };
