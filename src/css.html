@@ -880,6 +880,49 @@ body {
 }
 
 /* --- マッチタイマー --- */
+.match-timer-inline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.match-timer-input {
+  width: 52px;
+  padding: 6px 4px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius-xs);
+  font-family: 'Fira Code', monospace;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  text-align: center;
+  background: var(--bg-card);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.match-timer-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+}
+
+.match-timer-unit {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.match-timer-start {
+  gap: 4px;
+}
+
+.match-timer-stop {
+  gap: 4px;
+}
+
 .match-timer {
   display: flex;
   align-items: center;
@@ -898,12 +941,6 @@ body {
   font-weight: 700;
   color: var(--text);
   letter-spacing: 0.05em;
-}
-
-.match-timer-cancel {
-  min-width: 36px;
-  min-height: 36px;
-  padding: 6px;
 }
 
 .match-timer-warning {

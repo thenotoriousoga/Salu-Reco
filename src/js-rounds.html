@@ -487,12 +487,17 @@ function doEndRound(roundId) {
 function ongoingMatchHtml(m, teamColorMap) {
   var clsA = (teamColorMap && teamColorMap[m.teamAName]) || 'a';
   var clsB = (teamColorMap && teamColorMap[m.teamBName]) || 'b';
-  var h = '<div id="timer-btn-' + m.id + '" style="text-align:center;margin-bottom:4px;">' +
-    '<button class="btn btn-sm btn-secondary" onclick="startTimerPrompt(\'' + m.id + '\')">' +
-    svg('<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>', 14) + ' タイマー</button></div>' +
+  var h = '<div id="timer-area-' + m.id + '" class="match-timer-inline">' +
+    '<input type="number" id="timer-input-' + m.id + '" class="match-timer-input" value="5" min="1" max="120" aria-label="タイマー（分）">' +
+    '<span class="match-timer-unit">分</span>' +
+    '<button class="btn btn-sm btn-primary match-timer-start" id="timer-toggle-' + m.id + '" onclick="toggleTimer(\'' + m.id + '\')">' +
+    svg('<polygon points="5 3 19 12 5 21 5 3"/>', 14) + ' 開始</button>' +
+    '</div>' +
     '<div id="timer-display-' + m.id + '" class="match-timer" style="display:none;">' +
     '<span class="match-timer-time" id="timer-time-' + m.id + '">00:00</span>' +
-    '<button class="btn btn-sm btn-secondary match-timer-cancel" onclick="cancelTimer(\'' + m.id + '\')">' + svg(IC.x, 12) + '</button></div>' +
+    '<button class="btn btn-sm btn-danger match-timer-stop" id="timer-stop-' + m.id + '" onclick="stopTimer(\'' + m.id + '\')">' +
+    svg('<rect x="6" y="6" width="12" height="12"/>', 14) + ' 停止</button>' +
+    '</div>' +
     '<div class="scoreboard" style="margin:12px 0;">' +
     '<div class="score-team"><span class="team-label team-' + clsA + '-badge">' + esc(m.teamAName) + '</span>' +
     '<span class="score" id="sa-' + m.id + '">' + m.scoreA + '</span>' +
@@ -684,45 +689,16 @@ function vibrate_() {
   }
 }
 
-/** タイマー開始プロンプト */
-function startTimerPrompt(matchId) {
+/** タイマー開始/停止トグル */
+function toggleTimer(matchId) {
   // 既にタイマー動作中なら何もしない
   if (matchTimers_[matchId]) return;
   // AudioContext初期化（ユーザー操作のタイミング）
   initAudioCtx_();
 
-  var modal = document.createElement('div');
-  modal.className = 'modal-overlay';
-  modal.setAttribute('role', 'dialog');
-  modal.setAttribute('aria-modal', 'true');
-  modal.innerHTML = '<div class="modal-box">' +
-    '<h3>' + svg('<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>', 18) + ' タイマー設定</h3>' +
-    '<p>試合時間を分単位で入力してください</p>' +
-    '<div class="input-group"><label for="timer-input">時間（分）</label>' +
-    '<input type="number" id="timer-input" class="input" value="5" min="1" max="120" style="width:80px;text-align:center;"></div>' +
-    '<div class="modal-actions">' +
-    '<button class="btn btn-secondary" id="timer-cancel-btn">キャンセル</button>' +
-    '<button class="btn btn-primary" id="timer-start-btn">スタート</button></div></div>';
-  document.body.appendChild(modal);
-
-  var input = document.getElementById('timer-input');
-  input.focus();
-  input.select();
-
-  document.getElementById('timer-cancel-btn').onclick = function() { modal.remove(); };
-  modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
-  document.getElementById('timer-start-btn').onclick = function() {
-    var minutes = Math.max(1, Math.min(120, parseInt(input.value) || 5));
-    modal.remove();
-    startTimer(matchId, minutes);
-  };
-  input.onkeydown = function(e) {
-    if (e.key === 'Enter') {
-      var minutes = Math.max(1, Math.min(120, parseInt(input.value) || 5));
-      modal.remove();
-      startTimer(matchId, minutes);
-    }
-  };
+  var input = document.getElementById('timer-input-' + matchId);
+  var minutes = Math.max(1, Math.min(120, parseInt(input.value) || 5));
+  startTimer(matchId, minutes);
 }
 
 /** タイマー開始 */
@@ -730,11 +706,11 @@ function startTimer(matchId, minutes) {
   var durationMs = minutes * 60 * 1000;
   var endTime = Date.now() + durationMs;
 
+  var area = document.getElementById('timer-area-' + matchId);
   var display = document.getElementById('timer-display-' + matchId);
   var timeEl = document.getElementById('timer-time-' + matchId);
-  var btn = document.getElementById('timer-btn-' + matchId);
+  if (area) area.style.display = 'none';
   if (display) display.style.display = 'flex';
-  if (btn) btn.style.display = 'none';
 
   var intervalId = setInterval(function() {
     var remaining = endTime - Date.now();
@@ -759,18 +735,18 @@ function startTimer(matchId, minutes) {
   matchTimers_[matchId] = intervalId;
 }
 
-/** タイマーキャンセル */
-function cancelTimer(matchId) {
+/** タイマー停止 */
+function stopTimer(matchId) {
   if (matchTimers_[matchId]) {
     clearInterval(matchTimers_[matchId]);
     delete matchTimers_[matchId];
   }
+  var area = document.getElementById('timer-area-' + matchId);
   var display = document.getElementById('timer-display-' + matchId);
-  var btn = document.getElementById('timer-btn-' + matchId);
   if (display) {
     display.style.display = 'none';
     display.classList.remove('match-timer-warning', 'match-timer-ended');
   }
-  if (btn) btn.style.display = '';
+  if (area) area.style.display = '';
 }
 </script>
