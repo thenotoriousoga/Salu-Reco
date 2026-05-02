@@ -37,13 +37,18 @@
     ├── appsscript.json        GASプロジェクト設定（タイムゾーン: Asia/Tokyo, webapp設定）
     ├── Code.gs                共通処理（スプレッドシート取得、シート初期化、ユーティリティ関数）
     ├── Events.gs              イベントCRUD（作成・取得・更新・削除）
+    ├── Gemini.gs              Gemini API連携（プロンプト送信・レスポンス取得）
     ├── Members.gs             メンバーCRUD（イベントに紐づく、一括登録対応）
-    ├── Rounds.gs              ラウンド・マッチ管理、チーム分け（AI蛇行ドラフト/ランダム）、スコア・得点記録
-    ├── Survey.gs              Googleフォーム自動生成、アンケート回答取得
     ├── Mvp.gs                 MVP選出ロジック（定量50% + 定性50%の100点満点評価）
+    ├── Rounds.gs              ラウンド・マッチ管理、スコア・得点記録
+    ├── Survey.gs              Googleフォーム自動生成、アンケート回答取得
+    ├── TeamSplit.gs           チーム分けロジック（AI蛇行ドラフト/ランダム）
     ├── index.html             メインHTML（SPA構成、タブ切り替え）
     ├── css.html               スタイルシート（CSS変数ベースのデザインシステム）
-    └── js.html                クライアントサイドJS（google.script.run経由でサーバー呼び出し）
+    ├── js.html                クライアントサイドJS・コア（状態管理、ユーティリティ、ページ遷移、イベント管理）
+    ├── js-members.html        クライアントサイドJS・メンバー管理（キュー方式の登録・編集・削除）
+    ├── js-rounds.html         クライアントサイドJS・試合管理（チーム分けUI、ラウンド・マッチ操作）
+    └── js-results.html        クライアントサイドJS・結果表示（成績集計、アンケート、MVP選出）
 ```
 
 ## アーキテクチャ
