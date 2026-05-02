@@ -6,12 +6,26 @@ function renderEventStats() {
   var c = document.getElementById('event-stats');
   var rounds = cachedRounds;
   var members = currentMembers;
-  if (!members || members.length === 0 || !rounds || rounds.length === 0) { c.innerHTML = '<div class="empty-state">試合データがありません</div>'; return; }
+  if (!members || members.length === 0 || !rounds || rounds.length === 0) {
+    c.innerHTML = '<div class="empty-state">' +
+      '<svg aria-hidden="true" style="width:48px;height:48px;stroke:var(--border);fill:none;stroke-width:1.5;" viewBox="0 0 24 24">' +
+      '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>' +
+      '<p>試合データがありません</p>' +
+      '<p class="empty-sub">試合タブからラウンドを作成してください</p></div>';
+    return;
+  }
 
   // 全マッチをフラットに収集
   var allMatches = [];
   rounds.forEach(function(r) { if (r.matches) r.matches.forEach(function(m) { allMatches.push(m); }); });
-  if (allMatches.length === 0) { c.innerHTML = '<div class="empty-state">試合データがありません</div>'; return; }
+  if (allMatches.length === 0) {
+    c.innerHTML = '<div class="empty-state">' +
+      '<svg aria-hidden="true" style="width:48px;height:48px;stroke:var(--border);fill:none;stroke-width:1.5;" viewBox="0 0 24 24">' +
+      '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>' +
+      '<p>試合データがありません</p>' +
+      '<p class="empty-sub">試合タブからラウンドを作成してください</p></div>';
+    return;
+  }
 
   var stats = members.map(function(m) {
     var mId = m['メンバーID'];
@@ -57,7 +71,14 @@ function renderPostMatch(event, rounds, mvpResults) {
   rounds.forEach(function(r) { if (r.matches) r.matches.forEach(function(m) { allMatches.push(m); }); });
   var ended = allMatches.filter(function(m) { return m.status === '終了'; });
   var formUrl = event['フォームURL'] || '';
-  if (ended.length === 0) { c.innerHTML = '<div class="empty-state">試合が終了するとアンケート・MVP選出が利用できます</div>'; return; }
+  if (ended.length === 0) {
+    c.innerHTML = '<div class="empty-state">' +
+      '<svg aria-hidden="true" style="width:48px;height:48px;stroke:var(--border);fill:none;stroke-width:1.5;" viewBox="0 0 24 24">' +
+      '<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 9 7 12 7s5-3 7.5-3a2.5 2.5 0 0 1 0 5H18"/>' +
+      '<path d="M18 9v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9"/><path d="M12 7v14"/></svg>' +
+      '<p>試合が終了するとアンケート・MVP選出が利用できます</p></div>';
+    return;
+  }
   var h = '';
   if (isAdmin()) {
     h += '<div style="margin-bottom:14px;">' +
@@ -91,8 +112,20 @@ function saveMvpSettings() {
 function createSurvey() { callServer('createSurveyForm', [currentEventId], function(r) { if (r.success) { showToast(r.message); openEvent(currentEventId, 'tab-results'); } else showToast(r.message, true); }); }
 function fetchSurvey() { callServer('fetchSurveyResponses', [currentEventId], function(r) { showToast(r.message, !r.success); }); }
 function runMvp() {
-  if (!confirm('MVP選出を実行しますか？\n（AIが試合データ・アンケートを総合的に評価します）')) return;
-  callServer('selectMVP', [currentEventId], function(r) { if (r.success) { showToast(r.message); renderMvpResults(r.results); } else showToast(r.message, true); });
+  showConfirm('MVP選出', 'MVP選出を実行しますか？\nAIが試合データ・アンケートを総合的に評価します。', function() {
+    showLoading('AIがMVPを選出中...', '10〜30秒ほどかかります');
+    google.script.run
+      .withSuccessHandler(function(r) {
+        hideLoading();
+        if (r.success) { showToast(r.message); renderMvpResults(r.results); }
+        else showToast(r.message, true);
+      })
+      .withFailureHandler(function() {
+        hideLoading();
+        showToast('MVP選出に失敗しました', true);
+      })
+      .selectMVP(currentEventId);
+  }, '実行する');
 }
 function renderMvpResults(results) {
   var c = document.getElementById('mvp-results-area');

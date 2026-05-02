@@ -4,7 +4,14 @@
 // ===================================
 function renderParticipantCB(members) {
   var c = document.getElementById('p-checkboxes');
-  if (!members || members.length === 0) { c.innerHTML = '<div class="empty-state">先にメンバーを登録してください。</div>'; return; }
+  if (!members || members.length === 0) {
+    c.innerHTML = '<div class="empty-state">' +
+      '<svg aria-hidden="true" style="width:48px;height:48px;stroke:var(--border);fill:none;stroke-width:1.5;" viewBox="0 0 24 24">' +
+      '<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/>' +
+      '<line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>' +
+      '<p>先にメンバーを登録してください</p></div>';
+    return;
+  }
   c.innerHTML = '<div class="checkbox-grid">' + members.map(function(m) {
     var exp = m['サッカー経験'] === 'あり' ? ' *' : '';
     return '<div class="checkbox-item"><input type="checkbox" id="pcb-' + m['メンバーID'] + '" value="' + m['メンバーID'] + '" checked onchange="updateTeamCountOptions()">' +
@@ -43,18 +50,20 @@ function getTeamNames() {
   return names;
 }
 function handleSplitResult(r, toastMsg) {
-  if (r.success) { previewTeams = r.teams; previewNames = getTeamNames(); document.getElementById('manual-split-area').style.display = 'none'; renderTeamPreview(); showToast(toastMsg); }
+  if (r.success) { previewTeams = r.teams; previewNames = getTeamNames(); document.getElementById('manual-split-area').style.display = 'none'; renderTeamPreview(); updateStepIndicator(3); showToast(toastMsg); }
   else showToast(r.message, true);
 }
 function doAutoSplit() {
   var ids = getSelectedIds(); var tc = getTeamCount();
   if (ids.length < 4) { showToast('4人以上選択してください', true); return; }
+  updateStepIndicator(2);
   callServer('autoSplitTeams', [currentEventId, ids, tc], function(r) { handleSplitResult(r, 'AI分け完了'); });
 }
 function doManualSplit() {
   var ids = getSelectedIds();
   var tc = getTeamCount();
   if (ids.length < 4) { showToast('4人以上選択してください', true); return; }
+  updateStepIndicator(2);
   var names = getTeamNames();
   var mm = {};
   currentMembers.forEach(function(m) { mm[m['メンバーID']] = m; });
@@ -110,6 +119,7 @@ function applyManualSplit() {
   previewNames = names;
   document.getElementById('manual-split-area').style.display = 'none';
   renderTeamPreview();
+  updateStepIndicator(3);
   showToast('手動分け完了');
 }
 function teamMemberHtml(id, memberMap) {
@@ -145,6 +155,24 @@ function doCreateRound() {
 // ===================================
 // ラウンド一覧 → マッチ管理
 // ===================================
+
+/** チームボックスのHTMLを生成する */
+function renderTeamBoxHtml(team, idx, names, mm) {
+  var cls = TEAM_CLASSES_[idx] || 'a';
+  var name = (names || [])[idx] || ('チーム' + String.fromCharCode(65 + idx));
+  return '<div class="team-box team-' + cls + '"><h4>' + esc(name) + '</h4>' +
+    team.map(function(id) { return teamMemberHtml(id, mm); }).join('') + '</div>';
+}
+
+/** ラウンドのチーム分け結果HTMLを生成する */
+function renderRoundTeamsHtml(sd, mm) {
+  if (!sd.teams || sd.teams.length === 0) return '';
+  return '<div class="teams-preview" style="margin:0 0 8px 0;">' +
+    sd.teams.map(function(team, idx) {
+      return renderTeamBoxHtml(team, idx, sd.names, mm);
+    }).join('') + '</div>';
+}
+
 function renderRoundsList(rounds) {
   var c = document.getElementById('rounds-list');
   if (!rounds || rounds.length === 0) { c.innerHTML = ''; return; }
@@ -153,13 +181,7 @@ function renderRoundsList(rounds) {
   c.innerHTML = rounds.map(function(round) {
     var sd = round.splitData || { names: [], teams: [] };
     // チーム分け結果表示
-    var teamsH = '<div class="teams-preview" style="margin:0 0 8px 0;">' +
-      (sd.teams || []).map(function(team, idx) {
-        var cls = TEAM_CLASSES_[idx] || 'a';
-        var name = (sd.names || [])[idx] || ('チーム' + String.fromCharCode(65 + idx));
-        return '<div class="team-box team-' + cls + '"><h4>' + esc(name) + '</h4>' +
-          team.map(function(id) { return teamMemberHtml(id, mm); }).join('') + '</div>';
-      }).join('') + '</div>';
+    var teamsH = renderRoundTeamsHtml(sd, mm);
 
     // マッチ一覧
     var matchesH = '';
@@ -246,8 +268,9 @@ function doCreateMatch(roundId) {
 }
 
 function delRound(roundId) {
-  if (!confirm('このラウンドと全試合を削除しますか？')) return;
-  callServer('deleteRound', [roundId], function(r) { showToast(r.message, !r.success); if (r.success) openEvent(currentEventId, 'tab-rounds'); });
+  showConfirm('ラウンド削除', 'このラウンドと全試合を削除しますか？', function() {
+    callServer('deleteRound', [roundId], function(r) { showToast(r.message, !r.success); if (r.success) openEvent(currentEventId, 'tab-rounds'); });
+  }, '削除する');
 }
 
 function doEndRound(roundId) {
@@ -303,21 +326,40 @@ function endedMatchHtml(m) {
     esc(m.teamAName) + ' ' + m.scoreA + ' - ' + m.scoreB + ' ' + esc(m.teamBName) + '</div>' + goalsSummary;
 }
 
+var scoreTimers_ = {};
 function chScore(matchId, team, delta) {
   var el = document.getElementById('s' + team.toLowerCase() + '-' + matchId);
   var v = Math.max(0, (parseInt(el.textContent) || 0) + delta);
   el.textContent = v;
+  // スコアバウンスアニメーション
+  el.classList.remove('updated');
+  void el.offsetWidth;
+  el.classList.add('updated');
   var a = parseInt(document.getElementById('sa-' + matchId).textContent) || 0;
   var b = parseInt(document.getElementById('sb-' + matchId).textContent) || 0;
-  google.script.run.updateMatchScore(matchId, a, b);
+  // デバウンス: 500ms以内の連続操作をまとめて1回のサーバー呼び出しに
+  clearTimeout(scoreTimers_[matchId]);
+  scoreTimers_[matchId] = setTimeout(function() {
+    google.script.run
+      .withFailureHandler(function() { showToast('スコア保存に失敗しました', true); })
+      .updateMatchScore(matchId, a, b);
+  }, 500);
 }
 
+var goalTimers_ = {};
 function chGoal(matchId, mId, team, delta) {
   var key = matchId + '-' + mId;
   goalCounts[key] = Math.max(0, (goalCounts[key] || 0) + delta);
   var el = document.getElementById('g-' + matchId + '-' + mId);
   if (el) el.textContent = goalCounts[key];
-  google.script.run.recordGoal(matchId, mId, goalCounts[key]);
+  // デバウンス: 500ms以内の連続操作をまとめる
+  clearTimeout(goalTimers_[key]);
+  var count = goalCounts[key];
+  goalTimers_[key] = setTimeout(function() {
+    google.script.run
+      .withFailureHandler(function() { showToast('得点保存に失敗しました', true); })
+      .recordGoal(matchId, mId, count);
+  }, 500);
   recalcScores(matchId);
 }
 
@@ -333,9 +375,15 @@ function recalcScores(matchId) {
   });
   var eA = document.getElementById('sa-' + matchId);
   var eB = document.getElementById('sb-' + matchId);
-  if (eA) eA.textContent = sA;
-  if (eB) eB.textContent = sB;
-  google.script.run.updateMatchScore(matchId, sA, sB);
+  if (eA) { eA.textContent = sA; eA.classList.remove('updated'); void eA.offsetWidth; eA.classList.add('updated'); }
+  if (eB) { eB.textContent = sB; eB.classList.remove('updated'); void eB.offsetWidth; eB.classList.add('updated'); }
+  // デバウンスでスコア保存
+  clearTimeout(scoreTimers_[matchId]);
+  scoreTimers_[matchId] = setTimeout(function() {
+    google.script.run
+      .withFailureHandler(function() { showToast('スコア保存に失敗しました', true); })
+      .updateMatchScore(matchId, sA, sB);
+  }, 500);
 }
 
 function endMatch(matchId) {
@@ -343,7 +391,8 @@ function endMatch(matchId) {
 }
 
 function delMatch(matchId) {
-  if (!confirm('この試合を削除しますか？')) return;
-  callServer('deleteMatch', [matchId], function(r) { showToast(r.message, !r.success); if (r.success) openEvent(currentEventId, 'tab-rounds'); });
+  showConfirm('試合削除', 'この試合を削除しますか？', function() {
+    callServer('deleteMatch', [matchId], function(r) { showToast(r.message, !r.success); if (r.success) openEvent(currentEventId, 'tab-rounds'); });
+  }, '削除する');
 }
 </script>

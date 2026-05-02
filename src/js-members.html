@@ -5,7 +5,15 @@
 var memberQueue = [];
 function renderMemberList(members) {
   var c = document.getElementById('member-list');
-  if (!members || members.length === 0) { c.innerHTML = '<div class="empty-state">メンバーがいません。追加してください。</div>'; return; }
+  if (!members || members.length === 0) {
+    c.innerHTML = '<div class="empty-state">' +
+      '<svg aria-hidden="true" style="width:48px;height:48px;stroke:var(--border);fill:none;stroke-width:1.5;" viewBox="0 0 24 24">' +
+      '<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/>' +
+      '<line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>' +
+      '<p>まだメンバーがいません</p>' +
+      '<p class="empty-sub">上のフォームからメンバーを追加してください</p></div>';
+    return;
+  }
   c.innerHTML = members.map(function(m) {
     var deleteBtn = isAdmin()
       ? '<button class="btn btn-sm btn-danger" onclick="deleteMember(\'' + m['メンバーID'] + '\')">' + svg(IC.trash, 14) + '</button>'
@@ -62,7 +70,8 @@ function registerAllMembers() {
   }, '登録に失敗しました');
 }
 function deleteMember(memberId) {
-  if (!confirm('このメンバーを削除しますか？')) return;
-  callServer('deleteEventMember', [memberId], function(r) { showToast(r.message, !r.success); if (r.success) openEvent(currentEventId); });
+  showConfirm('メンバー削除', 'このメンバーを削除しますか？', function() {
+    callServer('deleteEventMember', [memberId], function(r) { showToast(r.message, !r.success); if (r.success) openEvent(currentEventId); });
+  }, '削除する');
 }
 </script>

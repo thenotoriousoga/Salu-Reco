@@ -26,7 +26,7 @@
   --bg-surface: #FFF5F5;
   --text: #7F1D1D;
   --text-secondary: #991B1B;
-  --text-muted: #B45309;
+  --text-muted: #92400E;
   --border: #FECACA;
   --border-light: #FEE2E2;
   --team-a: #2563EB;
@@ -94,6 +94,51 @@ body {
   height: 24px;
   fill: none;
   stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.btn-logout {
+  position: absolute;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-radius: var(--radius-xs);
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  cursor: pointer;
+  transition: all var(--transition);
+  padding: 0;
+}
+
+.btn-logout:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.8);
+}
+
+.btn-logout:active {
+  transform: scale(0.95);
+}
+
+.btn-logout svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  fill: none;
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -222,9 +267,11 @@ body {
 }
 
 .btn-sm {
-  padding: 6px 12px;
+  padding: 8px 14px;
   font-size: 0.8rem;
   border-radius: var(--radius-xs);
+  min-height: 44px;
+  min-width: 44px;
 }
 
 .btn .btn-icon {
@@ -250,6 +297,7 @@ body {
   background: var(--bg-card);
   transition: border-color var(--transition), box-shadow var(--transition);
   -webkit-appearance: none;
+  appearance: none;
 }
 
 .input:focus {
@@ -378,30 +426,11 @@ body {
   letter-spacing: -0.01em;
 }
 
-.team-a {
-  background: var(--team-a-bg);
-  border: 2px solid var(--team-a-border);
-}
-
-.team-b {
-  background: var(--team-b-bg);
-  border: 2px solid var(--team-b-border);
-}
-
-.team-c {
-  background: var(--team-c-bg);
-  border: 2px solid var(--team-c-border);
-}
-
-.team-d {
-  background: var(--team-d-bg);
-  border: 2px solid var(--team-d-border);
-}
-
-.team-e {
-  background: var(--team-e-bg);
-  border: 2px solid var(--team-e-border);
-}
+.team-a { background: var(--team-a-bg); border: 2px solid var(--team-a-border); }
+.team-b { background: var(--team-b-bg); border: 2px solid var(--team-b-border); }
+.team-c { background: var(--team-c-bg); border: 2px solid var(--team-c-border); }
+.team-d { background: var(--team-d-bg); border: 2px solid var(--team-d-border); }
+.team-e { background: var(--team-e-bg); border: 2px solid var(--team-e-border); }
 
 .team-member {
   padding: 4px 0;
@@ -422,10 +451,7 @@ body {
   border: 2px solid var(--border);
 }
 
-.score-team {
-  text-align: center;
-  flex: 1;
-}
+.score-team { text-align: center; flex: 1; }
 
 .team-label {
   display: block;
@@ -480,10 +506,7 @@ body {
   border: 1px solid var(--border-light);
 }
 
-.goal-section h3 .section-icon {
-  width: 18px;
-  height: 18px;
-}
+.goal-section h3 .section-icon { width: 18px; height: 18px; }
 
 .goal-player {
   display: flex;
@@ -495,11 +518,7 @@ body {
 
 .goal-player:last-child { border-bottom: none; }
 
-.goal-player-name {
-  font-size: 0.85rem;
-  font-weight: 500;
-  flex: 1;
-}
+.goal-player-name { font-size: 0.85rem; font-weight: 500; flex: 1; }
 
 .goal-player-team {
   font-family: 'Fira Code', monospace;
@@ -512,41 +531,13 @@ body {
   text-transform: uppercase;
 }
 
-.goal-player-team.team-a-badge {
-  background: var(--team-a-bg);
-  color: var(--team-a);
-  border: 1px solid var(--team-a-border);
-}
+.goal-player-team.team-a-badge { background: var(--team-a-bg); color: var(--team-a); border: 1px solid var(--team-a-border); }
+.goal-player-team.team-b-badge { background: var(--team-b-bg); color: var(--team-b); border: 1px solid var(--team-b-border); }
+.goal-player-team.team-c-badge { background: var(--team-c-bg); color: var(--team-c); border: 1px solid var(--team-c-border); }
+.goal-player-team.team-d-badge { background: var(--team-d-bg); color: var(--team-d); border: 1px solid var(--team-d-border); }
+.goal-player-team.team-e-badge { background: var(--team-e-bg); color: var(--team-e); border: 1px solid var(--team-e-border); }
 
-.goal-player-team.team-b-badge {
-  background: var(--team-b-bg);
-  color: var(--team-b);
-  border: 1px solid var(--team-b-border);
-}
-
-.goal-player-team.team-c-badge {
-  background: var(--team-c-bg);
-  color: var(--team-c);
-  border: 1px solid var(--team-c-border);
-}
-
-.goal-player-team.team-d-badge {
-  background: var(--team-d-bg);
-  color: var(--team-d);
-  border: 1px solid var(--team-d-border);
-}
-
-.goal-player-team.team-e-badge {
-  background: var(--team-e-bg);
-  color: var(--team-e);
-  border: 1px solid var(--team-e-border);
-}
-
-.goal-count {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+.goal-count { display: flex; align-items: center; gap: 8px; }
 
 .goal-count span {
   font-family: 'Fira Code', monospace;
@@ -570,10 +561,7 @@ body {
   transition: all var(--transition);
 }
 
-.mvp-candidate:hover {
-  background: var(--border-light);
-  border-color: var(--border);
-}
+.mvp-candidate:hover { background: var(--border-light); border-color: var(--border); }
 
 .mvp-candidate.selected {
   background: #FFFBEB;
@@ -589,10 +577,7 @@ body {
   border-bottom: 1px solid var(--border-light);
 }
 
-.mvp-result-item:first-child {
-  font-weight: 700;
-  font-size: 1.05rem;
-}
+.mvp-result-item:first-child { font-weight: 700; font-size: 1.05rem; }
 
 .mvp-votes {
   font-family: 'Fira Code', monospace;
@@ -605,11 +590,7 @@ body {
 }
 
 /* --- 試合履歴 --- */
-.match-history-item {
-  padding: 14px 0;
-  border-bottom: 1px solid var(--border-light);
-}
-
+.match-history-item { padding: 14px 0; border-bottom: 1px solid var(--border-light); }
 .match-history-item:last-child { border-bottom: none; }
 
 .match-date {
@@ -619,11 +600,7 @@ body {
   margin-bottom: 4px;
 }
 
-.match-score-line {
-  font-family: 'Fira Code', monospace;
-  font-size: 0.95rem;
-  font-weight: 600;
-}
+.match-score-line { font-family: 'Fira Code', monospace; font-size: 0.95rem; font-weight: 600; }
 
 .match-status {
   display: inline-block;
@@ -637,30 +614,12 @@ body {
   text-transform: uppercase;
 }
 
-.status-ongoing {
-  background: var(--success-bg);
-  color: var(--success);
-  border: 1px solid var(--success);
-}
-
-.status-ended {
-  background: var(--border-light);
-  color: var(--text-muted);
-  border: 1px solid var(--border);
-}
+.status-ongoing { background: var(--success-bg); color: var(--success); border: 1px solid var(--success); }
+.status-ended { background: var(--border-light); color: var(--text-muted); border: 1px solid var(--border); }
 
 /* --- 成績 --- */
-.stats-sort {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 14px;
-}
-
-.stats-sort .input {
-  width: auto;
-  flex: 1;
-}
+.stats-sort { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.stats-sort .input { width: auto; flex: 1; }
 
 .stats-card {
   padding: 14px 16px;
@@ -671,24 +630,10 @@ body {
   transition: box-shadow var(--transition);
 }
 
-.stats-card:hover {
-  box-shadow: var(--shadow-md);
-}
-
-.stats-card:nth-child(1) {
-  border-left-color: var(--accent);
-  background: #FFFBEB;
-}
-
-.stats-card:nth-child(2) {
-  border-left-color: #94A3B8;
-  background: #F8FAFC;
-}
-
-.stats-card:nth-child(3) {
-  border-left-color: #CD7F32;
-  background: #FFF7ED;
-}
+.stats-card:hover { box-shadow: var(--shadow-md); }
+.stats-card:nth-child(1) { border-left-color: var(--accent); background: #FFFBEB; }
+.stats-card:nth-child(2) { border-left-color: #94A3B8; background: #F8FAFC; }
+.stats-card:nth-child(3) { border-left-color: #CD7F32; background: #FFF7ED; }
 
 .stats-name {
   font-family: 'Fira Code', monospace;
@@ -716,12 +661,7 @@ body {
   flex-wrap: wrap;
 }
 
-.stats-details span {
-  white-space: nowrap;
-  display: flex;
-  align-items: center;
-  gap: 3px;
-}
+.stats-details span { white-space: nowrap; display: flex; align-items: center; gap: 3px; }
 
 .stats-details .stat-icon,
 .stat-icon {
@@ -751,6 +691,23 @@ body {
   z-index: 1000;
 }
 
+.loading-content {
+  text-align: center;
+}
+
+.loading-content p {
+  margin-top: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.loading-content .loading-sub {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+  font-weight: 400;
+}
+
 .spinner {
   width: 44px;
   height: 44px;
@@ -758,6 +715,7 @@ body {
   border-top-color: var(--primary);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
+  margin: 0 auto;
 }
 
 @keyframes spin {
@@ -785,21 +743,26 @@ body {
   box-shadow: var(--shadow-lg);
 }
 
-.toast.show {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
-}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.error { background: var(--danger); }
 
-.toast.error {
-  background: var(--danger);
-}
-
-/* --- 空状態 --- */
+/* --- 空状態（改善版） --- */
 .empty-state {
   text-align: center;
   padding: 32px 16px;
   color: var(--text-muted);
   font-size: 0.9rem;
+}
+
+.empty-state svg {
+  display: block;
+  margin: 0 auto 12px;
+}
+
+.empty-state .empty-sub {
+  font-size: 0.8rem;
+  margin-top: 4px;
+  color: var(--text-muted);
 }
 
 /* --- アニメーション --- */
@@ -809,46 +772,35 @@ body {
   }
 
   @keyframes fadeUp {
-    from {
-      opacity: 0;
-      transform: translateY(8px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}
+
+/* --- スコアバウンスアニメーション --- */
+@media (prefers-reduced-motion: no-preference) {
+  .score.updated {
+    animation: scoreBounce 300ms ease;
+  }
+
+  @keyframes scoreBounce {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); color: var(--primary); }
+    100% { transform: scale(1); }
   }
 }
 
 /* --- レスポンシブ --- */
 @media (max-width: 374px) {
-  .checkbox-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .teams-preview {
-    grid-template-columns: 1fr;
-  }
-
-  .scoreboard {
-    gap: 8px;
-    padding: 16px 8px;
-  }
-
-  .score {
-    font-size: 2.5rem;
-  }
+  .checkbox-grid { grid-template-columns: 1fr; }
+  .teams-preview { grid-template-columns: 1fr; }
+  .scoreboard { gap: 8px; padding: 16px 8px; }
+  .score { font-size: 2.5rem; }
 }
 
 /* --- 入力行（横並び） --- */
-.input-row {
-  display: flex;
-  gap: 8px;
-}
-
-.input-row .input-group {
-  margin-bottom: 10px;
-}
+.input-row { display: flex; gap: 8px; }
+.input-row .input-group { margin-bottom: 10px; }
 
 /* --- チェックボックスラベル --- */
 .checkbox-label {
@@ -868,11 +820,7 @@ body {
 }
 
 /* --- 分割ボタン --- */
-.split-buttons {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
-}
+.split-buttons { display: flex; gap: 8px; margin-bottom: 12px; }
 
 /* --- ラウンドカード --- */
 .round-card {
@@ -918,21 +866,9 @@ body {
   border-radius: var(--radius-sm);
 }
 
-.event-info {
-  flex: 1;
-}
-
-.event-name {
-  font-weight: 600;
-  font-size: 0.95rem;
-  margin-bottom: 2px;
-}
-
-.event-date {
-  font-family: 'Fira Code', monospace;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-}
+.event-info { flex: 1; }
+.event-name { font-weight: 600; font-size: 0.95rem; margin-bottom: 2px; }
+.event-date { font-family: 'Fira Code', monospace; font-size: 0.8rem; color: var(--text-muted); }
 
 .event-status-badge {
   font-family: 'Fira Code', monospace;
@@ -957,22 +893,10 @@ body {
   background: var(--bg-surface);
 }
 
-.mvp-result-card.rank-mvp {
-  border-left-color: var(--accent);
-  background: #FFFBEB;
-}
+.mvp-result-card.rank-mvp { border-left-color: var(--accent); background: #FFFBEB; }
+.mvp-result-card.rank-sub { border-left-color: #94A3B8; background: #F8FAFC; }
 
-.mvp-result-card.rank-sub {
-  border-left-color: #94A3B8;
-  background: #F8FAFC;
-}
-
-.mvp-result-name {
-  font-family: 'Fira Code', monospace;
-  font-weight: 700;
-  font-size: 1rem;
-  margin-bottom: 4px;
-}
+.mvp-result-name { font-family: 'Fira Code', monospace; font-weight: 700; font-size: 1rem; margin-bottom: 4px; }
 
 .mvp-result-rank {
   font-family: 'Fira Code', monospace;
@@ -983,19 +907,8 @@ body {
   margin-left: 8px;
 }
 
-.mvp-result-reason {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  margin-top: 4px;
-}
-
-.mvp-result-scores {
-  display: flex;
-  gap: 12px;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  margin-top: 6px;
-}
+.mvp-result-reason { font-size: 0.85rem; color: var(--text-secondary); margin-top: 4px; }
+.mvp-result-scores { display: flex; gap: 12px; font-size: 0.8rem; color: var(--text-muted); margin-top: 6px; }
 
 /* --- アンケートリンク --- */
 .survey-link {
@@ -1013,17 +926,10 @@ body {
   word-break: break-all;
 }
 
-.survey-link:hover {
-  background: var(--team-a);
-  color: white;
-}
+.survey-link:hover { background: var(--team-a); color: white; }
 
 /* --- メンバー属性バッジ --- */
-.member-badges {
-  display: flex;
-  gap: 4px;
-  margin-top: 2px;
-}
+.member-badges { display: flex; gap: 4px; margin-top: 2px; }
 
 .badge {
   font-family: 'Fira Code', monospace;
@@ -1064,10 +970,7 @@ body {
   border-bottom: 3px solid transparent;
 }
 
-.tab-btn:hover {
-  color: var(--primary);
-  background: var(--bg-surface);
-}
+.tab-btn:hover { color: var(--primary); background: var(--bg-surface); }
 
 .tab-btn.active {
   color: var(--primary);
@@ -1075,13 +978,8 @@ body {
   border-bottom-color: var(--primary);
 }
 
-.tab-content {
-  display: none;
-}
-
-.tab-content.active {
-  display: block;
-}
+.tab-content { display: none; }
+.tab-content.active { display: block; }
 
 /* --- フォーカス（キーボードナビゲーション） --- */
 .btn:focus-visible,
@@ -1093,10 +991,7 @@ body {
 }
 
 /* --- ログイン画面 --- */
-.login-hero {
-  text-align: center;
-  padding: 48px 20px 24px;
-}
+.login-hero { text-align: center; padding: 48px 20px 24px; }
 
 .login-hero-icon {
   width: 64px;
@@ -1129,19 +1024,10 @@ body {
   justify-content: center;
 }
 
-.login-hero-sub {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-}
+.login-hero-sub { font-size: 0.85rem; color: var(--text-muted); }
 
-.login-card {
-  max-width: 400px;
-  margin: 0 auto;
-}
-
-.login-code-input-wrap {
-  margin-bottom: 16px;
-}
+.login-card { max-width: 400px; margin: 0 auto; }
+.login-code-input-wrap { margin-bottom: 16px; }
 
 .login-code-input {
   width: 100%;
@@ -1173,25 +1059,10 @@ body {
   text-transform: none;
 }
 
-.login-admin-area {
-  max-width: 400px;
-  margin: 32px auto 0;
-  text-align: center;
-}
-
-.login-section {
-  margin-bottom: 8px;
-}
-
-.login-section h3 {
-  margin-bottom: 4px;
-}
-
-.login-desc {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  margin-bottom: 12px;
-}
+.login-admin-area { max-width: 400px; margin: 32px auto 0; text-align: center; }
+.login-section { margin-bottom: 8px; }
+.login-section h3 { margin-bottom: 4px; }
+.login-desc { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px; }
 
 .admin-toggle-link {
   display: block;
@@ -1202,25 +1073,13 @@ body {
   cursor: pointer;
 }
 
-.admin-toggle-link:hover {
-  color: var(--text-secondary);
-  text-decoration: underline;
-}
+.admin-toggle-link:hover { color: var(--text-secondary); text-decoration: underline; }
 
 /* --- ロール別表示制御 --- */
-body.role-user .admin-only {
-  display: none !important;
-}
-
-body.role-admin .user-only {
-  display: none !important;
-}
-
-/* ログイン前は両方非表示 */
+body.role-user .admin-only { display: none !important; }
+body.role-admin .user-only { display: none !important; }
 body:not(.role-user):not(.role-admin) .admin-only,
-body:not(.role-user):not(.role-admin) .user-only {
-  display: none !important;
-}
+body:not(.role-user):not(.role-admin) .user-only { display: none !important; }
 
 /* --- イベントコード表示 --- */
 .event-code {
@@ -1243,4 +1102,79 @@ body:not(.role-user):not(.role-admin) .user-only {
   color: var(--primary);
   letter-spacing: 0.1em;
 }
+
+/* --- ステップインジケーター --- */
+.step-indicator {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.step-indicator .step {
+  flex: 1;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 6px 4px;
+  border-radius: var(--radius-xs);
+  background: var(--bg-surface);
+  transition: all var(--transition);
+}
+
+.step-indicator .step.active { background: var(--primary); color: white; }
+.step-indicator .step.done { background: var(--success-bg); color: var(--success); }
+
+/* --- カスタムモーダル --- */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(127, 29, 29, 0.4);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  padding: 20px;
+}
+
+.modal-box {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 24px;
+  max-width: 360px;
+  width: 100%;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-light);
+}
+
+.modal-box h3 {
+  font-family: 'Fira Code', monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: var(--text);
+}
+
+.modal-box p {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+/* --- ユーティリティクラス --- */
+.mt-sm { margin-top: 8px; }
+.mt-md { margin-top: 12px; }
+.mt-lg { margin-top: 16px; }
+.mb-sm { margin-bottom: 8px; }
+.mb-md { margin-bottom: 12px; }
+.hidden { display: none; }
 </style>

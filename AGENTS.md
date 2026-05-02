@@ -40,7 +40,8 @@
 │   └── skills/                AIエージェント向けスキル定義
 ├── docs/
 │   ├── er-diagram.md          ER図（Mermaid記法、テーブル定義・リレーション詳細）
-│   └── mvp-logic.md           MVP選出ロジック詳細（定量・定性評価、正規化、順位付け）
+│   ├── mvp-logic.md           MVP選出ロジック詳細（定量・定性評価、正規化、順位付け）
+│   └── design-system.md       デザインシステム（カラー、タイポグラフィ、コンポーネント、アクセシビリティ）
 └── src/                       GASプロジェクトのソースコード（clasp rootDir）
     ├── appsscript.json        GASプロジェクト設定（タイムゾーン: Asia/Tokyo, webapp設定）
     ├── Code.gs                共通処理（スプレッドシート取得、シート初期化、ユーティリティ関数）
@@ -120,6 +121,7 @@
 - BEM風ではなく、シンプルなクラス名（`.card`, `.btn-primary`, `.team-a` など）
 - スマホファースト設計（`max-width: 600px` のコンテナ）
 - `@media (prefers-reduced-motion)` でアニメーション配慮
+- カラーパレット・タイポグラフィ・コンポーネント仕様の詳細は [デザインシステム](docs/design-system.md) を参照
 
 ## ビルド・デプロイ
 

@@ -21,7 +21,7 @@ var TEAM_CLASSES_ = ['a', 'b', 'c', 'd', 'e'];
 // --- SVGアイコンヘルパー ---
 function svg(paths, size) {
   size = size || 14;
-  return '<svg style="width:' + size + 'px;height:' + size + 'px;display:inline;vertical-align:middle;' +
+  return '<svg aria-hidden="true" style="width:' + size + 'px;height:' + size + 'px;display:inline;vertical-align:middle;' +
     'stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;" viewBox="0 0 24 24">' +
     paths + '</svg>';
 }
@@ -38,8 +38,24 @@ var IC = {
 
 // --- ユーティリティ ---
 function esc(t) { var d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
-function showLoading() { document.getElementById('loading').style.display = 'flex'; }
-function hideLoading() { document.getElementById('loading').style.display = 'none'; }
+function showLoading(msg, sub) {
+  var el = document.getElementById('loading');
+  var content = el.querySelector('.loading-content');
+  if (msg) {
+    content.innerHTML = '<div class="spinner"></div><p>' + esc(msg) + '</p>' +
+      (sub ? '<p class="loading-sub">' + esc(sub) + '</p>' : '');
+  } else {
+    content.innerHTML = '<div class="spinner"></div>';
+  }
+  el.style.display = 'flex';
+}
+function hideLoading() {
+  var el = document.getElementById('loading');
+  el.style.display = 'none';
+  // スピナーを元に戻す
+  var content = el.querySelector('.loading-content');
+  content.innerHTML = '<div class="spinner"></div>';
+}
 function showToast(msg, err) {
   var t = document.getElementById('toast');
   t.textContent = msg;
@@ -53,6 +69,45 @@ function callServer(funcName, args, onSuccess, errorMsg) {
     .withSuccessHandler(function(result) { hideLoading(); onSuccess(result); })
     .withFailureHandler(function(e) { hideLoading(); showToast(errorMsg || 'エラー', true); });
   runner[funcName].apply(runner, args);
+}
+
+/**
+ * カスタム確認モーダルを表示する
+ * @param {string} title - モーダルのタイトル
+ * @param {string} message - 確認メッセージ
+ * @param {Function} onConfirm - 確認時のコールバック
+ * @param {string} [confirmLabel] - 確認ボタンのラベル（デフォルト: 'OK'）
+ */
+function showConfirm(title, message, onConfirm, confirmLabel) {
+  var container = document.getElementById('modal-container');
+  container.innerHTML = '<div class="modal-overlay" id="modal-overlay">' +
+    '<div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modal-title">' +
+    '<h3 id="modal-title">' + esc(title) + '</h3>' +
+    '<p>' + esc(message) + '</p>' +
+    '<div class="modal-actions">' +
+    '<button class="btn btn-secondary" id="modal-cancel">キャンセル</button>' +
+    '<button class="btn btn-primary" id="modal-confirm">' + esc(confirmLabel || 'OK') + '</button>' +
+    '</div></div></div>';
+  document.getElementById('modal-cancel').onclick = function() { container.innerHTML = ''; };
+  document.getElementById('modal-confirm').onclick = function() { container.innerHTML = ''; onConfirm(); };
+  document.getElementById('modal-overlay').onclick = function(e) {
+    if (e.target === this) container.innerHTML = '';
+  };
+  // フォーカスを確認ボタンに移動
+  document.getElementById('modal-confirm').focus();
+}
+
+/**
+ * ステップインジケーターを更新する
+ * @param {number} activeStep - アクティブなステップ（1, 2, 3）
+ */
+function updateStepIndicator(activeStep) {
+  var steps = document.querySelectorAll('#round-steps .step');
+  steps.forEach(function(step, idx) {
+    step.classList.remove('active', 'done');
+    if (idx + 1 < activeStep) step.classList.add('done');
+    else if (idx + 1 === activeStep) step.classList.add('active');
+  });
 }
 
 function showPage(page, skipHash) {
@@ -147,6 +202,11 @@ function setRole_(role) {
   if (role) {
     document.body.classList.add('role-' + role);
   }
+  // ヘッダーのログアウトボタン表示制御
+  var logoutBtn = document.getElementById('btn-logout');
+  if (logoutBtn) {
+    logoutBtn.style.display = role ? 'flex' : 'none';
+  }
 }
 
 /** 管理者ログイン */
@@ -198,6 +258,9 @@ function doLogout() {
   currentEventId = null;
   document.body.classList.remove('role-admin', 'role-user');
   clearSession_();
+  // ヘッダーのログアウトボタンを非表示
+  var logoutBtn = document.getElementById('btn-logout');
+  if (logoutBtn) { logoutBtn.style.display = 'none'; }
   document.getElementById('login-code').value = '';
   document.getElementById('login-password').value = '';
   showPage('login');
@@ -290,8 +353,9 @@ function backToEventList() {
 }
 
 function deleteCurrentEvent() {
-  if (!confirm('このイベントと全データを削除しますか？')) return;
-  callServer('deleteEvent', [currentEventId], function(r) { showToast(r.message, !r.success); if (r.success) backToEventList(); });
+  showConfirm('イベント削除', 'このイベントと全データを削除しますか？', function() {
+    callServer('deleteEvent', [currentEventId], function(r) { showToast(r.message, !r.success); if (r.success) backToEventList(); });
+  }, '削除する');
 }
 
 // ===================================
