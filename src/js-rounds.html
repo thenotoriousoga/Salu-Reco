@@ -488,12 +488,10 @@ function ongoingMatchHtml(m, teamColorMap) {
   var clsA = (teamColorMap && teamColorMap[m.teamAName]) || 'a';
   var clsB = (teamColorMap && teamColorMap[m.teamBName]) || 'b';
   var h = '<div id="timer-area-' + m.id + '" class="match-timer-inline">' +
-    '<select id="timer-input-' + m.id + '" class="match-timer-select" aria-label="タイマー（分）">';
-  for (var ti = 1; ti <= 20; ti++) {
-    h += '<option value="' + ti + '"' + (ti === 5 ? ' selected' : '') + '>' + ti + '</option>';
-  }
-  h += '</select>' +
+    '<button class="btn btn-sm btn-secondary match-timer-step" onclick="stepTimer(\'' + m.id + '\',-1)">-</button>' +
+    '<span class="match-timer-value" id="timer-input-' + m.id + '">5</span>' +
     '<span class="match-timer-unit">分</span>' +
+    '<button class="btn btn-sm btn-secondary match-timer-step" onclick="stepTimer(\'' + m.id + '\',1)">+</button>' +
     '<button class="btn btn-sm btn-primary match-timer-start" id="timer-toggle-' + m.id + '" onclick="toggleTimer(\'' + m.id + '\')">' +
     svg('<polygon points="5 3 19 12 5 21 5 3"/>', 14) + ' 開始</button>' +
     '</div>' +
@@ -694,6 +692,15 @@ function vibrate_() {
   }
 }
 
+/** ステッパーで分を増減 */
+function stepTimer(matchId, delta) {
+  var el = document.getElementById('timer-input-' + matchId);
+  var val = parseInt(el.textContent) + delta;
+  if (val < 1) val = 1;
+  if (val > 20) val = 20;
+  el.textContent = val;
+}
+
 /** タイマー開始/停止トグル */
 function toggleTimer(matchId) {
   // 既にタイマー動作中なら何もしない
@@ -701,8 +708,8 @@ function toggleTimer(matchId) {
   // AudioContext初期化（ユーザー操作のタイミング）
   initAudioCtx_();
 
-  var input = document.getElementById('timer-input-' + matchId);
-  var minutes = Math.max(1, Math.min(20, parseInt(input.value) || 5));
+  var el = document.getElementById('timer-input-' + matchId);
+  var minutes = Math.max(1, Math.min(20, parseInt(el.textContent) || 5));
   var remainingMs = minutes * 60 * 1000;
   startTimerFromMs_(matchId, remainingMs);
 }
