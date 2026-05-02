@@ -937,15 +937,29 @@ body {
 .stats-match-lose { background: var(--border-light); color: var(--text-muted); }
 .stats-match-draw { background: var(--team-d-bg); color: var(--team-d); }
 
-.stats-ai-comment {
-  margin-top: 10px;
-  padding: 10px 12px;
-  background: var(--bg-surface);
-  border-radius: var(--radius-xs);
+.stats-ai-section {
+  margin-top: 12px;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, var(--bg-surface) 0%, rgba(255, 214, 0, 0.05) 100%);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+}
+
+.stats-ai-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.stats-ai-comment-text {
   font-size: 0.82rem;
   color: var(--text-secondary);
-  line-height: 1.5;
-  border-left: 3px solid var(--accent);
+  line-height: 1.6;
+  white-space: pre-wrap;
 }
 
 /* --- マッチタイマー --- */

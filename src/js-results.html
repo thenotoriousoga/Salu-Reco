@@ -21,13 +21,14 @@ function toggleStatsDetail(el) {
   el.classList.toggle('expanded');
 }
 
-/** MVP結果データからレーティング・評価コメントを取得 */
+/** MVP結果データからレーティング・評価コメント・称号を取得 */
 function getMvpDataForMember_(memberId) {
   var item = cachedMvpData.find(function(r) { return r['メンバーID'] === memberId; });
   if (!item) return null;
   return {
     rating: Number(item['レーティング']) || 0,
-    comment: item['評価コメント'] || ''
+    comment: item['評価コメント'] || '',
+    title: item['称号'] || ''
   };
 }
 
@@ -140,7 +141,8 @@ function renderEventStats() {
       matchPoints: matchPoints,
       matchDetails: matchDetails,
       rating: mvpInfo ? mvpInfo.rating : 0,
-      comment: mvpInfo ? mvpInfo.comment : ''
+      comment: mvpInfo ? mvpInfo.comment : '',
+      title: mvpInfo ? mvpInfo.title : ''
     };
   });
 
@@ -212,8 +214,10 @@ function renderStatsCards() {
 
     // AI評価コメント
     var aiCommentHtml = '';
-    if (s.comment) {
-      aiCommentHtml = '<div class="stats-ai-comment">' + svg(IC.file, 14) + ' ' + esc(s.comment) + '</div>';
+    if (s.title || s.comment) {
+      var titleHtml = s.title ? '<div class="stats-ai-title">🏅 ' + esc(s.title) + '</div>' : '';
+      var commentText = s.comment ? '<div class="stats-ai-comment-text">' + esc(s.comment) + '</div>' : '';
+      aiCommentHtml = '<div class="stats-ai-section">' + titleHtml + commentText + '</div>';
     }
 
     var expandHtml = '<div class="stats-detail"><div class="stats-detail-inner">' + matchRowsHtml + aiCommentHtml + '</div></div>';
