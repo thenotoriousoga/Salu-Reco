@@ -424,10 +424,11 @@ function renderRoundsList(rounds) {
 
     var isRoundEnded = round.status === '終了';
     var roundBodyClass = isRoundEnded ? 'round-body round-body-collapsed' : 'round-body';
-    var roundToggle = isRoundEnded ? ' onclick="toggleRoundBody(this)" style="cursor:pointer;"' : '';
-    var expandIcon = isRoundEnded ? ' <svg class="round-expand-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>' : '';
+    var roundToggle = isRoundEnded ? ' onclick="toggleRoundBody(this)"' : '';
+    var expandIcon = isRoundEnded ? '<svg class="round-expand-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>' : '';
+    var headerCursor = isRoundEnded ? 'cursor:pointer;' : '';
 
-    return '<div class="card"><div' + roundToggle + ' style="display:flex;justify-content:space-between;align-items:center;margin-bottom:' + (isRoundEnded ? '0' : '8') + 'px;">' +
+    return '<div class="card"><div' + roundToggle + ' style="display:flex;justify-content:space-between;align-items:center;' + headerCursor + 'margin-bottom:' + (isRoundEnded ? '0' : '8') + 'px;">' +
       '<h3 style="margin:0;">ラウンド' + round.roundNumber + '</h3>' +
       '<div style="display:flex;align-items:center;gap:4px;">' + statusBadgeHtml(round.status) +
       expandIcon + '</div></div>' +
