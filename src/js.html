@@ -62,7 +62,7 @@ function showPage(page, skipHash) {
   if (btn) btn.classList.add('active');
   if (page === 'home') loadRecentEvents();
   if (page === 'events') loadEventList();
-  if (!skipHash) updateHash_();
+  if (!skipHash) pushState_();
 }
 
 function switchTab(tabId, skipHash) {
@@ -72,7 +72,7 @@ function switchTab(tabId, skipHash) {
   var btn = document.querySelector('[data-tab="' + tabId + '"]');
   if (btn) btn.classList.add('active');
   if (tabId === 'tab-results') renderEventStats();
-  if (!skipHash) updateHash_();
+  if (!skipHash) pushState_();
 }
 
 function statusBadgeHtml(status) {
@@ -125,7 +125,7 @@ function openEvent(eventId, activeTab, skipHash) {
     previewNames = [];
     currentRoundId = null;
     renderEventDetail(d, activeTab);
-    if (!skipHash) updateHash_();
+    if (!skipHash) pushState_();
   }, 'エラー');
 }
 
@@ -164,7 +164,7 @@ function backToEventList() {
   document.getElementById('event-list-view').style.display = 'block';
   currentEventId = null;
   loadEventList();
-  updateHash_();
+  pushState_();
 }
 
 function deleteCurrentEvent() {
@@ -173,69 +173,82 @@ function deleteCurrentEvent() {
 }
 
 // ===================================
-// ハッシュルーティング
+// URLルーティング（google.script.history API）
 // ===================================
 
-/** タブIDからURLパス名へのマッピング */
-var TAB_TO_PATH_ = { 'tab-members': 'members', 'tab-rounds': 'rounds', 'tab-results': 'results' };
-var PATH_TO_TAB_ = { 'members': 'tab-members', 'rounds': 'tab-rounds', 'results': 'tab-results' };
+/** タブIDからURLパラメータ値へのマッピング */
+var TAB_TO_PARAM_ = { 'tab-members': 'members', 'tab-rounds': 'rounds', 'tab-results': 'results' };
+var PARAM_TO_TAB_ = { 'members': 'tab-members', 'rounds': 'tab-rounds', 'results': 'tab-results' };
 
 /**
- * 現在の画面状態からハッシュを生成して更新する
+ * 現在の画面状態をURLに反映する（replaceで履歴を上書き）
  */
 function updateHash_() {
-  var hash = '';
+  var state = buildState_();
+  google.script.history.replace(state, state.params);
+}
+
+/**
+ * 現在の画面状態をURLに反映する（pushで履歴に追加）
+ */
+function pushState_() {
+  var state = buildState_();
+  google.script.history.push(state, state.params);
+}
+
+/**
+ * 現在の画面状態からstateオブジェクトを生成する
+ * @return {Object}
+ */
+function buildState_() {
+  var params = {};
   var activePage = document.querySelector('.page.active');
   if (activePage) {
     var pageId = activePage.id.replace('page-', '');
+    params.page = pageId;
     if (pageId === 'events' && currentEventId) {
-      // イベント詳細が開いている場合
+      params.event = currentEventId;
       var activeTabEl = document.querySelector('.tab-content.active');
-      var tabPath = 'members';
-      if (activeTabEl && TAB_TO_PATH_[activeTabEl.id]) {
-        tabPath = TAB_TO_PATH_[activeTabEl.id];
+      if (activeTabEl && TAB_TO_PARAM_[activeTabEl.id]) {
+        params.tab = TAB_TO_PARAM_[activeTabEl.id];
+      } else {
+        params.tab = 'members';
       }
-      hash = '#events/' + currentEventId + '/' + tabPath;
-    } else {
-      hash = '#' + pageId;
     }
   }
-  if (location.hash !== hash) {
-    history.replaceState(null, '', hash);
-  }
+  return { params: params, page: params.page, event: params.event, tab: params.tab };
 }
 
 /**
- * ハッシュを解析してルート情報を返す
+ * URLパラメータからルート情報を解析する
+ * @param {Object} params URLパラメータオブジェクト
  * @return {{ page: string, eventId: string|null, tab: string|null }}
  */
-function parseHash_() {
-  var hash = (location.hash || '').replace(/^#\/?/, '');
-  if (!hash) return { page: 'home', eventId: null, tab: null };
-
-  var parts = hash.split('/');
-  if (parts[0] === 'events' && parts[1]) {
-    var tabPath = parts[2] || 'members';
-    return { page: 'events', eventId: parts[1], tab: PATH_TO_TAB_[tabPath] || 'tab-members' };
+function parseParams_(params) {
+  if (!params) return { page: 'home', eventId: null, tab: null };
+  var page = params.page || 'home';
+  if (typeof page === 'object') page = page[0];
+  var eventId = params.event || null;
+  if (typeof eventId === 'object') eventId = eventId[0];
+  var tabParam = params.tab || 'members';
+  if (typeof tabParam === 'object') tabParam = tabParam[0];
+  var tab = PARAM_TO_TAB_[tabParam] || 'tab-members';
+  if (page === 'events' && eventId) {
+    return { page: 'events', eventId: eventId, tab: tab };
   }
-  return { page: parts[0] || 'home', eventId: null, tab: null };
+  return { page: page, eventId: null, tab: null };
 }
 
 /**
- * ハッシュに基づいて画面を復元する
+ * ルート情報に基づいて画面を復元する
+ * @param {{ page: string, eventId: string|null, tab: string|null }} route
  */
-function navigateByHash_() {
-  var route = parseHash_();
+function navigateToRoute_(route) {
   if (route.eventId) {
-    // イベント詳細を開く
     showPage('events', true);
     openEvent(route.eventId, route.tab, true);
   } else {
     showPage(route.page, true);
-  }
-  // ハッシュが空ならデフォルトを設定
-  if (!location.hash) {
-    history.replaceState(null, '', '#home');
   }
 }
 
@@ -247,12 +260,26 @@ document.addEventListener('DOMContentLoaded', function() {
   if (di) { var t = new Date(); di.value = t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); }
   var nameInput = document.getElementById('m-name');
   if (nameInput) { nameInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); addToQueue(); } }); }
-  // ハッシュに基づいて初期画面を復元
-  navigateByHash_();
-});
 
-// ブラウザの戻る/進むボタン対応
-window.addEventListener('hashchange', function() {
-  navigateByHash_();
+  // ブラウザの戻る/進むボタン対応
+  google.script.history.setChangeHandler(function(e) {
+    var params = (e && e.location && e.location.parameter) ? e.location.parameter : {};
+    var route = parseParams_(params);
+    navigateToRoute_(route);
+  });
+
+  // 初回読み込み: URLパラメータから画面を復元
+  google.script.url.getLocation(function(location) {
+    var params = (location && location.parameter) ? location.parameter : {};
+    var route = parseParams_(params);
+    if (route.eventId) {
+      navigateToRoute_(route);
+    } else {
+      showPage(route.page, true);
+      if (route.page === 'home' || !params.page) {
+        google.script.history.replace({ page: 'home' }, { page: 'home' });
+      }
+    }
+  });
 });
 </script>
