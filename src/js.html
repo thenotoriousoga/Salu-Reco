@@ -245,7 +245,12 @@ function parseParams_(params) {
  */
 function navigateToRoute_(route) {
   if (route.eventId) {
-    showPage('events', true);
+    // イベント詳細に直接遷移（一覧読み込みをスキップ）
+    document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+    document.querySelectorAll('.nav-btn').forEach(function(b) { b.classList.remove('active'); });
+    document.getElementById('page-events').classList.add('active');
+    var btn = document.querySelector('[data-page="events"]');
+    if (btn) btn.classList.add('active');
     openEvent(route.eventId, route.tab, true);
   } else {
     showPage(route.page, true);
