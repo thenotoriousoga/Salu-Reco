@@ -44,7 +44,8 @@ function renderEventStats() {
   var segBar = document.getElementById('stats-segment');
   var rounds = cachedRounds;
   var members = currentMembers;
-  if (!members || members.length === 0 || !rounds || rounds.length === 0) {
+  var showStats = currentEventStatus === '試合終了' || currentEventStatus === '完了';
+  if (!showStats || !members || members.length === 0 || !rounds || rounds.length === 0) {
     segBar.style.display = 'none';
     c.innerHTML = '<div class="empty-state">' +
       '<svg aria-hidden="true" style="width:48px;height:48px;stroke:var(--border);fill:none;stroke-width:1.5;" viewBox="0 0 24 24">' +

@@ -61,7 +61,8 @@ function openEvent(eventId, activeTab, skipHash) {
     if (!d) { showToast('イベントが見つかりません', true); return; }
     currentMembers = d.members;
     cachedRounds = d.rounds;
-    cachedMvpData = d.mvpResults || [];
+    var evStatus = (d.event['ステータス'] || '準備中');
+    cachedMvpData = (evStatus === '試合終了' || evStatus === '完了') ? (d.mvpResults || []) : [];
     cachedSurveyVoters = d.surveyVoters || [];
     previewTeams = [];
     previewNames = [];
@@ -105,7 +106,7 @@ function renderEventDetail(d, activeTab) {
   renderMemberList(d.members, d.surveyVoters);
   renderParticipantCB(d.members);
   renderRoundsList(d.rounds);
-  renderPostMatch(ev, d.rounds, d.mvpResults);
+  renderPostMatch(ev, d.rounds, cachedMvpData);
 
   // チーム分けボードリセット
   document.getElementById('split-step1').style.display = 'block';
