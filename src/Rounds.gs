@@ -25,7 +25,6 @@ function createRound(eventId, teamNames, teams) {
   var splitJson = JSON.stringify({ names: teamNames, teams: teams });
 
   roundSheet.appendRow([roundId, eventId, roundNumber, splitJson, '進行中']);
-  updateEventStatus(eventId, '進行中');
 
   return {
     success: true,

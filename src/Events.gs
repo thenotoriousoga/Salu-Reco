@@ -127,6 +127,22 @@ function updateEventStatus(eventId, status) {
 // ===================================
 
 /**
+ * イベントを「進行中」状態にする
+ * @param {string} eventId - イベントID
+ * @return {Object} 結果オブジェクト { success, message }
+ */
+function startEvent(eventId) {
+  var event = findEvent_(eventId);
+  if (!event) return { success: false, message: 'イベントが見つかりません' };
+  if (event['ステータス'] !== '準備中') {
+    return { success: false, message: '準備中のイベントのみ開始できます' };
+  }
+
+  updateEventStatus(eventId, '進行中');
+  return { success: true, message: 'イベントを開始しました。チーム分けを行いましょう！' };
+}
+
+/**
  * イベントを「試合終了」状態にする
  * 全ラウンド・全マッチが終了している必要がある
  * @param {string} eventId - イベントID

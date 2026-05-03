@@ -170,7 +170,7 @@ function buildStatusButtons_(status) {
  */
 function getStatusMenuItems_(status) {
   if (status === '準備中') {
-    return [];
+    return [{ label: '進行中にする', action: 'doStartEvent()' }];
   }
   if (status === '進行中') {
     var canEnd = canEndEvent_();
@@ -243,6 +243,10 @@ function confirmStatusChange_(title, message, serverFunc, confirmLabel) {
 
 function doEndEvent() {
   confirmStatusChange_('イベント終了', 'イベントを終了しますか？MVP選出が可能になります。', 'endEvent', '終了する');
+}
+
+function doStartEvent() {
+  confirmStatusChange_('イベント開始', 'イベントを進行中にしますか？チーム分けと試合が可能になります。', 'startEvent', '開始する');
 }
 
 function doReopenEvent() {
