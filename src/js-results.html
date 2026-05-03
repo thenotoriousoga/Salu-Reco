@@ -239,55 +239,48 @@ function renderStatsCards() {
 }
 
 // ===================================
-// アンケート・MVP
+// MVP選出
 // ===================================
 function renderPostMatch(event, rounds, mvpResults) {
   var c = document.getElementById('post-match-content');
   var status = event['ステータス'] || '準備中';
-  var allMatches = [];
-  rounds.forEach(function(r) { if (r.matches) r.matches.forEach(function(m) { allMatches.push(m); }); });
-  var ended = allMatches.filter(function(m) { return m.status === '終了'; });
+  var hasMvpResults = mvpResults && mvpResults.length > 0;
+  var canSelectMvp = isAdmin() && status === '試合終了';
 
-  // 試合がない場合
-  if (ended.length === 0) {
-    c.innerHTML = '<div class="empty-state">' +
-      '<svg aria-hidden="true" style="width:48px;height:48px;stroke:var(--border);fill:none;stroke-width:1.5;" viewBox="0 0 24 24">' +
-      '<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 9 7 12 7s5-3 7.5-3a2.5 2.5 0 0 1 0 5H18"/>' +
-      '<path d="M18 9v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9"/><path d="M12 7v14"/></svg>' +
-      '<p>全試合終了後にMVP発表ができます。まずはピッチで暴れよう！</p></div>';
+  // empty state用のSVG
+  var trophySvg = '<svg aria-hidden="true" style="width:48px;height:48px;stroke:var(--border);fill:none;stroke-width:1.5;" viewBox="0 0 24 24">' +
+    '<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 9 7 12 7s5-3 7.5-3a2.5 2.5 0 0 1 0 5H18"/>' +
+    '<path d="M18 9v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9"/><path d="M12 7v14"/></svg>';
+
+  // MVP結果なし・選出不可の場合はempty state
+  if (!hasMvpResults && !canSelectMvp) {
+    var msg = (!isAdmin() && status === '試合終了')
+      ? 'お疲れさまでした！アンケートに回答して、MVP発表を待とう！'
+      : '全試合終了後にMVP発表ができます。まずはピッチで暴れよう！';
+    c.innerHTML = '<div class="empty-state">' + trophySvg + '<p>' + msg + '</p></div>';
     return;
   }
 
   var h = '';
 
-  // MVP設定（管理者のみ、完了時は非表示）
-  if (isAdmin() && status !== '完了') {
+  // MVP選出UI
+  if (canSelectMvp) {
     h += '<div style="margin-bottom:14px;">' +
-      '<div class="input-group"><label for="mvp-count">MVP人数</label><input type="number" id="mvp-count" value="' + (event['MVP人数'] || 1) + '" min="1" max="5" class="input" style="width:80px;"></div>' +
-      '<div class="input-group"><label for="sub-mvp-count">準MVP人数</label><input type="number" id="sub-mvp-count" value="' + (event['準MVP人数'] || 1) + '" min="0" max="5" class="input" style="width:80px;"></div>' +
-      '<button class="btn btn-sm btn-secondary" onclick="saveMvpSettings()">設定を保存</button></div>';
-  }
-
-  // MVP選出ボタン（管理者のみ、試合終了時のみ）
-  if (isAdmin() && status === '試合終了') {
-    h += '<button class="btn btn-primary btn-large" onclick="runMvp()">' + svg(IC.trophy, 18) + ' MVPを発表</button>';
+      '<div class="input-group"><label for="mvp-count">MVP人数</label><input type="number" id="mvp-count" value="1" min="1" max="5" class="input" style="width:80px;"></div>' +
+      '<div class="input-group"><label for="sub-mvp-count">準MVP人数</label><input type="number" id="sub-mvp-count" value="1" min="0" max="5" class="input" style="width:80px;"></div>' +
+      '<button class="btn btn-primary btn-large" onclick="runMvp()">' + svg(IC.trophy, 18) + ' MVPを発表</button></div>';
   }
 
   h += '<div id="mvp-results-area"></div>';
   c.innerHTML = h;
 
-  // MVP結果の表示（試合終了または完了時のみ）
-  if ((status === '試合終了' || status === '完了') && mvpResults && mvpResults.length > 0) {
-    renderMvpResults(mvpResults);
-  }
-}
-function saveMvpSettings() {
-  var mc = document.getElementById('mvp-count').value; var sc = document.getElementById('sub-mvp-count').value;
-  callServer('updateMvpSettings', [currentEventId, mc, sc], function(r) { showToast(r.message, !r.success); });
+  if (hasMvpResults) renderMvpResults(mvpResults);
 }
 function fetchSurvey() { callServer('fetchSurveyResponses', [currentEventId], function(r) { showToast(r.message, !r.success); }); }
 var mvpLoadingTimer_ = null;
 function runMvp() {
+  var mc = document.getElementById('mvp-count').value;
+  var sc = document.getElementById('sub-mvp-count').value;
   showConfirm('MVP選出', 'いよいよMVP発表！準備はいいですか？', function() {
     showLoading("ウェカピポ -SOUL'd OUT", "Yo! 俺がDiggy-MO'だぜ! 聴いてくれ");
     // 「言い切る男」演出
@@ -353,7 +346,7 @@ function runMvp() {
         hideLoading();
         showToast('MVP選出に失敗しました', true);
       })
-      .selectMVP(currentEventId);
+      .selectMVP(currentEventId, mc, sc);
   }, '発表する');
 }
 function renderMvpResults(results) {

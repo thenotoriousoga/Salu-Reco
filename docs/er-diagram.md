@@ -14,8 +14,6 @@ erDiagram
         date 日付
         string 名称
         string ステータス "準備中 / 進行中 / 試合終了 / 完了"
-        number MVP人数 "1〜5"
-        number 準MVP人数 "1〜5"
         string フォームURL "Googleフォームの公開URL"
         string フォームID "GoogleフォームのID"
         string コード "参加用コード（管理者が設定）"

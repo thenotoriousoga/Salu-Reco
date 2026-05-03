@@ -113,7 +113,7 @@ function createNewEvent(date, name, code) {
   var ss = getSpreadsheet_();
   var sheet = ensureSheet_(ss, 'イベント');
   var eventId = generateId_();
-  sheet.appendRow([eventId, date, name || 'フットサル', '準備中', 1, 1, '', '', code]);
+  sheet.appendRow([eventId, date, name || 'フットサル', '準備中', '', '', code]);
 
   return { success: true, eventId: eventId, code: code, message: 'イベントを作成しました' };
 }
@@ -262,23 +262,4 @@ function uncompleteEvent(eventId) {
 
   updateEventStatus(eventId, '試合終了');
   return { success: true, message: 'イベントを試合終了に戻しました' };
-}
-
-/**
- * MVP設定を更新する
- * @param {string} eventId - イベントID
- * @param {number} mvpCount - MVP人数
- * @param {number} subMvpCount - 準MVP人数
- * @return {Object} 結果オブジェクト { success, message }
- */
-function updateMvpSettings(eventId, mvpCount, subMvpCount) {
-  var ss = getSpreadsheet_();
-  var sheet = ss.getSheetByName('イベント');
-  var rowIndex = findRowIndex_(sheet, 0, eventId);
-  if (rowIndex === -1) {
-    return { success: false, message: 'イベントが見つかりません' };
-  }
-  // 2つのセルを一括更新（setValueの繰り返しより高速）
-  sheet.getRange(rowIndex, 5, 1, 2).setValues([[Number(mvpCount) || 1, Number(subMvpCount) || 1]]);
-  return { success: true, message: 'MVP設定を更新しました' };
 }

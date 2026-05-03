@@ -65,8 +65,8 @@ function createSurveyForm(eventId) {
   var sheet = ss.getSheetByName('イベント');
   var rowIndex = findRowIndex_(sheet, 0, eventId);
   if (rowIndex !== -1) {
-    sheet.getRange(rowIndex, 7).setValue(formUrl);
-    sheet.getRange(rowIndex, 8).setValue(formId);
+    sheet.getRange(rowIndex, 5).setValue(formUrl);
+    sheet.getRange(rowIndex, 6).setValue(formId);
   }
 
   // 既存の回答データをクリア（再作成時）
