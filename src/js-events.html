@@ -170,7 +170,7 @@ function buildStatusButtons_(status) {
  */
 function getStatusMenuItems_(status) {
   if (status === '準備中') {
-    return [{ label: '進行中にする', action: 'doStartEvent()' }];
+    return [{ label: 'イベントを開始する', action: 'doStartEvent()' }];
   }
   if (status === '進行中') {
     var canEnd = canEndEvent_();

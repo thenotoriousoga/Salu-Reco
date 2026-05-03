@@ -1906,12 +1906,14 @@ body:not(.role-user):not(.role-admin) .user-only { display: none !important; }
   right: 0;
   margin-top: 4px;
   min-width: 140px;
+  max-width: calc(100vw - 32px);
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-md);
   z-index: 50;
   overflow: hidden;
+  white-space: nowrap;
 }
 
 .status-menu.open {
