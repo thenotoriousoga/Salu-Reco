@@ -26,16 +26,11 @@ var SHEET_HEADERS_ = {
 // スプレッドシート取得（キャッシュ付き）
 // ===================================
 
-/**
- * スプレッドシートのキャッシュ
- * 同一実行コンテキスト内で再利用することでAPI呼び出しを削減
- * @type {Spreadsheet|null}
- */
+/** @type {Spreadsheet|null} 同一実行コンテキスト内で再利用するキャッシュ */
 var ssCache_ = null;
 
 /**
  * スプレッドシートを取得する（キャッシュ付き）
- * 同一実行コンテキスト内では2回目以降はキャッシュを返す
  * 1. キャッシュがあればそれを返す
  * 2. スクリプトプロパティ SPREADSHEET_ID から取得
  * 3. コンテナバインドスクリプトの場合は自動取得
@@ -43,12 +38,8 @@ var ssCache_ = null;
  * @throws {Error} スプレッドシートが見つからない場合
  */
 function getSpreadsheet_() {
-  // キャッシュがあれば返す
-  if (ssCache_) {
-    return ssCache_;
-  }
+  if (ssCache_) return ssCache_;
 
-  // 1. スクリプトプロパティから取得
   var props = PropertiesService.getScriptProperties();
   var ssId = props.getProperty('SPREADSHEET_ID');
   if (ssId) {
@@ -56,14 +47,12 @@ function getSpreadsheet_() {
     return ssCache_;
   }
 
-  // 2. コンテナバインドスクリプトの場合
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   if (ss) {
     ssCache_ = ss;
     return ssCache_;
   }
 
-  // 3. どちらもない場合はエラー
   throw new Error(
     'スプレッドシートが見つかりません。スクリプトプロパティに SPREADSHEET_ID を設定してください。' +
     '（Apps Script エディタ → プロジェクトの設定 → スクリプトプロパティ）'
@@ -86,34 +75,18 @@ function ensureSheet_(ss, sheetName) {
   var sheet = ss.getSheetByName(sheetName);
 
   if (!sheet) {
-    // シートが存在しない場合は新規作成
     sheet = ss.insertSheet(sheetName);
-    if (headers) {
-      sheet.appendRow(headers);
-    }
+    if (headers) sheet.appendRow(headers);
     return sheet;
   }
 
-  // 既存シートのヘッダーをチェックし、不一致なら上書き
   if (headers) {
     var currentHeaders = sheet.getLastColumn() > 0
       ? sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
       : [];
 
-    var needsUpdate = headers.length !== currentHeaders.length;
-    if (!needsUpdate) {
-      for (var i = 0; i < headers.length; i++) {
-        if (headers[i] !== currentHeaders[i]) {
-          needsUpdate = true;
-          break;
-        }
-      }
-    }
-
-    if (needsUpdate) {
-      // ヘッダー行のみ上書き（データ行はそのまま）
+    if (headersNeedUpdate_(headers, currentHeaders)) {
       sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-      // 旧ヘッダーの方が列数が多かった場合、余分なセルをクリア
       if (currentHeaders.length > headers.length) {
         sheet.getRange(1, headers.length + 1, 1, currentHeaders.length - headers.length).clearContent();
       }
@@ -124,19 +97,29 @@ function ensureSheet_(ss, sheetName) {
 }
 
 /**
+ * ヘッダーの更新が必要か判定する
+ * @param {string[]} expected - 期待するヘッダー
+ * @param {string[]} current - 現在のヘッダー
+ * @return {boolean}
+ */
+function headersNeedUpdate_(expected, current) {
+  if (expected.length !== current.length) return true;
+  for (var i = 0; i < expected.length; i++) {
+    if (expected[i] !== current[i]) return true;
+  }
+  return false;
+}
+
+/**
  * 全シートを初期化する
  * @return {string} 完了メッセージ
  */
 function initializeSheets() {
   var ss = getSpreadsheet_();
-
-  // 全シートを作成
-  var sheetNames = Object.keys(SHEET_HEADERS_);
-  sheetNames.forEach(function(name) {
+  Object.keys(SHEET_HEADERS_).forEach(function(name) {
     ensureSheet_(ss, name);
   });
 
-  // デフォルトシート削除
   var defaultSheet = ss.getSheetByName('Sheet1') || ss.getSheetByName('シート1');
   if (defaultSheet && ss.getSheets().length > 1) {
     ss.deleteSheet(defaultSheet);
@@ -154,8 +137,8 @@ function initializeSheets() {
  * @return {HtmlOutput} HTMLページ
  */
 function doGet() {
-  var template = HtmlService.createTemplateFromFile('index');
-  return template.evaluate()
+  return HtmlService.createTemplateFromFile('index')
+    .evaluate()
     .setTitle('SALU-REC')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
@@ -182,10 +165,7 @@ function generateId_() {
   return Utilities.getUuid().substring(0, 8);
 }
 
-/**
- * タイムゾーンのキャッシュ
- * @type {string|null}
- */
+/** @type {string|null} タイムゾーンキャッシュ */
 var tzCache_ = null;
 
 /**
@@ -193,9 +173,7 @@ var tzCache_ = null;
  * @return {string} タイムゾーン文字列
  */
 function getTimeZone_() {
-  if (!tzCache_) {
-    tzCache_ = Session.getScriptTimeZone();
-  }
+  if (!tzCache_) tzCache_ = Session.getScriptTimeZone();
   return tzCache_;
 }
 
@@ -207,117 +185,28 @@ function getTimeZone_() {
 function getSheetData_(sheetName) {
   var ss = getSpreadsheet_();
   var sheet = ss.getSheetByName(sheetName);
+  return sheetToObjects_(sheet);
+}
+
+/**
+ * シートオブジェクトからデータをオブジェクト配列に変換する
+ * @param {Sheet} sheet - シートオブジェクト
+ * @return {Object[]} データ配列
+ */
+function sheetToObjects_(sheet) {
   if (!sheet || sheet.getLastRow() < 2) return [];
 
-  // ヘッダーとデータを1回のAPI呼び出しで取得（2回のgetRangeより高速）
   var allData = sheet.getDataRange().getValues();
   var headers = allData[0];
   var tz = getTimeZone_();
-
   var result = [];
+
   for (var i = 1; i < allData.length; i++) {
     var row = allData[i];
     var obj = {};
     for (var j = 0; j < headers.length; j++) {
       var val = row[j];
       // Dateオブジェクトはクライアントにシリアライズできないため文字列に変換
-      if (val instanceof Date) {
-        val = Utilities.formatDate(val, tz, 'yyyy/MM/dd');
-      }
-      obj[headers[j]] = val;
-    }
-    result.push(obj);
-  }
-  return result;
-}
-
-/**
- * 指定列の値が一致する行を削除する（バッチ処理版）
- * 削除対象以外の行を残して一括書き換えすることで高速化
- * @param {string} sheetName - シート名
- * @param {number} colIndex - 列インデックス（0始まり）
- * @param {string} value - 検索値
- */
-function deleteRowsByMatch_(sheetName, colIndex, value) {
-  var ss = getSpreadsheet_();
-  var sheet = ss.getSheetByName(sheetName);
-  if (!sheet || sheet.getLastRow() < 2) return;
-
-  var data = sheet.getDataRange().getValues();
-  var headers = data[0];
-  var colCount = headers.length;
-
-  // 削除対象以外の行を抽出
-  var remaining = [headers];
-  for (var i = 1; i < data.length; i++) {
-    if (String(data[i][colIndex]) !== String(value)) {
-      remaining.push(data[i]);
-    }
-  }
-
-  // 削除対象がなければ何もしない
-  if (remaining.length === data.length) return;
-
-  // シートをクリアして残りのデータを一括書き込み
-  sheet.clearContents();
-  if (remaining.length > 0) {
-    sheet.getRange(1, 1, remaining.length, colCount).setValues(remaining);
-  }
-}
-
-/**
- * 指定シートで特定列の値が一致する行を検索し、行インデックス（1始まり）を返す
- * @param {Sheet} sheet - 対象シート
- * @param {number} colIndex - 検索対象の列インデックス（0始まり）
- * @param {string} value - 検索値
- * @return {number} 行インデックス（1始まり）、見つからない場合は -1
- */
-function findRowIndex_(sheet, colIndex, value) {
-  var data = sheet.getDataRange().getValues();
-  for (var i = 1; i < data.length; i++) {
-    if (data[i][colIndex] === value) {
-      return i + 1;
-    }
-  }
-  return -1;
-}
-
-/**
- * 配列からIDをキーにしたマップを作成する
- * @param {Object[]} items - オブジェクトの配列
- * @param {string} idKey - キーとして使うプロパティ名
- * @return {Object} IDをキーにしたマップ
- */
-function buildMap_(items, idKey) {
-  var map = {};
-  items.forEach(function(item) {
-    map[item[idKey]] = item;
-  });
-  return map;
-}
-
-// ===================================
-// 一括データ取得（パフォーマンス最適化）
-// ===================================
-
-/**
- * シートオブジェクトからデータをオブジェクト配列として取得する（内部用）
- * @param {Sheet} sheet - シートオブジェクト
- * @param {string} tz - タイムゾーン文字列
- * @return {Object[]} データ配列
- */
-function getSheetDataFromSheet_(sheet, tz) {
-  if (!sheet || sheet.getLastRow() < 2) return [];
-
-  var allData = sheet.getDataRange().getValues();
-  var headers = allData[0];
-
-  var result = [];
-  for (var i = 1; i < allData.length; i++) {
-    var row = allData[i];
-    var obj = {};
-    for (var j = 0; j < headers.length; j++) {
-      var val = row[j];
       if (val instanceof Date) {
         val = Utilities.formatDate(val, tz, 'yyyy/MM/dd');
       }
@@ -336,13 +225,81 @@ function getSheetDataFromSheet_(sheet, tz) {
  */
 function getMultipleSheetData_(sheetNames) {
   var ss = getSpreadsheet_();
-  var tz = getTimeZone_();
   var result = {};
-
   sheetNames.forEach(function(name) {
-    var sheet = ss.getSheetByName(name);
-    result[name] = getSheetDataFromSheet_(sheet, tz);
+    result[name] = sheetToObjects_(ss.getSheetByName(name));
   });
-
   return result;
+}
+
+/**
+ * 指定列の値が一致する行を削除する（バッチ処理版）
+ * 削除対象以外の行を残して一括書き換えすることで高速化
+ * @param {string} sheetName - シート名
+ * @param {number} colIndex - 列インデックス（0始まり）
+ * @param {string} value - 検索値
+ */
+function deleteRowsByMatch_(sheetName, colIndex, value) {
+  var ss = getSpreadsheet_();
+  var sheet = ss.getSheetByName(sheetName);
+  if (!sheet || sheet.getLastRow() < 2) return;
+
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+  var colCount = headers.length;
+  var strValue = String(value);
+
+  var remaining = [headers];
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][colIndex]) !== strValue) {
+      remaining.push(data[i]);
+    }
+  }
+
+  if (remaining.length === data.length) return;
+
+  sheet.clearContents();
+  if (remaining.length > 0) {
+    sheet.getRange(1, 1, remaining.length, colCount).setValues(remaining);
+  }
+}
+
+/**
+ * 指定シートで特定列の値が一致する行を検索し、行インデックス（1始まり）を返す
+ * @param {Sheet} sheet - 対象シート
+ * @param {number} colIndex - 検索対象の列インデックス（0始まり）
+ * @param {string} value - 検索値
+ * @return {number} 行インデックス（1始まり）、見つからない場合は -1
+ */
+function findRowIndex_(sheet, colIndex, value) {
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][colIndex] === value) return i + 1;
+  }
+  return -1;
+}
+
+/**
+ * 配列からIDをキーにしたマップを作成する
+ * @param {Object[]} items - オブジェクトの配列
+ * @param {string} idKey - キーとして使うプロパティ名
+ * @return {Object} IDをキーにしたマップ
+ */
+function buildMap_(items, idKey) {
+  var map = {};
+  items.forEach(function(item) {
+    map[item[idKey]] = item;
+  });
+  return map;
+}
+
+/**
+ * シートの末尾に複数行を一括追加する
+ * @param {Sheet} sheet - 対象シート
+ * @param {Array[]} rows - 追加する行データの配列
+ */
+function appendRows_(sheet, rows) {
+  if (!rows || rows.length === 0) return;
+  var lastRow = sheet.getLastRow();
+  sheet.getRange(lastRow + 1, 1, rows.length, rows[0].length).setValues(rows);
 }

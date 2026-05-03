@@ -3,18 +3,13 @@
 // 管理者パスワード認証、イベントコード認証
 // ===================================
 
-// ===================================
-// 管理者認証
-// ===================================
-
 /**
  * 管理者パスワードで認証する
  * @param {string} password - 入力されたパスワード
  * @return {Object} 結果オブジェクト { success, role, message }
  */
 function loginAdmin(password) {
-  var props = PropertiesService.getScriptProperties();
-  var adminPassword = props.getProperty('ADMIN_PASSWORD');
+  var adminPassword = PropertiesService.getScriptProperties().getProperty('ADMIN_PASSWORD');
 
   if (!adminPassword) {
     return {
@@ -29,10 +24,6 @@ function loginAdmin(password) {
 
   return { success: false, message: 'パスワードが正しくありません' };
 }
-
-// ===================================
-// イベントコード認証
-// ===================================
 
 /**
  * イベントコードでイベントを検索する

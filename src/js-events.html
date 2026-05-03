@@ -225,44 +225,36 @@ function canEndEvent_() {
   return !hasOngoingMatch;
 }
 
-/** イベントを「試合終了」にする */
+/**
+ * ステータス遷移の確認→実行を行う共通処理
+ * @param {string} title - 確認ダイアログのタイトル
+ * @param {string} message - 確認メッセージ
+ * @param {string} serverFunc - サーバー関数名
+ * @param {string} confirmLabel - 確認ボタンのラベル
+ */
+function confirmStatusChange_(title, message, serverFunc, confirmLabel) {
+  showConfirm(title, message, function() {
+    callServer(serverFunc, [currentEventId], function(r) {
+      showToast(r.message, !r.success);
+      if (r.success) openEvent(currentEventId);
+    });
+  }, confirmLabel);
+}
+
 function doEndEvent() {
-  showConfirm('イベント終了', 'イベントを終了しますか？MVP選出が可能になります。', function() {
-    callServer('endEvent', [currentEventId], function(r) {
-      showToast(r.message, !r.success);
-      if (r.success) openEvent(currentEventId);
-    });
-  }, '終了する');
+  confirmStatusChange_('イベント終了', 'イベントを終了しますか？MVP選出が可能になります。', 'endEvent', '終了する');
 }
 
-/** イベントを「進行中」に戻す */
 function doReopenEvent() {
-  showConfirm('差戻確認', 'イベントを進行中に戻しますか？ラウンドや試合を追加できるようになります。', function() {
-    callServer('reopenEvent', [currentEventId], function(r) {
-      showToast(r.message, !r.success);
-      if (r.success) openEvent(currentEventId);
-    });
-  }, '差戻');
+  confirmStatusChange_('差戻確認', 'イベントを進行中に戻しますか？ラウンドや試合を追加できるようになります。', 'reopenEvent', '差戻');
 }
 
-/** イベントを「完了」にする */
 function doCompleteEvent() {
-  showConfirm('イベント完了', 'イベントを完了にしますか？完了後は全ての変更ができなくなります。', function() {
-    callServer('completeEvent', [currentEventId], function(r) {
-      showToast(r.message, !r.success);
-      if (r.success) openEvent(currentEventId);
-    });
-  }, '完了にする');
+  confirmStatusChange_('イベント完了', 'イベントを完了にしますか？完了後は全ての変更ができなくなります。', 'completeEvent', '完了にする');
 }
 
-/** イベントを「試合終了」に戻す（完了から差し戻し） */
 function doUncompleteEvent() {
-  showConfirm('差戻確認', 'イベントを試合終了に戻しますか？MVP再選出やアンケート回答が可能になります。', function() {
-    callServer('uncompleteEvent', [currentEventId], function(r) {
-      showToast(r.message, !r.success);
-      if (r.success) openEvent(currentEventId);
-    });
-  }, '差戻');
+  confirmStatusChange_('差戻確認', 'イベントを試合終了に戻しますか？MVP再選出やアンケート回答が可能になります。', 'uncompleteEvent', '差戻');
 }
 
 // ===================================
@@ -307,29 +299,19 @@ function renderSurveyLink(ev) {
   c.innerHTML = h;
 }
 
-/** アンケートフォームを作成する */
-function createSurvey() {
+/** アンケートフォームを作成/再作成する共通処理 */
+function doCreateSurvey_() {
   callServer('createSurveyForm', [currentEventId], function(r) {
-    if (r.success) {
-      showToast(r.message);
-      openEvent(currentEventId);
-    } else {
-      showToast(r.message, true);
-    }
+    if (r.success) { showToast(r.message); openEvent(currentEventId); }
+    else { showToast(r.message, true); }
   });
 }
 
-/** アンケートフォームを再作成する */
+function createSurvey() { doCreateSurvey_(); }
+
 function recreateSurvey() {
   showConfirm('アンケート再作成', 'メンバーを追加した場合は再作成が必要です。既存の回答は引き継がれません。再作成しますか？', function() {
-    callServer('createSurveyForm', [currentEventId], function(r) {
-      if (r.success) {
-        showToast(r.message);
-        openEvent(currentEventId);
-      } else {
-        showToast(r.message, true);
-      }
-    });
+    doCreateSurvey_();
   }, '再作成');
 }
 </script>

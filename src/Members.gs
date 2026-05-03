@@ -3,10 +3,6 @@
 // メンバーCRUD（一括登録対応）
 // ===================================
 
-// ===================================
-// メンバー取得
-// ===================================
-
 /**
  * イベントに紐づくメンバー一覧を取得する
  * @param {string} eventId - イベントID
@@ -17,10 +13,6 @@ function getEventMembers(eventId) {
     return m['イベントID'] === eventId;
   });
 }
-
-// ===================================
-// メンバー登録
-// ===================================
 
 /**
  * メンバーをまとめて一括登録する（キュー方式用）
@@ -34,7 +26,6 @@ function bulkAddMembersFromQueue(eventId, memberDataList) {
     return { success: false, message: '登録するメンバーがいません' };
   }
 
-  // 有効なメンバーデータを行配列に変換
   var rows = [];
   memberDataList.forEach(function(m) {
     if (!m.name || !m.name.trim()) return;
@@ -53,18 +44,11 @@ function bulkAddMembersFromQueue(eventId, memberDataList) {
     return { success: false, message: '登録するメンバーがいません' };
   }
 
-  // 一括書き込み（appendRowの繰り返しより高速）
   var ss = getSpreadsheet_();
-  var sheet = ss.getSheetByName('メンバー');
-  var lastRow = sheet.getLastRow();
-  sheet.getRange(lastRow + 1, 1, rows.length, rows[0].length).setValues(rows);
+  appendRows_(ss.getSheetByName('メンバー'), rows);
 
   return { success: true, message: rows.length + '人を登録しました' };
 }
-
-// ===================================
-// メンバー削除
-// ===================================
 
 /**
  * メンバーを削除する
@@ -75,10 +59,6 @@ function deleteEventMember(memberId) {
   deleteRowsByMatch_('メンバー', 0, memberId);
   return { success: true, message: 'メンバーを削除しました' };
 }
-
-// ===================================
-// メンバー更新
-// ===================================
 
 /**
  * メンバー情報を更新する
@@ -97,17 +77,19 @@ function updateMember(memberId, data) {
   var ss = getSpreadsheet_();
   var sheet = ss.getSheetByName('メンバー');
   var rowIndex = findRowIndex_(sheet, 0, memberId);
-
   if (rowIndex === -1) {
     return { success: false, message: 'メンバーが見つかりません' };
   }
 
-  // 各フィールドを更新（列: メンバーID, イベントID, 名前, 年次, サッカー経験, 幹事, 備考）
-  sheet.getRange(rowIndex, 3).setValue(data.name.trim());           // 名前
-  sheet.getRange(rowIndex, 4).setValue(Number(data.years) || 1);    // 年次
-  sheet.getRange(rowIndex, 5).setValue(data.exp ? 'あり' : 'なし'); // サッカー経験
-  sheet.getRange(rowIndex, 6).setValue(data.org ? 'はい' : 'いいえ'); // 幹事
-  sheet.getRange(rowIndex, 7).setValue((data.note || '').trim());   // 備考
+  // 名前〜備考（3〜7列目）を一括更新
+  var values = [
+    data.name.trim(),
+    Number(data.years) || 1,
+    data.exp ? 'あり' : 'なし',
+    data.org ? 'はい' : 'いいえ',
+    (data.note || '').trim()
+  ];
+  sheet.getRange(rowIndex, 3, 1, values.length).setValues([values]);
 
   return { success: true, message: 'メンバー情報を更新しました' };
 }

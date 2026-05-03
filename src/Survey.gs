@@ -3,10 +3,6 @@
 // Googleフォーム自動生成、アンケート回答取得
 // ===================================
 
-// ===================================
-// フォーム作成
-// ===================================
-
 /**
  * MVPアンケートフォームを作成する
  * 既存フォームがある場合は再作成（メンバー追加対応）
@@ -17,21 +13,17 @@ function createSurveyForm(eventId) {
   var event = findEvent_(eventId);
   if (!event) return { success: false, message: 'イベントが見つかりません' };
 
-  // イベントのメンバー取得
   var members = getEventMembers(eventId);
   var names = members.map(function(m) { return m['名前']; }).filter(Boolean);
-
   if (names.length === 0) {
     return { success: false, message: 'メンバーがいません。先にメンバーを登録してください。' };
   }
 
+  var isRecreate = !!event['フォームID'];
+
   // 既存フォームがある場合は削除
-  if (event['フォームID']) {
-    try {
-      DriveApp.getFileById(event['フォームID']).setTrashed(true);
-    } catch (e) {
-      // フォームが見つからない場合は無視
-    }
+  if (isRecreate) {
+    try { DriveApp.getFileById(event['フォームID']).setTrashed(true); } catch (e) { /* 無視 */ }
   }
 
   // Googleフォーム作成
@@ -65,25 +57,19 @@ function createSurveyForm(eventId) {
   var sheet = ss.getSheetByName('イベント');
   var rowIndex = findRowIndex_(sheet, 0, eventId);
   if (rowIndex !== -1) {
-    sheet.getRange(rowIndex, 5).setValue(formUrl);
-    sheet.getRange(rowIndex, 6).setValue(formId);
+    sheet.getRange(rowIndex, 5, 1, 2).setValues([[formUrl, formId]]);
   }
 
   // 既存の回答データをクリア（再作成時）
   deleteRowsByMatch_('アンケート回答', 0, eventId);
 
-  var isRecreate = !!event['フォームID'];
   var message = isRecreate ? 'アンケートフォームを再作成しました' : 'アンケートフォームを作成しました';
   return { success: true, formUrl: formUrl, message: message };
 }
 
-// ===================================
-// 回答取得
-// ===================================
-
 /**
  * アンケート回答を取得してスプレッドシートに保存する
- * 同じ回答者の既存回答は上書きする
+ * 同じ回答者の最新回答のみを使用する
  * @param {string} eventId - イベントID
  * @return {Object} 結果オブジェクト { success, message, responseCount, commentCount, voters }
  */
@@ -105,7 +91,10 @@ function fetchSurveyResponses(eventId) {
   var nameToId = {};
   members.forEach(function(m) { nameToId[m['名前']] = m['メンバーID']; });
 
-  // 既存回答をクリア
+  // 同じ回答者の最新回答のみを抽出
+  var latestResponses = extractLatestResponses_(responses);
+
+  // 既存回答をクリアして再保存
   deleteRowsByMatch_('アンケート回答', 0, eventId);
 
   var ss = getSpreadsheet_();
@@ -113,27 +102,8 @@ function fetchSurveyResponses(eventId) {
   var totalComments = 0;
   var voterNames = [];
 
-  // 同じ回答者の最新回答のみを使用（タイムスタンプでソート）
-  var latestResponses = {};
-  responses.forEach(function(response) {
-    var itemResponses = response.getItemResponses();
-    var voterName = '';
-    itemResponses.forEach(function(ir) {
-      if (ir.getItem().getTitle() === 'あなたの名前') {
-        voterName = String(ir.getResponse());
-      }
-    });
-    if (voterName) {
-      var timestamp = response.getTimestamp().getTime();
-      if (!latestResponses[voterName] || latestResponses[voterName].timestamp < timestamp) {
-        latestResponses[voterName] = { response: response, timestamp: timestamp };
-      }
-    }
-  });
-
-  // 最新回答のみを保存
   Object.keys(latestResponses).forEach(function(voterName) {
-    var response = latestResponses[voterName].response;
+    var response = latestResponses[voterName];
     var itemResponses = response.getItemResponses();
     voterNames.push(voterName);
 
@@ -161,15 +131,43 @@ function fetchSurveyResponses(eventId) {
 }
 
 /**
+ * フォーム回答から回答者ごとの最新回答を抽出する
+ * @param {FormResponse[]} responses - フォーム回答の配列
+ * @return {Object} 回答者名をキーにした最新FormResponseのマップ
+ */
+function extractLatestResponses_(responses) {
+  var latest = {};
+  responses.forEach(function(response) {
+    var voterName = '';
+    response.getItemResponses().forEach(function(ir) {
+      if (ir.getItem().getTitle() === 'あなたの名前') {
+        voterName = String(ir.getResponse());
+      }
+    });
+    if (!voterName) return;
+
+    var timestamp = response.getTimestamp().getTime();
+    if (!latest[voterName] || latest[voterName].ts < timestamp) {
+      latest[voterName] = { response: response, ts: timestamp };
+    }
+  });
+
+  // FormResponseオブジェクトのみのマップに変換
+  var result = {};
+  Object.keys(latest).forEach(function(name) {
+    result[name] = latest[name].response;
+  });
+  return result;
+}
+
+/**
  * アンケート回答者一覧を取得する
  * @param {string} eventId - イベントID
  * @return {string[]} 回答者名の配列
  */
 function getSurveyVoters(eventId) {
   var event = findEvent_(eventId);
-  if (!event || !event['フォームID']) {
-    return [];
-  }
+  if (!event || !event['フォームID']) return [];
 
   try {
     var form = FormApp.openById(event['フォームID']);
@@ -177,8 +175,7 @@ function getSurveyVoters(eventId) {
     var voterSet = {};
 
     responses.forEach(function(response) {
-      var itemResponses = response.getItemResponses();
-      itemResponses.forEach(function(ir) {
+      response.getItemResponses().forEach(function(ir) {
         if (ir.getItem().getTitle() === 'あなたの名前') {
           voterSet[String(ir.getResponse())] = true;
         }

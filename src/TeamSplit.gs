@@ -4,39 +4,6 @@
 // ===================================
 
 // ===================================
-// ユーティリティ
-// ===================================
-
-/**
- * 選択人数から最大チーム数を計算する（1チーム最低3人）
- * @param {number} playerCount - 選択人数
- * @return {number} 最大チーム数
- */
-function maxTeamCount_(playerCount) {
-  return Math.max(2, Math.floor(playerCount / 3));
-}
-
-/**
- * 空のチーム配列を生成する
- * @param {number} teamCount - チーム数
- * @return {string[][]} 空配列の配列
- */
-function createEmptyTeams_(teamCount) {
-  var teams = [];
-  for (var i = 0; i < teamCount; i++) { teams.push([]); }
-  return teams;
-}
-
-/**
- * メンバーデータを取得し、IDをキーにしたマップを返す
- * @return {Object} メンバーマップ
- */
-function getMemberMap_() {
-  var members = getSheetData_('メンバー');
-  return buildMap_(members, 'メンバーID');
-}
-
-// ===================================
 // スコアリング
 // ===================================
 
@@ -53,18 +20,16 @@ function calcMemberScore_(member) {
 }
 
 /**
- * メンバーにスコアを付与する（チーム分け用）
+ * メンバーにスコアを付与してスコア降順でソートする
  * @param {string[]} memberIds - メンバーIDの配列
  * @param {Object} memberMap - メンバーマップ
- * @return {Object[]} スコア付きメンバー配列（スコア降順）
+ * @return {Object[]} スコア付きメンバー配列 [{ id, score }, ...]
  */
 function scoreMembersForSplit_(memberIds, memberMap) {
-  var scored = memberIds.map(function(id) {
+  return memberIds.map(function(id) {
     var m = memberMap[id] || {};
     return { id: id, score: calcMemberScore_(m) };
-  });
-  scored.sort(function(a, b) { return b.score - a.score; });
-  return scored;
+  }).sort(function(a, b) { return b.score - a.score; });
 }
 
 // ===================================
@@ -84,7 +49,7 @@ function validateSplitInput_(memberIds, teamCount) {
   if (memberIds.length < teamCount * 2) {
     return { success: false, message: teamCount + 'チームには最低' + (teamCount * 2) + '人必要です' };
   }
-  var maxT = maxTeamCount_(memberIds.length);
+  var maxT = Math.max(2, Math.floor(memberIds.length / 3));
   if (teamCount > maxT) {
     return { success: false, message: memberIds.length + '人では最大' + maxT + 'チームです（1チーム最低3人）' };
   }
@@ -96,44 +61,45 @@ function validateSplitInput_(memberIds, teamCount) {
 // ===================================
 
 /**
+ * 空のチーム配列を生成する
+ * @param {number} count - チーム数
+ * @return {string[][]}
+ */
+function createEmptyTeams_(count) {
+  var teams = [];
+  for (var i = 0; i < count; i++) teams.push([]);
+  return teams;
+}
+
+/**
  * 既存チームのバランスを考慮して未割当メンバーを配置する（貪欲法）
- *
- * スコアの高いメンバーから順に、人数が少ない→スコアが低いチームに配置する。
- *
+ * スコアの高いメンバーから順に、人数が少ない→スコアが低いチームに配置する
  * @param {string[]} memberIds - 未割当メンバーIDの配列
  * @param {string[][]} existingTeams - 既存のチーム配置
  * @param {Object} memberMap - メンバーマップ
- * @return {Object} { success, teams: string[][] } teamsは未割当メンバーのみのチーム別配列
+ * @return {Object} { success, teams: string[][] }
  */
 function assignToExistingTeams_(memberIds, existingTeams, memberMap) {
   var teamCount = existingTeams.length;
 
-  // 各チームの現在のスコア合計を計算
+  // 各チームの現在のスコア合計と人数を計算
   var teamScores = existingTeams.map(function(team) {
     var total = 0;
     team.forEach(function(id) {
-      var m = memberMap[id] || {};
-      total += calcMemberScore_(m);
+      total += calcMemberScore_(memberMap[id] || {});
     });
     return total;
   });
-
-  // 各チームの現在の人数
   var teamSizes = existingTeams.map(function(team) { return team.length; });
 
-  // 未割当メンバーをスコア降順でソート
   var scored = scoreMembersForSplit_(memberIds, memberMap);
-
-  // 結果: 未割当メンバーのチーム別配列
   var result = createEmptyTeams_(teamCount);
 
-  // 貪欲法: スコアの高いメンバーから順に、（人数が少ない → スコアが低い）チームに配置
   scored.forEach(function(p) {
     var bestIdx = 0;
     for (var i = 1; i < teamCount; i++) {
-      if (teamSizes[i] < teamSizes[bestIdx]) {
-        bestIdx = i;
-      } else if (teamSizes[i] === teamSizes[bestIdx] && teamScores[i] < teamScores[bestIdx]) {
+      if (teamSizes[i] < teamSizes[bestIdx] ||
+          (teamSizes[i] === teamSizes[bestIdx] && teamScores[i] < teamScores[bestIdx])) {
         bestIdx = i;
       }
     }
@@ -147,9 +113,7 @@ function assignToExistingTeams_(memberIds, existingTeams, memberMap) {
 
 /**
  * 蛇行ドラフト方式でメンバーをチームに均等分配する
- *
- * スコア降順に並べたメンバーを、奇数ラウンドは左→右、偶数ラウンドは右→左の順で配置する。
- *
+ * スコア降順に並べたメンバーを、奇数ラウンドは左→右、偶数ラウンドは右→左の順で配置する
  * @param {string[]} memberIds - メンバーIDの配列
  * @param {number} teamCount - チーム数
  * @param {Object} memberMap - メンバーマップ
@@ -177,35 +141,34 @@ function snakeDraftSplit_(memberIds, teamCount, memberMap) {
  * AI自動チーム分け（経験・年次考慮、Nチーム対応）
  *
  * existingTeams が渡された場合:
- *   既存チームのスコア・人数バランスを考慮し、memberIds（未割当）を貪欲法で配置する。
- *   返り値の teams は未割当メンバーのみのチーム別配列。
+ *   既存チームのスコア・人数バランスを考慮し、memberIds（未割当）を貪欲法で配置する
  *
  * existingTeams が渡されない場合:
- *   memberIds 全員を蛇行ドラフト方式でゼロから均等分配する。
+ *   memberIds 全員を蛇行ドラフト方式でゼロから均等分配する
  *
  * @param {string} eventId - イベントID
  * @param {string[]} memberIds - 配置対象のメンバーIDの配列
- * @param {number} [teamCount] - チーム数（省略時は2。existingTeams指定時はその長さを使用）
+ * @param {number} [teamCount] - チーム数（省略時は2）
  * @param {string[][]} [existingTeams] - 既存のチーム配置（省略可）
  * @return {Object} { success, teams: string[][] }
  */
 function autoSplitTeams(eventId, memberIds, teamCount, existingTeams) {
   teamCount = Number(teamCount) || 2;
 
-  // existingTeams が渡された場合: 既存バランス考慮モード
+  var memberMap = buildMap_(getSheetData_('メンバー'), 'メンバーID');
+
+  // 既存チーム考慮モード
   if (existingTeams && existingTeams.length >= 2) {
     teamCount = existingTeams.length;
     if (!memberIds || memberIds.length === 0) {
       return { success: false, message: '未割当のメンバーがいません' };
     }
-    var memberMap = getMemberMap_();
     return assignToExistingTeams_(memberIds, existingTeams, memberMap);
   }
 
-  // existingTeams なし: ゼロから蛇行ドラフト方式
+  // ゼロから蛇行ドラフト方式
   var error = validateSplitInput_(memberIds, teamCount);
   if (error) return error;
 
-  var memberMap = getMemberMap_();
   return snakeDraftSplit_(memberIds, teamCount, memberMap);
 }

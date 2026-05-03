@@ -41,22 +41,29 @@ function createRound(eventId, teamNames, teams) {
  * @return {Object[]} ラウンドデータの配列
  */
 function getRounds(eventId) {
-  // 複数シートを一括取得（個別取得より高速）
   var data = getMultipleSheetData_(['ラウンド', 'マッチ', 'マッチメンバー', '得点', 'メンバー']);
+  var memberMap = buildMap_(data['メンバー'], 'メンバーID');
+  var eventRounds = data['ラウンド'].filter(function(r) { return r['イベントID'] === eventId; });
 
-  var rounds = data['ラウンド'].filter(function(r) { return r['イベントID'] === eventId; });
-  var allMatches = data['マッチ'];
-  var matchMembers = data['マッチメンバー'];
-  var goals = data['得点'];
-  var members = data['メンバー'];
-  var memberMap = buildMap_(members, 'メンバーID');
+  return buildRoundsData_(eventRounds, data['マッチ'], data['マッチメンバー'], data['得点'], memberMap);
+}
 
-  return rounds.map(function(round) {
+/**
+ * ラウンド配列からクライアント用データ構造を構築する
+ * getEventDetail / getRounds の共通処理
+ * @param {Object[]} eventRounds - イベントに紐づくラウンドデータ
+ * @param {Object[]} allMatches - 全マッチデータ
+ * @param {Object[]} matchMembers - 全マッチメンバーデータ
+ * @param {Object[]} goals - 全得点データ
+ * @param {Object} memberMap - メンバーIDをキーにしたマップ
+ * @return {Object[]} ラウンドデータの配列
+ */
+function buildRoundsData_(eventRounds, allMatches, matchMembers, goals, memberMap) {
+  return eventRounds.map(function(round) {
     var rId = round['ラウンドID'];
     var splitData = null;
-    try { splitData = JSON.parse(round['チーム分けJSON']); } catch (e) { splitData = null; }
+    try { splitData = JSON.parse(round['チーム分けJSON']); } catch (e) { /* パース失敗は無視 */ }
 
-    // ラウンドに紐づくマッチ
     var rMatches = allMatches
       .filter(function(m) { return m['ラウンドID'] === rId; })
       .sort(function(a, b) { return a['マッチ番号'] - b['マッチ番号']; });
@@ -76,7 +83,7 @@ function getRounds(eventId) {
 }
 
 /**
- * マッチデータを構築する（内部用）
+ * マッチデータを構築する
  * @param {Object} match - マッチオブジェクト
  * @param {Object[]} matchMembers - マッチメンバーデータ
  * @param {Object[]} goals - 得点データ
@@ -86,29 +93,39 @@ function getRounds(eventId) {
 function buildMatchData_(match, matchMembers, goals, memberMap) {
   var mId = match['マッチID'];
 
-  var teamAIds = matchMembers
-    .filter(function(mm) { return mm['マッチID'] === mId && mm['チーム'] === 'A'; })
-    .map(function(mm) { return mm['メンバーID']; });
+  // チーム別メンバーIDを抽出
+  var teamIds = { A: [], B: [] };
+  matchMembers.forEach(function(mm) {
+    if (mm['マッチID'] === mId && teamIds[mm['チーム']]) {
+      teamIds[mm['チーム']].push(mm['メンバーID']);
+    }
+  });
 
-  var teamBIds = matchMembers
-    .filter(function(mm) { return mm['マッチID'] === mId && mm['チーム'] === 'B'; })
-    .map(function(mm) { return mm['メンバーID']; });
-
-  // 得点データを取得
+  // 得点データを集計
   var matchGoals = goals.filter(function(g) { return g['マッチID'] === mId; });
-
-  // スコアを得点データから集計
-  var scoreA = matchGoals.filter(function(g) { return g['チーム'] === 'A'; }).length;
-  var scoreB = matchGoals.filter(function(g) { return g['チーム'] === 'B'; }).length;
-
-  // メンバーごとの得点数を集計
+  var scoreA = 0, scoreB = 0;
   var memberGoalCounts = {};
+
   matchGoals.forEach(function(g) {
+    if (g['チーム'] === 'A') scoreA++;
+    if (g['チーム'] === 'B') scoreB++;
     if (g['種別'] === '通常' && g['メンバーID']) {
       var key = g['メンバーID'];
       memberGoalCounts[key] = (memberGoalCounts[key] || 0) + 1;
     }
   });
+
+  /**
+   * メンバーIDの配列をクライアント用オブジェクト配列に変換する
+   * @param {string[]} ids - メンバーIDの配列
+   * @return {Object[]}
+   */
+  var toMemberList = function(ids) {
+    return ids.map(function(id) {
+      var m = memberMap[id] || {};
+      return { id: id, name: m['名前'] || '不明', experience: m['サッカー経験'] || 'なし' };
+    });
+  };
 
   return {
     id: mId,
@@ -118,15 +135,8 @@ function buildMatchData_(match, matchMembers, goals, memberMap) {
     scoreA: scoreA,
     scoreB: scoreB,
     status: match['ステータス'],
-    teamA: teamAIds.map(function(id) {
-      var m = memberMap[id] || {};
-      return { id: id, name: m['名前'] || '不明', experience: m['サッカー経験'] || 'なし' };
-    }),
-    teamB: teamBIds.map(function(id) {
-      var m = memberMap[id] || {};
-      return { id: id, name: m['名前'] || '不明', experience: m['サッカー経験'] || 'なし' };
-    }),
-    // 得点一覧
+    teamA: toMemberList(teamIds.A),
+    teamB: toMemberList(teamIds.B),
     goals: matchGoals.map(function(g) {
       var memberId = g['メンバーID'] || '';
       var memberName = memberId ? ((memberMap[memberId] || {})['名前'] || '不明') : '';
@@ -138,7 +148,6 @@ function buildMatchData_(match, matchMembers, goals, memberMap) {
         type: g['種別']
       };
     }),
-    // メンバーごとの得点数
     memberGoals: Object.keys(memberGoalCounts).map(function(memberId) {
       return {
         memberId: memberId,
@@ -184,22 +193,19 @@ function createMatch(roundId, teamAName, teamBName, teamAMembers, teamBMembers) 
   var existing = getSheetData_('マッチ').filter(function(m) { return m['ラウンドID'] === roundId; });
   var matchNumber = existing.length + 1;
 
-  // マッチシート
   ensureSheet_(ss, 'マッチ').appendRow([
     matchId, roundId, matchNumber,
     teamAName || 'チームA', teamBName || 'チームB',
     '進行中'
   ]);
 
-  // マッチメンバーを一括書き込み（appendRowの繰り返しより高速）
+  // マッチメンバーを一括書き込み
   var mmRows = [];
   teamAMembers.forEach(function(mId) { mmRows.push([matchId, mId, 'A']); });
   teamBMembers.forEach(function(mId) { mmRows.push([matchId, mId, 'B']); });
 
   if (mmRows.length > 0) {
-    var mmSheet = ensureSheet_(ss, 'マッチメンバー');
-    var lastRow = mmSheet.getLastRow();
-    mmSheet.getRange(lastRow + 1, 1, mmRows.length, mmRows[0].length).setValues(mmRows);
+    appendRows_(ensureSheet_(ss, 'マッチメンバー'), mmRows);
   }
 
   return {
@@ -222,7 +228,6 @@ function addGoal(matchId, team, memberId, type) {
   var ss = getSpreadsheet_();
   var sheet = ensureSheet_(ss, '得点');
   var goalId = generateId_();
-
   sheet.appendRow([goalId, matchId, team, memberId || '', type || '通常']);
   return { success: true, goalId: goalId };
 }
@@ -258,10 +263,12 @@ function removeLatestGoal(matchId, team, memberId, type) {
   if (!sheet || sheet.getLastRow() < 2) return { success: false };
 
   var data = sheet.getDataRange().getValues();
+  var normalizedMemberId = memberId || '';
+
   // 後ろから検索して最初に見つかった該当行を削除
   for (var i = data.length - 1; i >= 1; i--) {
     if (data[i][1] === matchId && data[i][2] === team &&
-        data[i][3] === (memberId || '') && data[i][4] === type) {
+        data[i][3] === normalizedMemberId && data[i][4] === type) {
       sheet.deleteRow(i + 1);
       return { success: true };
     }
@@ -285,7 +292,7 @@ function endMatch(matchId) {
 }
 
 /**
- * 終了した試合を再開する（スコア・得点を編集可能にする）
+ * 終了した試合を再開する
  * イベントが「試合終了」または「完了」の場合は再開不可
  * @param {string} matchId - マッチID
  * @return {Object} 結果オブジェクト { success, message }
@@ -296,7 +303,6 @@ function reopenMatch(matchId) {
   var rowIndex = findRowIndex_(sheet, 0, matchId);
   if (rowIndex === -1) return { success: false, message: '試合が見つかりません' };
 
-  // 必要なデータを一括取得
   var data = getMultipleSheetData_(['マッチ', 'ラウンド', 'イベント']);
 
   var matchData = data['マッチ'].find(function(m) { return m['マッチID'] === matchId; });

@@ -4,7 +4,7 @@
 // ===================================
 
 // ===================================
-// データ取得
+// データ取得・集計
 // ===================================
 
 /**
@@ -13,7 +13,6 @@
  * @return {Object} MVP選出用データ一式
  */
 function getMvpData_(eventId) {
-  // 複数シートを一括取得（個別取得より高速）
   var data = getMultipleSheetData_(['メンバー', 'ラウンド', 'マッチ', 'マッチメンバー', '得点', 'アンケート回答']);
 
   var members = data['メンバー'].filter(function(m) { return m['イベントID'] === eventId; });
@@ -22,28 +21,19 @@ function getMvpData_(eventId) {
   var rounds = data['ラウンド'].filter(function(r) { return r['イベントID'] === eventId; });
   var roundIds = rounds.map(function(r) { return r['ラウンドID']; });
 
-  var allMatches = data['マッチ'];
-  var matches = allMatches.filter(function(m) { return roundIds.indexOf(m['ラウンドID']) >= 0; });
+  var matches = data['マッチ'].filter(function(m) { return roundIds.indexOf(m['ラウンドID']) >= 0; });
   var matchIds = matches.map(function(m) { return m['マッチID']; });
-
-  var matchMembers = data['マッチメンバー'];
-  var goals = data['得点'];
-  var surveyComments = data['アンケート回答'].filter(function(c) { return c['イベントID'] === eventId; });
 
   return {
     members: members,
     memberMap: memberMap,
     matchIds: matchIds,
     matches: matches,
-    matchMembers: matchMembers,
-    goals: goals,
-    surveyComments: surveyComments
+    matchMembers: data['マッチメンバー'],
+    goals: data['得点'],
+    surveyComments: data['アンケート回答'].filter(function(c) { return c['イベントID'] === eventId; })
   };
 }
-
-// ===================================
-// 参加メンバー抽出
-// ===================================
 
 /**
  * マッチに出場した参加メンバーIDの一覧を取得する（重複なし）
@@ -52,79 +42,60 @@ function getMvpData_(eventId) {
  * @return {string[]} 参加メンバーIDの配列
  */
 function getParticipantIds_(matchMembers, matchIds) {
-  var participantIds = [];
   var seen = {};
+  var result = [];
   matchMembers.forEach(function(mm) {
     if (matchIds.indexOf(mm['マッチID']) >= 0 && !seen[mm['メンバーID']]) {
-      participantIds.push(mm['メンバーID']);
+      result.push(mm['メンバーID']);
       seen[mm['メンバーID']] = true;
     }
   });
-  return participantIds;
-}
-
-// ===================================
-// 試合データ集計（AI入力用）
-// ===================================
-
-/**
- * メンバーの得点数を集計する
- * @param {Object[]} goals - 得点データ
- * @param {string[]} matchIds - 対象マッチIDの配列
- * @param {string} memberId - メンバーID
- * @return {number} 合計得点数
- */
-function countGoals_(goals, matchIds, memberId) {
-  return goals
-    .filter(function(g) {
-      return matchIds.indexOf(g['マッチID']) >= 0 &&
-             g['メンバーID'] === memberId &&
-             g['種別'] === '通常';
-    })
-    .length;
+  return result;
 }
 
 /**
- * メンバーの勝利数を集計する
+ * メンバーの試合統計を1パスで集計する
  * @param {Object[]} matches - マッチデータ
  * @param {Object[]} matchMembers - マッチメンバーデータ
  * @param {Object[]} goals - 得点データ
  * @param {string[]} matchIds - 対象マッチIDの配列
  * @param {string} memberId - メンバーID
- * @return {number} 勝利数
+ * @return {Object} { goals: number, wins: number, played: number }
  */
-function countWins_(matches, matchMembers, goals, matchIds, memberId) {
-  var wins = 0;
-  matchIds.forEach(function(mMatchId) {
-    var mm = matchMembers.find(function(mm) { return mm['マッチID'] === mMatchId && mm['メンバーID'] === memberId; });
-    if (!mm) return;
+function calcMemberStats_(matches, matchMembers, goals, matchIds, memberId) {
+  var stats = { goals: 0, wins: 0, played: 0 };
 
-    var match = matches.find(function(mt) { return mt['マッチID'] === mMatchId; });
-    if (!match || match['ステータス'] !== '終了') return;
-
-    // スコアを得点テーブルから計算
-    var matchGoals = goals.filter(function(g) { return g['マッチID'] === mMatchId; });
-    var sA = matchGoals.filter(function(g) { return g['チーム'] === 'A'; }).length;
-    var sB = matchGoals.filter(function(g) { return g['チーム'] === 'B'; }).length;
-
-    if ((mm['チーム'] === 'A' && sA > sB) || (mm['チーム'] === 'B' && sB > sA)) {
-      wins++;
+  // 得点集計
+  goals.forEach(function(g) {
+    if (matchIds.indexOf(g['マッチID']) >= 0 && g['メンバーID'] === memberId && g['種別'] === '通常') {
+      stats.goals++;
     }
   });
-  return wins;
-}
 
-/**
- * メンバーの出場試合数を集計する
- * @param {Object[]} matchMembers - マッチメンバーデータ
- * @param {string[]} matchIds - 対象マッチIDの配列
- * @param {string} memberId - メンバーID
- * @return {number} 出場試合数
- */
-function countPlayed_(matchMembers, matchIds, memberId) {
-  return matchMembers.filter(function(mm) {
-    return matchIds.indexOf(mm['マッチID']) >= 0 && mm['メンバーID'] === memberId;
-  }).length;
+  // 出場・勝利集計
+  // まずマッチごとのスコアを事前計算
+  var matchScores = {};
+  goals.forEach(function(g) {
+    if (matchIds.indexOf(g['マッチID']) < 0) return;
+    if (!matchScores[g['マッチID']]) matchScores[g['マッチID']] = { A: 0, B: 0 };
+    if (g['チーム'] === 'A') matchScores[g['マッチID']].A++;
+    if (g['チーム'] === 'B') matchScores[g['マッチID']].B++;
+  });
+
+  matchMembers.forEach(function(mm) {
+    if (matchIds.indexOf(mm['マッチID']) < 0 || mm['メンバーID'] !== memberId) return;
+    stats.played++;
+
+    var match = matches.find(function(mt) { return mt['マッチID'] === mm['マッチID']; });
+    if (!match || match['ステータス'] !== '終了') return;
+
+    var sc = matchScores[mm['マッチID']] || { A: 0, B: 0 };
+    if ((mm['チーム'] === 'A' && sc.A > sc.B) || (mm['チーム'] === 'B' && sc.B > sc.A)) {
+      stats.wins++;
+    }
+  });
+
+  return stats;
 }
 
 // ===================================
@@ -134,23 +105,16 @@ function countPlayed_(matchMembers, matchIds, memberId) {
 /**
  * AI総合評価用のプロンプトを組み立てる
  * @param {string[]} participantIds - 参加メンバーIDの配列
- * @param {Object} memberMap - メンバーIDをキーにしたマップ
- * @param {Object[]} surveyComments - アンケート回答データ
- * @param {Object[]} goals - 得点データ
- * @param {Object[]} matches - マッチデータ
- * @param {Object[]} matchMembers - マッチメンバーデータ
- * @param {string[]} matchIds - 対象マッチIDの配列
+ * @param {Object} mvpData - getMvpData_の戻り値
  * @param {number} mvpCount - MVP人数
  * @param {number} subMvpCount - 準MVP人数
  * @return {string} プロンプト文字列
  */
-function buildMvpPrompt_(participantIds, memberMap, surveyComments, goals, matches, matchMembers, matchIds, mvpCount, subMvpCount) {
+function buildMvpPrompt_(participantIds, mvpData, mvpCount, subMvpCount) {
   var memberLines = participantIds.map(function(mId) {
-    var m = memberMap[mId] || {};
-    var totalGoals = countGoals_(goals, matchIds, mId);
-    var totalWins = countWins_(matches, matchMembers, goals, matchIds, mId);
-    var played = countPlayed_(matchMembers, matchIds, mId);
-    var comments = surveyComments
+    var m = mvpData.memberMap[mId] || {};
+    var stats = calcMemberStats_(mvpData.matches, mvpData.matchMembers, mvpData.goals, mvpData.matchIds, mId);
+    var comments = mvpData.surveyComments
       .filter(function(c) { return c['対象メンバーID'] === mId; })
       .map(function(c) { return '「' + (c['コメント'] || '') + '」'; });
 
@@ -160,9 +124,9 @@ function buildMvpPrompt_(participantIds, memberMap, surveyComments, goals, match
       '  年次: ' + (m['年次'] || '不明') + '\n' +
       '  備考: ' + (m['備考'] || 'なし') + '\n' +
       '  幹事: ' + (m['幹事'] || 'いいえ') + '\n' +
-      '  出場試合数: ' + played + '\n' +
-      '  得点数: ' + totalGoals + '\n' +
-      '  勝利数: ' + totalWins + '\n' +
+      '  出場試合数: ' + stats.played + '\n' +
+      '  得点数: ' + stats.goals + '\n' +
+      '  勝利数: ' + stats.wins + '\n' +
       '  チームメイトからのコメント: ' + (comments.length > 0 ? comments.join(', ') : 'なし');
   });
 
@@ -248,40 +212,38 @@ function parseMvpResponse_(responseText, participantIds, memberMap) {
       var m = memberMap[mId] || {};
       var item = parsed.find(function(p) { return p.memberId === mId; });
 
-      var score = 0;
-      var rank = '';
-      var title = '';
-      var reason = '';
-      var rating = 0;
-      var comment = '';
-
-      if (item) {
-        score = Math.max(0, Math.min(100, Math.round(Number(item.score) || 0)));
-        rank = item.rank || '';
-        title = item.title || '';
-        reason = item.reason || '';
-        rating = Math.max(0, Math.min(10, Math.round((Number(item.rating) || 0) * 10) / 10));
-        comment = item.comment || '';
+      if (!item) {
+        return { memberId: mId, name: m['名前'] || '不明', rank: '', title: '', reason: '', totalScore: 0, rating: 0, comment: '' };
       }
 
       return {
         memberId: mId,
         name: m['名前'] || '不明',
-        rank: rank,
-        title: title,
-        reason: reason,
-        totalScore: score,
-        rating: rating,
-        comment: comment
+        rank: item.rank || '',
+        title: item.title || '',
+        reason: item.reason || '',
+        totalScore: clamp_(Math.round(Number(item.score) || 0), 0, 100),
+        rating: clamp_(Math.round((Number(item.rating) || 0) * 10) / 10, 0, 10),
+        comment: item.comment || ''
       };
     });
 
-    // スコア降順でソート
     results.sort(function(a, b) { return b.totalScore - a.totalScore; });
     return results;
   } catch (e) {
     return { success: false, message: 'AI評価のレスポンス解析に失敗しました: ' + e.message };
   }
+}
+
+/**
+ * 値を指定範囲にクランプする
+ * @param {number} val - 値
+ * @param {number} min - 最小値
+ * @param {number} max - 最大値
+ * @return {number}
+ */
+function clamp_(val, min, max) {
+  return Math.max(min, Math.min(max, val));
 }
 
 // ===================================
@@ -296,18 +258,14 @@ function parseMvpResponse_(responseText, participantIds, memberMap) {
  */
 function saveMvpResults_(eventId, results) {
   deleteRowsByMatch_('MVP結果', 0, eventId);
-
   if (!results || results.length === 0) return;
 
-  // 行配列に変換して一括書き込み（appendRowの繰り返しより高速）
   var rows = results.map(function(r) {
     return [eventId, r.memberId, r.name, r.rank, r.title, r.reason, r.totalScore, r.rating, r.comment];
   });
 
   var ss = getSpreadsheet_();
-  var mvpSheet = ss.getSheetByName('MVP結果');
-  var lastRow = mvpSheet.getLastRow();
-  mvpSheet.getRange(lastRow + 1, 1, rows.length, rows[0].length).setValues(rows);
+  appendRows_(ss.getSheetByName('MVP結果'), rows);
 }
 
 // ===================================
@@ -316,7 +274,6 @@ function saveMvpResults_(eventId, results) {
 
 /**
  * MVP選出を実行する
- * 全データをGemini AIに渡し、総合的に0〜100点で評価する
  * イベントが「試合終了」状態の場合のみ実行可能
  * @param {string} eventId - イベントID
  * @param {number} mvpCount - MVP人数
@@ -326,50 +283,34 @@ function saveMvpResults_(eventId, results) {
 function selectMVP(eventId, mvpCount, subMvpCount) {
   var event = findEvent_(eventId);
   if (!event) return { success: false, message: 'イベントが見つかりません' };
-
-  // ステータスチェック
-  var status = event['ステータス'];
-  if (status !== '試合終了') {
+  if (event['ステータス'] !== '試合終了') {
     return { success: false, message: 'MVP選出は試合終了後のみ可能です' };
   }
 
   mvpCount = Number(mvpCount) || 1;
   subMvpCount = Number(subMvpCount) || 1;
 
-  // アンケート回答を自動取得（フォームが作成済みの場合）
+  // アンケート回答を自動取得
   if (event['フォームID']) {
     fetchSurveyResponses(eventId);
   }
 
-  // データ取得
   var data = getMvpData_(eventId);
-
-  // 参加メンバー抽出
   var participantIds = getParticipantIds_(data.matchMembers, data.matchIds);
   if (participantIds.length === 0) {
     return { success: false, message: '参加メンバーがいません' };
   }
 
-  // Gemini AI 総合評価
-  var prompt = buildMvpPrompt_(
-    participantIds, data.memberMap, data.surveyComments,
-    data.goals, data.matches, data.matchMembers, data.matchIds,
-    mvpCount, subMvpCount
-  );
+  var prompt = buildMvpPrompt_(participantIds, data, mvpCount, subMvpCount);
   var responseText = callGemini_(prompt);
   if (!responseText) {
     return { success: false, message: 'AI評価に失敗しました。GEMINI_API_KEY の設定とAPIの状態を確認してください。' };
   }
 
-  // レスポンス解析
   var results = parseMvpResponse_(responseText, participantIds, data.memberMap);
-  if (results.success === false) {
-    return results;
-  }
+  if (results.success === false) return results;
 
-  // 結果をスプレッドシートに保存
   saveMvpResults_(eventId, results);
-
   return { success: true, results: results, message: 'MVP選出が完了しました' };
 }
 

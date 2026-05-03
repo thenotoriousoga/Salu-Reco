@@ -66,16 +66,12 @@ function renderMemberList(members, surveyVoters) {
  */
 function memberItemHtml_(m, isQueue, hasAnswered, canEdit) {
   var id = isQueue ? '' : m['メンバーID'];
-  var name = isQueue ? m.name : m['名前'];
-  var years = isQueue ? m.years : m['年次'];
-  var expLabel = isQueue ? (m.exp ? 'あり' : 'なし') : m['サッカー経験'];
-  var orgLabel = isQueue ? (m.org ? 'はい' : 'いいえ') : m['幹事'];
-  var note = isQueue ? (m.note || '') : (m['備考'] || '');
+  var a = extractMemberAttrs_(m, isQueue);
 
   // アイコン部分（幹事→経験→回答済の順）
   var icons = '';
-  if (orgLabel === 'はい') icons += '<span class="member-icon" title="幹事">👔</span>';
-  if (expLabel === 'あり') icons += '<span class="member-icon" title="サッカー経験あり">⚽</span>';
+  if (a.orgLabel === 'はい') icons += '<span class="member-icon" title="幹事">👔</span>';
+  if (a.expLabel === 'あり') icons += '<span class="member-icon" title="サッカー経験あり">⚽</span>';
   if (hasAnswered) icons += '<span class="member-icon member-icon-survey" title="アンケート回答済">✓</span>';
 
   // 編集ボタン（管理者のみ）
@@ -87,10 +83,10 @@ function memberItemHtml_(m, isQueue, hasAnswered, canEdit) {
   }
 
   // 名前（n年目）
-  var nameWithYears = esc(name) + '<span class="member-years">（' + years + '年目）</span>';
+  var nameWithYears = esc(a.name) + '<span class="member-years">（' + a.years + '年目）</span>';
 
   // 2行目: 備考のみ
-  var subLine = note ? esc(note) : '';
+  var subLine = a.note ? esc(a.note) : '';
 
   // クリックで編集（管理者のみ）
   var clickAttr = (canEdit && id) ? ' onclick="openMemberEdit(\'' + id + '\')" style="cursor:pointer;"' : '';
@@ -108,16 +104,29 @@ function memberItemHtml_(m, isQueue, hasAnswered, canEdit) {
   return html;
 }
 
-function memberBadgesHtml(m, isQueue, hasAnswered) {
-  // キュー用（従来形式を維持）
-  var years = isQueue ? m.years : m['年次'];
-  var expLabel = isQueue ? (m.exp ? 'あり' : 'なし') : m['サッカー経験'];
-  var orgLabel = isQueue ? (m.org ? 'はい' : 'いいえ') : m['幹事'];
-  var note = isQueue ? (m.note || '') : (m['備考'] || '');
+/**
+ * メンバーオブジェクトからキュー/登録済み共通の属性を取得する
+ * @param {Object} m - メンバーオブジェクト
+ * @param {boolean} isQueue - キュー内のメンバーか
+ * @return {Object} { name, years, expLabel, orgLabel, note }
+ */
+function extractMemberAttrs_(m, isQueue) {
+  return {
+    name: isQueue ? m.name : m['名前'],
+    years: isQueue ? m.years : m['年次'],
+    expLabel: isQueue ? (m.exp ? 'あり' : 'なし') : m['サッカー経験'],
+    orgLabel: isQueue ? (m.org ? 'はい' : 'いいえ') : m['幹事'],
+    note: isQueue ? (m.note || '') : (m['備考'] || '')
+  };
+}
+
+/** キュー表示用のバッジHTML */
+function memberBadgesHtml(m, isQueue) {
+  var a = extractMemberAttrs_(m, isQueue);
   var icons = '';
-  if (orgLabel === 'はい') icons += '<span class="member-icon" title="幹事">👔</span>';
-  if (expLabel === 'あり') icons += '<span class="member-icon" title="サッカー経験あり">⚽</span>';
-  return '（' + years + '年目） ' + icons + (note ? ' <span style="color:var(--text-muted);font-size:0.8rem;">' + esc(note) + '</span>' : '');
+  if (a.orgLabel === 'はい') icons += '<span class="member-icon" title="幹事">👔</span>';
+  if (a.expLabel === 'あり') icons += '<span class="member-icon" title="サッカー経験あり">⚽</span>';
+  return '（' + a.years + '年目） ' + icons + (a.note ? ' <span style="color:var(--text-muted);font-size:0.8rem;">' + esc(a.note) + '</span>' : '');
 }
 
 function addToQueue() {
@@ -131,9 +140,7 @@ function addToQueue() {
   if (memberQueue.find(function(q) { return q.name === name; })) { showToast(name + ' はもう追加済みです', true); return; }
   memberQueue.push({ name: name, years: Number(years) || 1, exp: exp, org: org, note: note });
   document.getElementById('m-name').value = '';
-  var noteEl = document.getElementById('m-note');
   if (noteEl) noteEl.value = '';
-  // 備考フィールドを閉じる
   var noteField = document.getElementById('note-field');
   if (noteField) noteField.style.display = 'none';
   document.getElementById('m-name').focus();

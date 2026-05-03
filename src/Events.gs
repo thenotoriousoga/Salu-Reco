@@ -1,6 +1,6 @@
 // ===================================
 // イベント管理
-// イベントCRUD（作成・取得・更新）
+// イベントCRUD（作成・取得・更新・ステータス遷移）
 // ===================================
 
 // ===================================
@@ -27,12 +27,10 @@ function findEvent_(eventId) {
 
 /**
  * イベント詳細を取得する（メンバー・ラウンド・MVP結果含む）
- * 全データを一括取得してからフィルタリングすることで高速化
  * @param {string} eventId - イベントID
  * @return {Object|null} イベント詳細データ
  */
 function getEventDetail(eventId) {
-  // 必要な全シートを一括取得
   var data = getMultipleSheetData_(['イベント', 'メンバー', 'ラウンド', 'マッチ', 'マッチメンバー', '得点', 'MVP結果']);
 
   var event = data['イベント'].find(function(e) { return e['イベントID'] === eventId; });
@@ -41,37 +39,13 @@ function getEventDetail(eventId) {
   var members = data['メンバー'].filter(function(m) { return m['イベントID'] === eventId; });
   var memberMap = buildMap_(members, 'メンバーID');
 
-  // ラウンドとマッチデータを構築
-  var eventRounds = data['ラウンド'].filter(function(r) { return r['イベントID'] === eventId; });
-  var allMatches = data['マッチ'];
-  var matchMembers = data['マッチメンバー'];
-  var goals = data['得点'];
-
-  var rounds = eventRounds.map(function(round) {
-    var rId = round['ラウンドID'];
-    var splitData = null;
-    try { splitData = JSON.parse(round['チーム分けJSON']); } catch (e) { splitData = null; }
-
-    var rMatches = allMatches
-      .filter(function(m) { return m['ラウンドID'] === rId; })
-      .sort(function(a, b) { return a['マッチ番号'] - b['マッチ番号']; });
-
-    var matchesData = rMatches.map(function(match) {
-      return buildMatchData_(match, matchMembers, goals, memberMap);
-    });
-
-    return {
-      id: rId,
-      roundNumber: round['ラウンド番号'],
-      status: round['ステータス'],
-      splitData: splitData,
-      matches: matchesData
-    };
-  }).sort(function(a, b) { return a.roundNumber - b.roundNumber; });
+  var rounds = buildRoundsData_(
+    data['ラウンド'].filter(function(r) { return r['イベントID'] === eventId; }),
+    data['マッチ'], data['マッチメンバー'], data['得点'], memberMap
+  );
 
   var mvpResults = data['MVP結果'].filter(function(r) { return r['イベントID'] === eventId; });
 
-  // アンケート回答者を取得
   var surveyVoters = [];
   if (event['フォームID']) {
     surveyVoters = getSurveyVoters(eventId);
@@ -103,7 +77,6 @@ function createNewEvent(date, name, code) {
   }
   code = code.trim().toUpperCase();
 
-  // コード重複チェック
   var existing = getSheetData_('イベント');
   var dup = existing.find(function(e) { return String(e['コード']).toUpperCase() === code; });
   if (dup) {
@@ -123,7 +96,7 @@ function createNewEvent(date, name, code) {
 // ===================================
 
 /**
- * イベントの特定フィールドを更新する（内部用）
+ * イベントの特定フィールドを更新する
  * @param {string} eventId - イベントID
  * @param {number} colIndex - 列インデックス（1始まり）
  * @param {*} value - 設定する値
@@ -149,6 +122,10 @@ function updateEventStatus(eventId, status) {
   return { success: true };
 }
 
+// ===================================
+// ステータス遷移
+// ===================================
+
 /**
  * イベントを「試合終了」状態にする
  * 全ラウンド・全マッチが終了している必要がある
@@ -158,29 +135,24 @@ function updateEventStatus(eventId, status) {
 function endEvent(eventId) {
   var event = findEvent_(eventId);
   if (!event) return { success: false, message: 'イベントが見つかりません' };
-
-  var status = event['ステータス'];
-  if (status !== '進行中') {
+  if (event['ステータス'] !== '進行中') {
     return { success: false, message: '進行中のイベントのみ終了できます' };
   }
 
-  // 全ラウンド・全マッチが終了しているかチェック
+  // 全ラウンド・全マッチの終了チェック
   var data = getMultipleSheetData_(['ラウンド', 'マッチ']);
   var rounds = data['ラウンド'].filter(function(r) { return r['イベントID'] === eventId; });
 
   if (rounds.length === 0) {
     return { success: false, message: 'ラウンドがありません' };
   }
-
-  var hasOngoingRound = rounds.some(function(r) { return r['ステータス'] !== '終了'; });
-  if (hasOngoingRound) {
+  if (rounds.some(function(r) { return r['ステータス'] !== '終了'; })) {
     return { success: false, message: '進行中のラウンドがあります。先にラウンドを終了してください' };
   }
 
   var roundIds = rounds.map(function(r) { return r['ラウンドID']; });
   var matches = data['マッチ'].filter(function(m) { return roundIds.indexOf(m['ラウンドID']) >= 0; });
-  var hasOngoingMatch = matches.some(function(m) { return m['ステータス'] !== '終了'; });
-  if (hasOngoingMatch) {
+  if (matches.some(function(m) { return m['ステータス'] !== '終了'; })) {
     return { success: false, message: '進行中の試合があります。先に試合を終了してください' };
   }
 
@@ -196,9 +168,7 @@ function endEvent(eventId) {
 function reopenEvent(eventId) {
   var event = findEvent_(eventId);
   if (!event) return { success: false, message: 'イベントが見つかりません' };
-
-  var status = event['ステータス'];
-  if (status !== '試合終了') {
+  if (event['ステータス'] !== '試合終了') {
     return { success: false, message: '試合終了状態のイベントのみ再開できます' };
   }
 
@@ -215,22 +185,11 @@ function reopenEvent(eventId) {
 function completeEvent(eventId) {
   var event = findEvent_(eventId);
   if (!event) return { success: false, message: 'イベントが見つかりません' };
-
-  var status = event['ステータス'];
-  if (status !== '試合終了') {
+  if (event['ステータス'] !== '試合終了') {
     return { success: false, message: '試合終了状態のイベントのみ完了にできます' };
   }
 
-  // Googleフォームの回答受付を停止
-  if (event['フォームID']) {
-    try {
-      var form = FormApp.openById(event['フォームID']);
-      form.setAcceptingResponses(false);
-    } catch (e) {
-      // フォームが見つからない場合は無視
-    }
-  }
-
+  setFormAccepting_(event['フォームID'], false);
   updateEventStatus(eventId, '完了');
   return { success: true, message: 'イベントを完了しました' };
 }
@@ -244,22 +203,25 @@ function completeEvent(eventId) {
 function uncompleteEvent(eventId) {
   var event = findEvent_(eventId);
   if (!event) return { success: false, message: 'イベントが見つかりません' };
-
-  var status = event['ステータス'];
-  if (status !== '完了') {
+  if (event['ステータス'] !== '完了') {
     return { success: false, message: '完了状態のイベントのみ差し戻しできます' };
   }
 
-  // Googleフォームの回答受付を再開
-  if (event['フォームID']) {
-    try {
-      var form = FormApp.openById(event['フォームID']);
-      form.setAcceptingResponses(true);
-    } catch (e) {
-      // フォームが見つからない場合は無視
-    }
-  }
-
+  setFormAccepting_(event['フォームID'], true);
   updateEventStatus(eventId, '試合終了');
   return { success: true, message: 'イベントを試合終了に戻しました' };
+}
+
+/**
+ * Googleフォームの回答受付状態を変更する
+ * @param {string} formId - フォームID
+ * @param {boolean} accepting - 受付するかどうか
+ */
+function setFormAccepting_(formId, accepting) {
+  if (!formId) return;
+  try {
+    FormApp.openById(formId).setAcceptingResponses(accepting);
+  } catch (e) {
+    // フォームが見つからない場合は無視
+  }
 }
