@@ -64,6 +64,19 @@ function renderEventStats() {
   var segBar = document.getElementById('stats-segment');
   var members = currentMembers;
 
+  // 準備中の場合はガイドメッセージを表示
+  if (currentEventStatus === '準備中') {
+    segBar.style.display = 'none';
+    var msg = isAdmin()
+      ? '準備ができたら、ステータスを「進行中」に変更してください'
+      : 'イベントが開始されるまでお待ちください';
+    c.innerHTML = '<div class="empty-state">' +
+      '<svg aria-hidden="true" style="width:48px;height:48px;stroke:var(--border);fill:none;stroke-width:1.5;" viewBox="0 0 24 24">' +
+      '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>' +
+      '<p>' + esc(msg) + '</p></div>';
+    return;
+  }
+
   if (!members || members.length === 0) {
     segBar.style.display = 'none';
     c.innerHTML = '<div class="empty-state">' +
