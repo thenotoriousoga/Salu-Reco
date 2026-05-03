@@ -287,10 +287,11 @@ function renderSurveyLink(ev) {
   var h = '';
 
   if (formUrl) {
-    // アンケートリンク表示
-    h += '<a href="' + esc(formUrl) + '" target="_blank" class="survey-link-compact">' +
-      svg(IC.file, 14) + ' アンケートに回答</a>';
-    // 再作成リンク（管理者のみ、目立たなく）
+    // 準備中は回答リンクを非表示（管理者の再作成のみ許可）
+    if (status !== '準備中') {
+      h += '<a href="' + esc(formUrl) + '" target="_blank" class="survey-link-compact">' +
+        svg(IC.file, 14) + ' アンケートに回答</a>';
+    }
     if (isAdmin()) {
       h += '<a href="javascript:void(0)" class="survey-recreate-link" onclick="recreateSurvey()">再作成</a>';
     }
