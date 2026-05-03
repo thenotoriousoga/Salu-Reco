@@ -65,59 +65,34 @@ function getSpreadsheet_() {
 
 /**
  * シートが存在しなければ作成してヘッダーを設定する
- * 既存シートのヘッダーがSHEET_HEADERS_と異なる場合はヘッダー行のみ上書きする
+ * 既存シートのヘッダーには触れない
  * @param {Spreadsheet} ss - スプレッドシート
  * @param {string} sheetName - シート名
  * @return {Sheet} 作成済みまたは既存のシート
  */
 function ensureSheet_(ss, sheetName) {
-  var headers = SHEET_HEADERS_[sheetName];
   var sheet = ss.getSheetByName(sheetName);
-
   if (!sheet) {
     sheet = ss.insertSheet(sheetName);
+    var headers = SHEET_HEADERS_[sheetName];
     if (headers) sheet.appendRow(headers);
-    return sheet;
   }
-
-  if (headers) {
-    var currentHeaders = sheet.getLastColumn() > 0
-      ? sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]
-      : [];
-
-    if (headersNeedUpdate_(headers, currentHeaders)) {
-      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-      if (currentHeaders.length > headers.length) {
-        sheet.getRange(1, headers.length + 1, 1, currentHeaders.length - headers.length).clearContent();
-      }
-    }
-  }
-
   return sheet;
 }
 
 /**
- * ヘッダーの更新が必要か判定する
- * @param {string[]} expected - 期待するヘッダー
- * @param {string[]} current - 現在のヘッダー
- * @return {boolean}
- */
-function headersNeedUpdate_(expected, current) {
-  if (expected.length !== current.length) return true;
-  for (var i = 0; i < expected.length; i++) {
-    if (expected[i] !== current[i]) return true;
-  }
-  return false;
-}
-
-/**
- * 全シートを初期化する
+ * 全シートを初期化する（手動実行用）
+ * シートが存在しなければ作成し、ヘッダー行を上書きする
  * @return {string} 完了メッセージ
  */
 function initializeSheets() {
   var ss = getSpreadsheet_();
   Object.keys(SHEET_HEADERS_).forEach(function(name) {
-    ensureSheet_(ss, name);
+    var sheet = ensureSheet_(ss, name);
+    var headers = SHEET_HEADERS_[name];
+    if (headers) {
+      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    }
   });
 
   var defaultSheet = ss.getSheetByName('Sheet1') || ss.getSheetByName('シート1');
