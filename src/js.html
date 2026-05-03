@@ -276,12 +276,8 @@ function buildState_() {
 function parseParams_(params) {
   if (!params) return { page: 'home', eventId: null, tab: null };
   var page = params.page || 'home';
-  if (typeof page === 'object') page = page[0];
   var eventId = params.event || null;
-  if (typeof eventId === 'object') eventId = eventId[0];
-  var tabParam = params.tab || 'members';
-  if (typeof tabParam === 'object') tabParam = tabParam[0];
-  var tab = PARAM_TO_TAB_[tabParam] || 'tab-members';
+  var tab = PARAM_TO_TAB_[params.tab || 'members'] || 'tab-members';
   if (page === 'events' && eventId) {
     return { page: 'events', eventId: eventId, tab: tab };
   }

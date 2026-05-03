@@ -31,32 +31,23 @@ var ssCache_ = null;
 
 /**
  * スプレッドシートを取得する（キャッシュ付き）
- * 1. キャッシュがあればそれを返す
- * 2. スクリプトプロパティ SPREADSHEET_ID から取得
- * 3. コンテナバインドスクリプトの場合は自動取得
+ * スクリプトプロパティ SPREADSHEET_ID から取得する
  * @return {Spreadsheet} スプレッドシート
- * @throws {Error} スプレッドシートが見つからない場合
+ * @throws {Error} SPREADSHEET_ID が未設定の場合
  */
 function getSpreadsheet_() {
   if (ssCache_) return ssCache_;
 
-  var props = PropertiesService.getScriptProperties();
-  var ssId = props.getProperty('SPREADSHEET_ID');
-  if (ssId) {
-    ssCache_ = SpreadsheetApp.openById(ssId);
-    return ssCache_;
+  var ssId = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
+  if (!ssId) {
+    throw new Error(
+      'スプレッドシートが見つかりません。スクリプトプロパティに SPREADSHEET_ID を設定してください。' +
+      '（Apps Script エディタ → プロジェクトの設定 → スクリプトプロパティ）'
+    );
   }
 
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  if (ss) {
-    ssCache_ = ss;
-    return ssCache_;
-  }
-
-  throw new Error(
-    'スプレッドシートが見つかりません。スクリプトプロパティに SPREADSHEET_ID を設定してください。' +
-    '（Apps Script エディタ → プロジェクトの設定 → スクリプトプロパティ）'
-  );
+  ssCache_ = SpreadsheetApp.openById(ssId);
+  return ssCache_;
 }
 
 // ===================================
