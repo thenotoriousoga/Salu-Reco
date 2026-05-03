@@ -42,39 +42,32 @@ function ratingClass_(rating) {
 function renderEventStats() {
   var c = document.getElementById('event-stats');
   var segBar = document.getElementById('stats-segment');
-  var isFinished = currentEventStatus === '試合終了' || currentEventStatus === '完了';
-  var hasMvp = cachedMvpData && cachedMvpData.length > 0;
+  var members = currentMembers;
 
-  var statsEmpty = '<div class="empty-state">' +
-    '<svg aria-hidden="true" style="width:48px;height:48px;stroke:var(--border);fill:none;stroke-width:1.5;" viewBox="0 0 24 24">' +
-    '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>' +
-    '<p>まだ試合が行われていません</p>' +
-    '<p class="empty-sub">試合タブからラウンドを作成してください</p></div>';
-
-  if (!isFinished || !hasMvp) {
+  if (!members || members.length === 0) {
     segBar.style.display = 'none';
-    c.innerHTML = statsEmpty;
+    c.innerHTML = '<div class="empty-state">' +
+      '<svg aria-hidden="true" style="width:48px;height:48px;stroke:var(--border);fill:none;stroke-width:1.5;" viewBox="0 0 24 24">' +
+      '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>' +
+      '<p>メンバーを登録してください</p></div>';
     return;
   }
 
   var rounds = cachedRounds;
-  var members = currentMembers;
 
   // 全マッチをフラットに収集（ラウンド情報付き）
   var allMatches = [];
-  rounds.forEach(function(r) {
-    if (r.matches) r.matches.forEach(function(m) {
-      allMatches.push({ match: m, roundNumber: r.roundNumber });
+  if (rounds) {
+    rounds.forEach(function(r) {
+      if (r.matches) r.matches.forEach(function(m) {
+        allMatches.push({ match: m, roundNumber: r.roundNumber });
+      });
     });
-  });
-  if (allMatches.length === 0) {
-    segBar.style.display = 'none';
-    c.innerHTML = statsEmpty;
-    return;
   }
 
-  // MVP結果があるか確認（スタッツモード表示判定）
-  var hasMvp = cachedMvpData && cachedMvpData.length > 0 && cachedMvpData.some(function(r) { return Number(r['レーティング']) > 0; });
+  // スタッツタブ表示判定（試合終了以降 かつ MVPデータあり）
+  var isFinished = currentEventStatus === '試合終了' || currentEventStatus === '完了';
+  var hasMvp = isFinished && cachedMvpData && cachedMvpData.length > 0 && cachedMvpData.some(function(r) { return Number(r['レーティング']) > 0; });
 
   // セグメントバーの表示・更新
   segBar.style.display = 'flex';
