@@ -94,17 +94,17 @@ function memberItemHtml_(m, isQueue, hasAnswered, canEdit) {
   // クリックで編集（管理者のみ）
   var clickAttr = (canEdit && id) ? ' onclick="openMemberEdit(\'' + id + '\')" style="cursor:pointer;"' : '';
 
-  // 意気込み編集ボタン（自分のメンバーかつ管理者でない場合のみ）
+  // 意気込み編集ボタン（自分のメンバーの場合）
   var spiritBtn = '';
-  if (!isQueue && id && currentMemberId === id && !isAdmin()) {
-    spiritBtn = '<button class="btn btn-sm btn-secondary" onclick="openSpiritEdit(\'' + id + '\')" style="margin-left:auto;padding:4px 8px;font-size:0.75rem;">✏️ 意気込み</button>';
+  if (!isQueue && id && currentMemberId === id) {
+    spiritBtn = '<button class="btn btn-sm btn-secondary" onclick="openSpiritEdit(\'' + id + '\')" style="padding:4px 8px;font-size:0.75rem;">✏️ 意気込み</button>';
   }
 
   var html = '<div class="member-item-v2">' +
     '<div class="member-main">' +
     '<span class="member-name-v2"' + clickAttr + '>' + nameWithYears + '</span>' +
     '<span class="member-icons">' + icons + '</span>' +
-    editBtn + spiritBtn +
+    '<span style="margin-left:auto;display:flex;gap:4px;">' + spiritBtn + editBtn + '</span>' +
     '</div>';
   if (subLine) {
     html += '<div class="member-sub">' + subLine + '</div>';
