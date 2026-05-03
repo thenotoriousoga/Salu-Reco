@@ -286,17 +286,23 @@ function renderSurveyLink(ev) {
 
   var h = '';
 
-  if (formUrl) {
-    // 準備中は回答リンクを非表示（管理者の再作成のみ許可）
-    if (status !== '準備中') {
-      h += '<a href="' + esc(formUrl) + '" target="_blank" class="survey-link-compact">' +
-        svg(IC.file, 14) + ' アンケートに回答</a>';
+  if (status === '準備中') {
+    // 準備中: 作成/再作成ボタンのみ（管理者のみ）
+    if (isAdmin() && hasMembers) {
+      var label = formUrl ? 'アンケート再作成' : 'アンケート作成';
+      var action = formUrl ? 'recreateSurvey()' : 'createSurvey()';
+      h += '<button class="btn btn-sm btn-secondary" onclick="' + action + '">' +
+        svg(IC.file, 14) + ' ' + label + '</button>';
     }
+  } else if (formUrl) {
+    // 進行中〜: 回答リンク + 再作成（管理者のみ）
+    h += '<a href="' + esc(formUrl) + '" target="_blank" class="survey-link-compact">' +
+      svg(IC.file, 14) + ' アンケートに回答</a>';
     if (isAdmin()) {
       h += '<a href="javascript:void(0)" class="survey-recreate-link" onclick="recreateSurvey()">再作成</a>';
     }
   } else if (isAdmin() && hasMembers) {
-    // 作成ボタン（管理者のみ）
+    // 進行中〜 + 未作成: 作成ボタン（管理者のみ）
     h += '<button class="btn btn-sm btn-secondary" onclick="createSurvey()">' +
       svg(IC.file, 14) + ' アンケート作成</button>';
   }
