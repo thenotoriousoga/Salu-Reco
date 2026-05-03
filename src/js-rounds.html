@@ -381,9 +381,11 @@ function renderRoundsList(rounds) {
           svg('<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>', 14) + ' 次の試合へ</button>';
         addMatchArea = '<div id="add-match-' + round.id + '" style="display:none;"></div>';
       }
+      var endRoundBtn = isAdmin()
+        ? '<button class="btn btn-sm btn-secondary" onclick="doEndRound(\'' + round.id + '\')" style="margin-left:auto;">' + svg(IC.flag, 14) + ' ラウンド終了</button>'
+        : '';
       roundBottomH = '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:8px;border-top:1px solid var(--border-light);">' +
-        addMatchBtn +
-        '<button class="btn btn-sm btn-secondary" onclick="doEndRound(\'' + round.id + '\')" style="margin-left:auto;">' + svg(IC.flag, 14) + ' ラウンド終了</button></div>' +
+        addMatchBtn + endRoundBtn + '</div>' +
         addMatchArea;
     }
 
