@@ -688,14 +688,29 @@ function changeGoal(matchId, team, memberId, type, delta) {
 
   el.textContent = Math.max(0, cur + delta);
   recalcScoresFromGoals(matchId);
+}
 
-  // サーバーに即座に保存
-  var handler = function() { showToast(delta > 0 ? '得点保存に失敗しました' : '得点削除に失敗しました', true); };
-  if (delta > 0) {
-    google.script.run.withFailureHandler(handler).addGoal(matchId, team, memberId, type);
-  } else {
-    google.script.run.withFailureHandler(handler).removeLatestGoal(matchId, team, memberId, type);
-  }
+/**
+ * 得点パネルから全得点データを収集する
+ * @param {string} matchId - マッチID
+ * @return {Object[]} 得点データ配列 [{ team, memberId, type }, ...]
+ */
+function collectGoalsFromPanel_(matchId) {
+  var goals = [];
+  ['A', 'B'].forEach(function(team) {
+    var panel = document.getElementById('goal-panel-' + matchId + '-' + team);
+    if (!panel) return;
+    panel.querySelectorAll('.goal-player').forEach(function(row) {
+      var member = row.getAttribute('data-member') || '';
+      var type = row.getAttribute('data-type') || '通常';
+      var countEl = row.querySelector('.goal-count span[id^="gc-"]');
+      var count = countEl ? (parseInt(countEl.textContent) || 0) : 0;
+      for (var i = 0; i < count; i++) {
+        goals.push({ team: team, memberId: member, type: type });
+      }
+    });
+  });
+  return goals;
 }
 
 /** 得点パネルからスコアを再計算 */
@@ -718,7 +733,8 @@ function recalcScoresFromGoals(matchId) {
 }
 
 function endMatch(matchId) {
-  callServer('endMatch', [matchId], function(r) { if (r.success) { showToast(r.message); openEvent(currentEventId, 'tab-rounds'); } });
+  var goals = collectGoalsFromPanel_(matchId);
+  callServer('endMatch', [matchId, goals], function(r) { if (r.success) { showToast(r.message); openEvent(currentEventId, 'tab-rounds'); } });
 }
 
 function reopenMatch(matchId) {

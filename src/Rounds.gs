@@ -203,58 +203,26 @@ function createMatch(roundId, teamAName, teamBName, teamAMembers, teamBMembers) 
 }
 
 /**
- * 得点を追加する（1得点=1行）
+ * マッチを終了し、得点データを一括保存する
  * @param {string} matchId - マッチID
- * @param {string} team - チーム（A / B）
- * @param {string} memberId - メンバーID（オウンゴール・不明の場合は空文字）
- * @param {string} type - 種別（通常 / オウンゴール / 不明）
- * @return {Object} 結果オブジェクト { success, goalId }
- */
-function addGoal(matchId, team, memberId, type) {
-  var ss = getSpreadsheet_();
-  var sheet = ensureSheet_(ss, '得点');
-  var goalId = generateId_();
-  sheet.appendRow([goalId, matchId, team, memberId || '', type || '通常']);
-  return { success: true, goalId: goalId };
-}
-
-/**
- * 指定メンバーの最新の得点を1つ削除する
- * @param {string} matchId - マッチID
- * @param {string} team - チーム（A / B）
- * @param {string} memberId - メンバーID（オウンゴール・不明の場合は空文字）
- * @param {string} type - 種別（通常 / オウンゴール / 不明）
- * @return {Object} 結果オブジェクト { success }
- */
-function removeLatestGoal(matchId, team, memberId, type) {
-  var ss = getSpreadsheet_();
-  var sheet = ss.getSheetByName('得点');
-  if (!sheet || sheet.getLastRow() < 2) return { success: false };
-
-  var data = sheet.getDataRange().getValues();
-  var normalizedMemberId = memberId || '';
-
-  // 後ろから検索して最初に見つかった該当行を削除
-  for (var i = data.length - 1; i >= 1; i--) {
-    if (data[i][1] === matchId && data[i][2] === team &&
-        data[i][3] === normalizedMemberId && data[i][4] === type) {
-      sheet.deleteRow(i + 1);
-      return { success: true };
-    }
-  }
-  return { success: false };
-}
-
-/**
- * マッチを終了する
- * @param {string} matchId - マッチID
+ * @param {Object[]} goals - 得点データの配列
+ *   各要素: { team: string, memberId: string, type: string }
  * @return {Object} 結果オブジェクト { success, message }
  */
-function endMatch(matchId) {
+function endMatch(matchId, goals) {
   var ss = getSpreadsheet_();
   var sheet = ss.getSheetByName('マッチ');
   var rowIndex = findRowIndex_(sheet, 0, matchId);
   if (rowIndex === -1) return { success: false };
+
+  // 既存の得点を削除して新しい得点を一括書き込み
+  deleteRowsByMatch_('得点', 1, matchId);
+  if (goals && goals.length > 0) {
+    var rows = goals.map(function(g) {
+      return [generateId_(), matchId, g.team, g.memberId || '', g.type || '通常'];
+    });
+    appendRows_(ensureSheet_(ss, '得点'), rows);
+  }
 
   sheet.getRange(rowIndex, 6).setValue('終了');
   return { success: true, message: '試合終了！次の戦いはもう始まっている' };
