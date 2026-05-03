@@ -328,7 +328,19 @@ function renderRoundsList(rounds) {
     return;
   }
 
-  if (!rounds || rounds.length === 0) { c.innerHTML = ''; return; }
+  if (!rounds || rounds.length === 0) {
+    // 進行中でラウンド未作成の一般ユーザーにはメッセージを表示
+    if (currentEventStatus === '進行中' && !isAdmin()) {
+      c.innerHTML = '<div class="card"><div class="empty-state">' +
+        '<svg aria-hidden="true" style="width:48px;height:48px;stroke:var(--border);fill:none;stroke-width:1.5;" viewBox="0 0 24 24">' +
+        '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>' +
+        '<path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>' +
+        '<p>チーム分け中です。しばらくお待ちください</p></div></div>';
+    } else {
+      c.innerHTML = '';
+    }
+    return;
+  }
   var mm = buildMemberMapFromCurrent_();
   var canEditMatch = currentEventStatus === '進行中';
 
