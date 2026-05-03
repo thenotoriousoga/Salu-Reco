@@ -46,7 +46,7 @@ function renderMemberList(members, surveyVoters) {
   // 見出しに凡例を追加
   var heading = document.querySelector('#tab-members .card:last-child h3');
   if (heading && !heading.querySelector('.member-legend-inline')) {
-    heading.innerHTML = 'メンバー一覧 ' + memberLegendHtml_();
+    heading.innerHTML = '<svg class="section-icon" style="width:18px;height:18px;" viewBox="0 0 24 24" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> 選手一覧 ' + memberLegendHtml_();
   }
 
   // メンバー登録フォームの表示制御
