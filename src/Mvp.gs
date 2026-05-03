@@ -313,12 +313,3 @@ function selectMVP(eventId, mvpCount, subMvpCount) {
   saveMvpResults_(eventId, results);
   return { success: true, results: results, message: 'MVP選出が完了しました' };
 }
-
-/**
- * MVP選出結果を取得する
- * @param {string} eventId - イベントID
- * @return {Object[]} MVP結果データの配列
- */
-function getMvpResults(eventId) {
-  return getSheetData_('MVP結果').filter(function(r) { return r['イベントID'] === eventId; });
-}

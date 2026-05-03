@@ -36,21 +36,8 @@ function createRound(eventId, teamNames, teams) {
 }
 
 /**
- * イベントのラウンド一覧を取得する（マッチ情報含む）
- * @param {string} eventId - イベントID
- * @return {Object[]} ラウンドデータの配列
- */
-function getRounds(eventId) {
-  var data = getMultipleSheetData_(['ラウンド', 'マッチ', 'マッチメンバー', '得点', 'メンバー']);
-  var memberMap = buildMap_(data['メンバー'], 'メンバーID');
-  var eventRounds = data['ラウンド'].filter(function(r) { return r['イベントID'] === eventId; });
-
-  return buildRoundsData_(eventRounds, data['マッチ'], data['マッチメンバー'], data['得点'], memberMap);
-}
-
-/**
  * ラウンド配列からクライアント用データ構造を構築する
- * getEventDetail / getRounds の共通処理
+ * getEventDetail の内部処理
  * @param {Object[]} eventRounds - イベントに紐づくラウンドデータ
  * @param {Object[]} allMatches - 全マッチデータ
  * @param {Object[]} matchMembers - 全マッチメンバーデータ
@@ -230,23 +217,6 @@ function addGoal(matchId, team, memberId, type) {
   var goalId = generateId_();
   sheet.appendRow([goalId, matchId, team, memberId || '', type || '通常']);
   return { success: true, goalId: goalId };
-}
-
-/**
- * 得点を削除する
- * @param {string} goalId - 得点ID
- * @return {Object} 結果オブジェクト { success }
- */
-function removeGoal(goalId) {
-  var ss = getSpreadsheet_();
-  var sheet = ss.getSheetByName('得点');
-  if (!sheet) return { success: false };
-
-  var rowIndex = findRowIndex_(sheet, 0, goalId);
-  if (rowIndex === -1) return { success: false };
-
-  sheet.deleteRow(rowIndex);
-  return { success: true };
 }
 
 /**

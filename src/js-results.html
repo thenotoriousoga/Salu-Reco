@@ -268,8 +268,6 @@ function renderPostMatch(event, rounds, mvpResults) {
   if (hasMvpResults) renderMvpResults(mvpResults);
 }
 
-function fetchSurvey() { callServer('fetchSurveyResponses', [currentEventId], function(r) { showToast(r.message, !r.success); }); }
-
 var mvpLoadingTimer_ = null;
 
 function runMvp() {
