@@ -97,6 +97,14 @@
       </div>
     </div>
 
+    <!-- ===== メンバー選択画面（一般ユーザー） ===== -->
+    <div id="page-member-select" class="page">
+      <div class="card login-card" style="max-width:400px;margin:24px auto;">
+        <h3>あなたの名前を選んでください</h3>
+        <div id="member-select-list">読み込み中...</div>
+      </div>
+    </div>
+
     <!-- ===== イベント一覧 ===== -->
     <div id="page-events" class="page">
       <div id="event-list-view">
@@ -348,6 +356,10 @@
       <div style="margin-bottom:16px;">
         <label for="edit-m-note" class="attr-label" style="display:block;margin-bottom:4px;">備考</label>
         <textarea id="edit-m-note" class="input" rows="2" placeholder="初参加、久しぶり、役職など" aria-label="備考"></textarea>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label for="edit-m-spirit" class="attr-label" style="display:block;margin-bottom:4px;">意気込み</label>
+        <input type="text" id="edit-m-spirit" class="input" placeholder="今日の意気込みを一言！" maxlength="50" aria-label="意気込み">
       </div>
       <div class="modal-actions">
         <button class="btn btn-danger" onclick="deleteMemberFromEdit()" style="margin-right:auto;">削除</button>

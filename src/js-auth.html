@@ -12,7 +12,7 @@
  */
 function saveSession_() {
   try {
-    var data = { role: currentRole, eventId: currentEventId, ts: Date.now() };
+    var data = { role: currentRole, eventId: currentEventId, memberId: currentMemberId, ts: Date.now() };
     localStorage.setItem('futsal_session', JSON.stringify(data));
   } catch (e) { /* localStorage使用不可の場合は無視 */ }
 }
@@ -31,7 +31,7 @@ function loadSession_() {
       localStorage.removeItem('futsal_session');
       return null;
     }
-    return { role: data.role, eventId: data.eventId || null };
+    return { role: data.role, eventId: data.eventId || null, memberId: data.memberId || null };
   } catch (e) { return null; }
 }
 
@@ -90,23 +90,49 @@ function doLoginAdmin() {
   }, 'ログインに失敗しました');
 }
 
-/** イベントコードでログイン */
+/** イベントコードでログイン → メンバー選択画面を表示 */
 function doLoginWithCode() {
   var code = document.getElementById('login-code').value;
   if (!code) { showToast('参加コードを入力してね', true); return; }
   callServer('loginWithCode', [code], function(r) {
     if (r.success) {
       setRole_('user');
-      // イベント詳細に直接遷移
-      document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
-      document.getElementById('page-events').classList.add('active');
-      openEvent(r.eventId);
-      // openEvent完了後にeventIdが設定されるので少し遅延して保存
-      setTimeout(function() { saveSession_(); }, 500);
+      currentEventId = r.eventId;
+      showMemberSelect_(r.members || []);
     } else {
       showToast(r.message, true);
     }
   }, 'ログインに失敗しました');
+}
+
+/**
+ * メンバー選択画面を表示する
+ * @param {Object[]} members - メンバー配列
+ */
+function showMemberSelect_(members) {
+  var c = document.getElementById('member-select-list');
+  if (!members || members.length === 0) {
+    c.innerHTML = '<div class="empty-state"><p>メンバーがまだ登録されていません</p></div>';
+    showPage('member-select');
+    return;
+  }
+  c.innerHTML = members.map(function(m) {
+    return '<div class="event-item" onclick="selectMyMember(\'' + m['メンバーID'] + '\')">' +
+      '<div class="event-info"><div class="event-name">' + esc(m['名前']) + '</div></div></div>';
+  }).join('');
+  showPage('member-select');
+}
+
+/**
+ * メンバーを選択してイベント詳細に遷移する
+ * @param {string} memberId - 選択したメンバーID
+ */
+function selectMyMember(memberId) {
+  currentMemberId = memberId;
+  saveSession_();
+  document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+  document.getElementById('page-events').classList.add('active');
+  openEvent(currentEventId);
 }
 
 /** 管理者ログインフォームの表示切り替え */
@@ -122,6 +148,7 @@ function toggleAdminLogin() {
 function doLogout() {
   currentRole = null;
   currentEventId = null;
+  currentMemberId = null;
   document.body.classList.remove('role-admin', 'role-user');
   clearSession_();
   // ヘッダーのログアウトボタンを非表示

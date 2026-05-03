@@ -11,6 +11,7 @@ var cachedRounds = [];    // ラウンド一覧（マッチ含む）
 var previewTeams = [];    // チーム分けプレビュー: [ [id,...], ... ]
 var previewNames = [];    // チーム名: [ 'チームA', ... ]
 var currentRole = null;    // 'admin' or 'user' or null
+var currentMemberId = null; // 一般ユーザーの自分のメンバーID
 var currentEventStatus = null; // イベントのステータス
 
 // --- 定数 ---
@@ -353,6 +354,7 @@ document.addEventListener('DOMContentLoaded', function() {
   var session = loadSession_();
   if (session) {
     setRole_(session.role);
+    currentMemberId = session.memberId || null;
     // URLパラメータを確認し、eventがあればそちらを優先
     google.script.url.getLocation(function(location) {
       var params = (location && location.parameter) ? location.parameter : {};

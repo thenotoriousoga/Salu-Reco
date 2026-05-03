@@ -45,5 +45,10 @@ function loginWithCode(code) {
     return { success: false, message: 'イベントが見つかりません。コードを確認してください。' };
   }
 
-  return { success: true, role: 'user', eventId: found['イベントID'] };
+  return {
+    success: true,
+    role: 'user',
+    eventId: found['イベントID'],
+    members: getEventMembers(found['イベントID'])
+  };
 }

@@ -85,20 +85,32 @@ function memberItemHtml_(m, isQueue, hasAnswered, canEdit) {
   // 名前（n年目）
   var nameWithYears = esc(a.name) + '<span class="member-years">（' + a.years + '年目）</span>';
 
-  // 2行目: 備考のみ
+  // 2行目: 備考
   var subLine = a.note ? esc(a.note) : '';
+
+  // 3行目: 意気込み
+  var spirit = isQueue ? '' : (m['意気込み'] || '');
 
   // クリックで編集（管理者のみ）
   var clickAttr = (canEdit && id) ? ' onclick="openMemberEdit(\'' + id + '\')" style="cursor:pointer;"' : '';
+
+  // 意気込み編集ボタン（自分のメンバーの場合のみ）
+  var spiritBtn = '';
+  if (!isQueue && id && currentMemberId === id) {
+    spiritBtn = '<button class="btn btn-sm btn-secondary" onclick="openSpiritEdit(\'' + id + '\')" style="margin-left:auto;padding:4px 8px;font-size:0.75rem;">✏️ 意気込み</button>';
+  }
 
   var html = '<div class="member-item-v2">' +
     '<div class="member-main">' +
     '<span class="member-name-v2"' + clickAttr + '>' + nameWithYears + '</span>' +
     '<span class="member-icons">' + icons + '</span>' +
-    editBtn +
+    editBtn + spiritBtn +
     '</div>';
   if (subLine) {
     html += '<div class="member-sub">' + subLine + '</div>';
+  }
+  if (spirit) {
+    html += '<div class="member-sub" style="color:var(--primary);font-style:italic;">🔥 ' + esc(spirit) + '</div>';
   }
   html += '</div>';
   return html;
@@ -196,6 +208,10 @@ function openMemberEdit(memberId) {
   document.getElementById('edit-m-organizer').checked = member['幹事'] === 'はい';
   document.getElementById('edit-m-note').value = member['備考'] || '';
 
+  // 意気込み（管理者編集時も表示）
+  var spiritEl = document.getElementById('edit-m-spirit');
+  if (spiritEl) spiritEl.value = member['意気込み'] || '';
+
   // モーダル表示
   document.getElementById('member-edit-modal').style.display = 'flex';
 }
@@ -215,7 +231,8 @@ function saveMemberEdit() {
     years: Number(document.getElementById('edit-m-years').value) || 1,
     exp: document.getElementById('edit-m-exp').value === 'true',
     org: document.getElementById('edit-m-organizer').checked,
-    note: document.getElementById('edit-m-note').value.trim()
+    note: document.getElementById('edit-m-note').value.trim(),
+    spirit: (document.getElementById('edit-m-spirit') || {}).value || ''
   };
 
   if (!data.name) {
@@ -237,5 +254,40 @@ function deleteMemberFromEdit() {
   if (!editingMemberId) return;
   closeMemberEdit();
   deleteMember(editingMemberId);
+}
+
+// ===================================
+// 意気込み編集（一般ユーザー用）
+// ===================================
+
+/**
+ * 意気込み編集モーダルを開く
+ * @param {string} memberId - メンバーID
+ */
+function openSpiritEdit(memberId) {
+  var member = currentMembers.find(function(m) { return m['メンバーID'] === memberId; });
+  if (!member) return;
+  var container = document.getElementById('modal-container');
+  container.innerHTML = '<div class="modal-overlay" id="modal-overlay">' +
+    '<div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="spirit-title">' +
+    '<h3 id="spirit-title">意気込みを入力</h3>' +
+    '<input type="text" id="spirit-input" class="input" placeholder="今日の意気込みを一言！" maxlength="50" value="' + esc(member['意気込み'] || '') + '">' +
+    '<div class="modal-actions" style="margin-top:12px;">' +
+    '<button class="btn btn-secondary" id="spirit-cancel">キャンセル</button>' +
+    '<button class="btn btn-primary" id="spirit-save">保存</button>' +
+    '</div></div></div>';
+  document.getElementById('spirit-cancel').onclick = function() { container.innerHTML = ''; };
+  document.getElementById('spirit-save').onclick = function() {
+    var val = document.getElementById('spirit-input').value.trim();
+    container.innerHTML = '';
+    callServer('updateMemberSpirit', [memberId, val], function(r) {
+      showToast(r.message, !r.success);
+      if (r.success) openEvent(currentEventId);
+    });
+  };
+  document.getElementById('modal-overlay').onclick = function(e) {
+    if (e.target === this) container.innerHTML = '';
+  };
+  document.getElementById('spirit-input').focus();
 }
 </script>

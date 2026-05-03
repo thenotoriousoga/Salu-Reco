@@ -36,7 +36,8 @@ function bulkAddMembersFromQueue(eventId, memberDataList) {
       Number(m.years) || 1,
       m.exp ? 'あり' : 'なし',
       m.org ? 'はい' : 'いいえ',
-      (m.note || '').trim()
+      (m.note || '').trim(),
+      ''
     ]);
   });
 
@@ -81,15 +82,38 @@ function updateMember(memberId, data) {
     return { success: false, message: 'メンバーが見つかりません' };
   }
 
-  // 名前〜備考（3〜7列目）を一括更新
+  // 名前〜意気込み（3〜8列目）を一括更新
   var values = [
     data.name.trim(),
     Number(data.years) || 1,
     data.exp ? 'あり' : 'なし',
     data.org ? 'はい' : 'いいえ',
-    (data.note || '').trim()
+    (data.note || '').trim(),
+    (data.spirit || '').trim()
   ];
   sheet.getRange(rowIndex, 3, 1, values.length).setValues([values]);
 
   return { success: true, message: 'メンバー情報を更新しました' };
+}
+
+/**
+ * メンバーの意気込みを更新する（一般ユーザー用）
+ * @param {string} memberId - メンバーID
+ * @param {string} spirit - 意気込みテキスト
+ * @return {Object} 結果オブジェクト { success, message }
+ */
+function updateMemberSpirit(memberId, spirit) {
+  if (!memberId) {
+    return { success: false, message: 'メンバーIDが指定されていません' };
+  }
+
+  var ss = getSpreadsheet_();
+  var sheet = ss.getSheetByName('メンバー');
+  var rowIndex = findRowIndex_(sheet, 0, memberId);
+  if (rowIndex === -1) {
+    return { success: false, message: 'メンバーが見つかりません' };
+  }
+
+  sheet.getRange(rowIndex, 8).setValue((spirit || '').trim());
+  return { success: true, message: '意気込みを更新しました' };
 }
