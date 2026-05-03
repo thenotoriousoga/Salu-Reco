@@ -13,7 +13,7 @@ function renderParticipantCB(members) {
     return;
   }
   c.innerHTML = '<div class="checkbox-grid">' + members.map(function(m) {
-    var exp = m['サッカー経験'] === 'あり' ? ' *' : '';
+    var exp = '';
     return '<div class="checkbox-item"><input type="checkbox" id="pcb-' + m['メンバーID'] + '" value="' + m['メンバーID'] + '" checked onchange="updateTeamCountOptions()">' +
       '<label for="pcb-' + m['メンバーID'] + '">' + esc(m['名前']) + exp + '</label></div>';
   }).join('') + '</div><div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">* = サッカー経験あり</div>';
@@ -131,7 +131,7 @@ function chipHtml(id) {
   var mm = {};
   currentMembers.forEach(function(m) { mm[m['メンバーID']] = m; });
   var m = mm[id] || {};
-  var exp = m['サッカー経験'] === 'あり' ? '<span class="chip-exp">*</span>' : '';
+  var exp = '';
   return '<div class="split-chip" draggable="true" data-member-id="' + id + '" ' +
     'ontouchstart="onChipTouchStart(event)" ontouchmove="onChipTouchMove(event)" ontouchend="onChipTouchEnd(event)" ' +
     'ondragstart="onChipDragStart(event)" ondragend="onChipDragEnd(event)">' +
@@ -317,7 +317,7 @@ function moveMember(memberId, targetTeamIdx) {
 
 function teamMemberHtml(id, memberMap) {
   var m = memberMap[id] || {};
-  return '<div class="team-member">' + esc(m['名前'] || '?') + (m['サッカー経験'] === 'あり' ? ' *' : '') + '</div>';
+  return '<div class="team-member">' + esc(m['名前'] || '?') + '</div>';
 }
 
 /** ラウンドを作成する（ボードの状態をサーバーに保存） */
