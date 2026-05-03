@@ -46,7 +46,7 @@ function renderMemberList(members, surveyVoters) {
   // 見出しに凡例を追加
   var heading = document.querySelector('#tab-members .card:last-child h3');
   if (heading && !heading.querySelector('.member-legend-inline')) {
-    heading.innerHTML = '登録済みメンバー ' + memberLegendHtml_();
+    heading.innerHTML = 'メンバー一覧 ' + memberLegendHtml_();
   }
 
   // メンバー登録フォームの表示制御
