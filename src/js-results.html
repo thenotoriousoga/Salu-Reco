@@ -47,32 +47,16 @@ function statsHighlightHtml_(s) {
 }
 
 /**
- * モード別の詳細行HTMLを生成する
+ * 詳細行HTMLを生成する（全モード共通）
  * @param {Object} s - スタッツデータ
  * @return {string} HTML文字列
  */
 function statsDetailsHtml_(s) {
-  // 各モードで表示する項目の定義: [アイコン, 値, 単位]
-  var items;
-  if (currentStatsMode === 'goals') {
-    items = [
-      [IC.check, s.wins, '勝'], [IC.x, s.losses, '敗'],
-      [IC.minus, s.draws, '分'], [IC.file, s.played, '試合']
-    ];
-  } else if (currentStatsMode === 'points') {
-    items = [
-      [IC.check, s.wins, '勝'], [IC.x, s.losses, '敗'],
-      [IC.minus, s.draws, '分'], [IC.goal, s.goals, '点']
-    ];
-  } else {
-    items = [
-      [IC.goal, s.goals, '点'], [IC.check, s.wins, '勝'],
-      [IC.x, s.losses, '敗'], [IC.file, s.played, '試合']
-    ];
-  }
-  return items.map(function(item) {
-    return '<span>' + svg(item[0], 14) + ' ' + item[1] + item[2] + '</span>';
-  }).join('');
+  return '<span>' + s.wins + '勝</span>' +
+    '<span>' + s.losses + '敗</span>' +
+    '<span>' + s.draws + '分</span>' +
+    '<span>' + s.played + '試合</span>' +
+    '<span>' + s.goals + '得点</span>';
 }
 
 function renderEventStats() {
@@ -207,7 +191,7 @@ function renderStatsCards() {
       return '<div class="stats-match-row">' +
         '<span class="stats-match-label">R' + md.roundNumber + '-M' + md.matchNumber + '</span>' +
         resultBadge +
-        '<span>' + svg(IC.goal, 12) + ' ' + md.goals + '点</span>' +
+        '<span>' + svg(IC.goal, 12) + ' ' + md.goals + '得点</span>' +
         '<span style="margin-left:auto;font-family:\'Fira Code\',monospace;font-size:0.75rem;">' + md.scoreA + '-' + md.scoreB + '</span>' +
         '</div>';
     }).join('');
