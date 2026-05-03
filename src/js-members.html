@@ -94,9 +94,9 @@ function memberItemHtml_(m, isQueue, hasAnswered, canEdit) {
   // クリックで編集（管理者のみ）
   var clickAttr = (canEdit && id) ? ' onclick="openMemberEdit(\'' + id + '\')" style="cursor:pointer;"' : '';
 
-  // 意気込み編集ボタン（自分のメンバーの場合のみ）
+  // 意気込み編集ボタン（自分のメンバーかつ管理者でない場合のみ）
   var spiritBtn = '';
-  if (!isQueue && id && currentMemberId === id) {
+  if (!isQueue && id && currentMemberId === id && !isAdmin()) {
     spiritBtn = '<button class="btn btn-sm btn-secondary" onclick="openSpiritEdit(\'' + id + '\')" style="margin-left:auto;padding:4px 8px;font-size:0.75rem;">✏️ 意気込み</button>';
   }
 
