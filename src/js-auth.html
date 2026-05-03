@@ -117,18 +117,36 @@ function showMemberSelect_(members) {
     return;
   }
   c.innerHTML = members.map(function(m) {
-    return '<div class="event-item" onclick="selectMyMember(\'' + m['メンバーID'] + '\')">' +
-      '<div class="event-info"><div class="event-name">' + esc(m['名前']) + '</div></div></div>';
+    var orgAttr = m['幹事'] === 'はい' ? ' data-organizer="' + m['メンバーID'] + '"' : '';
+    return '<div class="event-item"' + orgAttr + ' onclick="selectMyMember(\'' + m['メンバーID'] + '\')">' +
+      '<div class="event-info"><div class="event-name">' + esc(m['名前']) +
+      (m['幹事'] === 'はい' ? ' <span style="font-size:0.8rem;">👔</span>' : '') +
+      '</div></div></div>';
   }).join('');
   showPage('member-select');
 }
 
 /**
  * メンバーを選択してイベント詳細に遷移する
+ * 幹事の場合は管理者権限を付与する
  * @param {string} memberId - 選択したメンバーID
  */
 function selectMyMember(memberId) {
   currentMemberId = memberId;
+
+  // 幹事チェック: メンバー選択画面表示時のデータから判定
+  var memberList = document.querySelectorAll('#member-select-list .event-item');
+  var isOrganizer = false;
+  var members = currentMembers || [];
+  // openEvent前なのでcurrentMembersはまだ空の可能性がある
+  // loginWithCodeの戻り値で渡されたメンバー一覧をdata属性から取得
+  var el = document.querySelector('#member-select-list [data-organizer="' + memberId + '"]');
+  if (el) isOrganizer = true;
+
+  if (isOrganizer) {
+    setRole_('admin');
+  }
+
   saveSession_();
   document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
   document.getElementById('page-events').classList.add('active');
