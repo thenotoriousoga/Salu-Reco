@@ -183,7 +183,7 @@ function renderEventStats() {
 
 function renderStatsCards() {
   var c = document.getElementById('event-stats');
-  var stats = cachedStatsData.filter(function(s) { return s.played > 0; });
+  var stats = cachedStatsData.slice();
 
   // ソート
   if (currentStatsMode === 'goals') {
