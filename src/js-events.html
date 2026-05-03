@@ -80,6 +80,10 @@ function renderEventDetail(d, activeTab) {
   document.getElementById('event-list-view').style.display = 'none';
   document.getElementById('event-detail-view').style.display = 'block';
 
+  // 一覧に戻るボタン: パスワードログインの管理者のみ表示（幹事は非表示）
+  var navEl = document.querySelector('.ev-detail-nav');
+  if (navEl) navEl.style.display = (isAdmin() && !currentMemberId) ? '' : 'none';
+
   var ev = d.event;
   currentEventStatus = ev['ステータス'] || '準備中';
 
