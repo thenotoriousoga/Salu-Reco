@@ -1659,7 +1659,7 @@ body {
 .round-card .round-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   padding-bottom: 12px;
   margin-bottom: 12px;
   border-bottom: 1px solid var(--border-light);
@@ -1670,6 +1670,14 @@ body {
   padding-bottom: 0;
   margin-bottom: 0;
   border-bottom: none;
+}
+
+/* タイトル＋スコアを縦並び */
+.round-card .round-header-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
 }
 
 .round-card .round-title {

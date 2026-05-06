@@ -376,9 +376,10 @@ function renderRoundsList(rounds) {
             '</div></div>';
         }
         return '<div class="round-card round-card-collapsed match-card-ended" style="margin-left:0;" onclick="toggleMatchBody(this)">' +
-          '<div class="round-header"><span class="round-title">第' + m.matchNumber + '試合</span><div style="display:flex;align-items:center;gap:4px;">' + editMenuH + badge +
+          '<div class="round-header">' +
+          '<div class="round-header-main"><span class="round-title">第' + m.matchNumber + '試合</span>' + scoreSummary + '</div>' +
+          '<div style="display:flex;align-items:center;gap:4px;">' + editMenuH + badge +
           '<svg class="round-expand-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></div></div>' +
-          scoreSummary +
           '<div class="match-body match-body-collapsed">' + scoreH + '</div></div>';
       }).join('');
     }
