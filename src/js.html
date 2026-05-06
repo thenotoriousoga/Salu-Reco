@@ -443,6 +443,9 @@ function navigateToRoute_(route) {
 // ===================================
 
 document.addEventListener('DOMContentLoaded', function() {
+  // data-info付きラベルに情報アイコンを自動展開
+  hydrateInfoTips_();
+
   // メンバー名入力でEnterキー対応
   var nameInput = document.getElementById('m-name');
   if (nameInput) {
