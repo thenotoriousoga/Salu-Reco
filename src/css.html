@@ -352,26 +352,56 @@ body {
   flex: 1;
 }
 
-.input-hint {
-  width: 100%;
-  margin: 4px 0 0;
-  font-size: 0.78rem;
+/* --- 情報チップ（ラベル横のℹボタンで開閉するツールチップ） --- */
+.info-tip-btn {
+  appearance: none;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin-left: 4px;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: var(--text-muted);
-  line-height: 1.4;
-  max-height: 0;
-  opacity: 0;
-  overflow: hidden;
-  transition: max-height 0.2s ease, opacity 0.2s ease, margin 0.2s ease;
+  cursor: pointer;
+  border-radius: 50%;
+  vertical-align: middle;
+  line-height: 1;
+  -webkit-tap-highlight-color: transparent;
+}
+.info-tip-btn svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.info-tip-btn:hover,
+.info-tip-btn[aria-expanded="true"] {
+  color: var(--primary);
+}
+.info-tip-btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
 
-.input-group:focus-within .input-hint {
-  max-height: 3em;
-  opacity: 1;
+.info-tip {
+  width: 100%;
   margin-top: 6px;
+  padding: 8px 10px;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  line-height: 1.5;
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .input-hint { transition: none; }
+.info-tip[hidden] {
+  display: none;
 }
 
 /* --- メンバーリスト --- */
