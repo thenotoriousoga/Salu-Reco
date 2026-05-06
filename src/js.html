@@ -178,8 +178,11 @@ function statusBadgeHtml(status) {
  * @return {string} HTML文字列
  */
 function eventItemHtml(ev, onclickExpr) {
+  var codeH = (isAdmin() && ev['コード'])
+    ? '<span class="event-code-inline">' + esc(ev['コード']) + '</span>'
+    : '';
   return '<div class="event-item" onclick="' + onclickExpr + '">' +
-    '<div class="event-info"><div class="event-name">' + esc(ev['名称'] || '') + '</div>' +
+    '<div class="event-info"><div class="event-name">' + esc(ev['名称'] || '') + codeH + '</div>' +
     '<div class="event-date">' + esc(String(ev['日付'] || '')) + '</div></div>' +
     statusBadgeHtml(ev['ステータス']) + '</div>';
 }
