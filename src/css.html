@@ -1417,7 +1417,16 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding-bottom: 12px;
   margin-bottom: 12px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+/* 折りたたみ時はヘッダー下の罫線を消す */
+.round-card .round-header:has(+ .match-body-collapsed) {
+  padding-bottom: 0;
+  margin-bottom: 0;
+  border-bottom: none;
 }
 
 .round-card .round-title {
