@@ -645,10 +645,13 @@ function endedMatchHtml(m, teamColorMap) {
 
   var editBtn = '';
   if (currentEventStatus === '進行中') {
-    editBtn = '<div style="display:flex;justify-content:flex-end;gap:6px;margin-top:8px;">' +
-      '<button class="btn btn-sm btn-secondary" onclick="reopenMatch(\'' + m.id + '\')">' +
-      svg('<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>', 14) +
-      ' 編集</button></div>';
+    editBtn = '<div style="display:flex;justify-content:flex-end;margin-top:8px;">' +
+      '<div class="status-menu-wrap">' +
+      '<button class="status-menu-btn" onclick="toggleMatchMenu(event, \'' + m.id + '\')" aria-label="試合結果の操作">' +
+      svg(IC.more, 16) + '</button>' +
+      '<div class="status-menu" id="match-menu-' + m.id + '">' +
+      '<button class="status-menu-item" onclick="reopenMatch(\'' + m.id + '\')">結果を編集</button>' +
+      '</div></div></div>';
   }
 
   return '<div class="match-result" style="display:flex;justify-content:center;align-items:center;gap:12px;padding:12px 0;">' +
@@ -737,11 +740,31 @@ function endMatch(matchId) {
 }
 
 function reopenMatch(matchId) {
+  closeAllMatchMenus_();
   callServer('reopenMatch', [matchId], function(r) {
     showToast(r.message, !r.success);
     if (r.success) openEvent(currentEventId, 'tab-rounds');
   }, '試合の再開に失敗しました');
 }
+
+/** 試合結果の三点メニューの開閉 */
+function toggleMatchMenu(e, matchId) {
+  e.stopPropagation();
+  var target = document.getElementById('match-menu-' + matchId);
+  var wasOpen = target && target.classList.contains('open');
+  closeAllMatchMenus_();
+  if (target && !wasOpen) target.classList.add('open');
+}
+
+/** 開いている試合メニューを全て閉じる */
+function closeAllMatchMenus_() {
+  document.querySelectorAll('.status-menu.open[id^="match-menu-"]').forEach(function(el) {
+    el.classList.remove('open');
+  });
+}
+
+// メニュー外クリックで閉じる
+document.addEventListener('click', closeAllMatchMenus_);
 
 // ===================================
 // タイマー機能
