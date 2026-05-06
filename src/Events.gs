@@ -138,6 +138,12 @@ function startEvent(eventId) {
     return { success: false, message: '準備中のイベントのみ開始できます' };
   }
 
+  // メンバーが2名以上登録されているかチェック
+  var members = getSheetData_('メンバー').filter(function(m) { return m['イベントID'] === eventId; });
+  if (members.length < 2) {
+    return { success: false, message: 'メンバーを2名以上登録してからイベントを開始してください' };
+  }
+
   updateEventStatus(eventId, '進行中');
   return { success: true, message: 'イベントを開始しました。チーム分けを行いましょう！' };
 }

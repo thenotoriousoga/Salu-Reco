@@ -174,7 +174,13 @@ function buildStatusButtons_(status) {
  */
 function getStatusMenuItems_(status) {
   if (status === '準備中') {
-    return [{ label: 'イベントを開始する', action: 'doStartEvent()' }];
+    var hasEnoughMembers = currentMembers && currentMembers.length >= 2;
+    return [{
+      label: 'イベントを開始する',
+      action: 'doStartEvent()',
+      disabled: !hasEnoughMembers,
+      tooltip: hasEnoughMembers ? '' : 'メンバーを2名以上登録してください'
+    }];
   }
   if (status === '進行中') {
     var canEnd = canEndEvent_();
@@ -250,6 +256,10 @@ function doEndEvent() {
 }
 
 function doStartEvent() {
+  if (!currentMembers || currentMembers.length < 2) {
+    showToast('メンバーを2名以上登録してからイベントを開始してください', true);
+    return;
+  }
   confirmStatusChange_('イベント開始', 'イベントを進行中にしますか？チーム分けと試合が可能になります。', 'startEvent', '開始する');
 }
 
