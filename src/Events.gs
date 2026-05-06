@@ -275,7 +275,7 @@ function startEvent(eventId) {
 
 /**
  * イベントを「イベント終了」状態にする
- * 全ラウンド・全マッチが終了している必要がある
+ * 全ラウンドが終了している必要がある
  * @param {string} eventId - イベントID
  * @return {Object} 結果オブジェクト { success, message }
  */
@@ -286,21 +286,14 @@ function endEvent(eventId) {
     return { success: false, message: '進行中のイベントのみ終了できます' };
   }
 
-  // 全ラウンド・全マッチの終了チェック
-  var data = getMultipleSheetData_(['ラウンド', 'マッチ']);
-  var rounds = data['ラウンド'].filter(function(r) { return r['イベントID'] === eventId; });
+  // 進行中ラウンドのチェック（マッチはラウンド終了時に必ず終了済みになるため確認不要）
+  var rounds = getSheetData_('ラウンド').filter(function(r) { return r['イベントID'] === eventId; });
 
   if (rounds.length === 0) {
     return { success: false, message: 'ラウンドがありません' };
   }
   if (rounds.some(function(r) { return r['ステータス'] !== '終了'; })) {
     return { success: false, message: '進行中のラウンドがあります。先にラウンドを終了してください' };
-  }
-
-  var roundIds = rounds.map(function(r) { return r['ラウンドID']; });
-  var matches = data['マッチ'].filter(function(m) { return roundIds.indexOf(m['ラウンドID']) >= 0; });
-  if (matches.some(function(m) { return m['ステータス'] !== '終了'; })) {
-    return { success: false, message: '進行中の試合があります。先に試合を終了してください' };
   }
 
   updateEventStatus(eventId, 'イベント終了');

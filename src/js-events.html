@@ -142,9 +142,10 @@ function buildStatusButtons_(status) {
     '<div class="status-menu" id="status-menu">';
   items.forEach(function(item) {
     var disabledClass = item.disabled ? ' status-menu-item-disabled' : '';
-    var disabledAttr = item.disabled ? ' aria-disabled="true"' : '';
+    var disabledAttr = item.disabled ? ' disabled aria-disabled="true"' : '';
+    var onclickAttr = item.disabled ? '' : ' onclick="' + item.action + '"';
     var tooltip = item.tooltip ? ' title="' + esc(item.tooltip) + '"' : '';
-    menuH += '<button class="status-menu-item' + disabledClass + '" onclick="' + item.action + '"' + disabledAttr + tooltip + '>' +
+    menuH += '<button class="status-menu-item' + disabledClass + '"' + onclickAttr + disabledAttr + tooltip + '>' +
       item.label + '</button>';
   });
   menuH += '</div></div>';
@@ -172,7 +173,7 @@ function getStatusMenuItems_(status) {
       label: 'イベント終了',
       action: 'doEndEvent()',
       disabled: !canEnd,
-      tooltip: canEnd ? '' : '全てのラウンドと試合を終了してください'
+      tooltip: canEnd ? '' : '進行中のラウンドがあります。先にラウンドを終了してください'
     }];
   }
   if (status === 'イベント終了') {
@@ -200,17 +201,12 @@ document.addEventListener('click', function() {
 
 /**
  * イベントを終了できるかチェックする
- * 全ラウンドが終了かつ全マッチが終了している必要がある
+ * 進行中のラウンドが1つでもあれば終了不可
  * @return {boolean}
  */
 function canEndEvent_() {
   if (!cachedRounds || cachedRounds.length === 0) return false;
-  var hasOngoingRound = cachedRounds.some(function(r) { return r.status !== '終了'; });
-  if (hasOngoingRound) return false;
-  var hasOngoingMatch = cachedRounds.some(function(r) {
-    return r.matches && r.matches.some(function(m) { return m.status !== '終了'; });
-  });
-  return !hasOngoingMatch;
+  return !cachedRounds.some(function(r) { return r.status !== '終了'; });
 }
 
 /**

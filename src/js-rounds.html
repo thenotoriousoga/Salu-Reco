@@ -403,14 +403,15 @@ function renderRoundsList(rounds) {
     var roundMenuH = '';
     if (round.status !== '終了' && canEditMatch && isAdmin()) {
       var hasOngoingMatch = (round.matches || []).some(function(m) { return m.status !== '終了'; });
-      var disabledAttr = hasOngoingMatch ? ' aria-disabled="true"' : '';
+      var disabledAttr = hasOngoingMatch ? ' disabled aria-disabled="true"' : '';
       var disabledClass = hasOngoingMatch ? ' status-menu-item-disabled' : '';
       var tooltipAttr = hasOngoingMatch ? ' title="進行中の試合があります"' : '';
+      var endRoundOnclick = hasOngoingMatch ? '' : ' onclick="doEndRound(\'' + round.id + '\')"';
       roundMenuH = '<div class="status-menu-wrap" onclick="event.stopPropagation()">' +
         '<button class="status-menu-btn" onclick="toggleRoundMenu(event, \'' + round.id + '\')" aria-label="ラウンド操作">' +
         svg(IC.more, 16) + '</button>' +
         '<div class="status-menu" id="round-menu-' + round.id + '">' +
-        '<button class="status-menu-item' + disabledClass + '" onclick="doEndRound(\'' + round.id + '\')"' + disabledAttr + tooltipAttr + '>ラウンド終了</button>' +
+        '<button class="status-menu-item' + disabledClass + '"' + endRoundOnclick + disabledAttr + tooltipAttr + '>ラウンド終了</button>' +
         '</div></div>';
     }
 

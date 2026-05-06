@@ -156,6 +156,7 @@ function buildMatchData_(match, matchMembers, goals, memberMap) {
 
 /**
  * ラウンドを終了する（試合データは保持）
+ * 進行中のマッチがある場合は終了不可
  * @param {string} roundId - ラウンドID
  * @return {Object} 結果オブジェクト { success, message }
  */
@@ -164,6 +165,12 @@ function endRound(roundId) {
   var sheet = ss.getSheetByName('ラウンド');
   var rowIndex = findRowIndex_(sheet, 0, roundId);
   if (rowIndex === -1) return { success: false, message: 'ラウンドが見つかりません' };
+
+  // 進行中マッチのチェック
+  var matches = getSheetData_('マッチ').filter(function(m) { return m['ラウンドID'] === roundId; });
+  if (matches.some(function(m) { return m['ステータス'] !== '終了'; })) {
+    return { success: false, message: '進行中の試合があります。先に試合を終了してください' };
+  }
 
   sheet.getRange(rowIndex, 5).setValue('終了');
   return { success: true, message: 'ラウンドを終了しました。新しいチーム分けを行いましょう！' };
@@ -292,14 +299,15 @@ function appendNewSubs_(matchId, newSubs) {
 /**
  * 終了した試合を再開する
  * イベントが「イベント終了」の場合は再開不可
+ * ラウンドが「終了」になっていれば、マッチ再開に合わせてラウンドも「進行中」に戻す
  * @param {string} matchId - マッチID
  * @return {Object} 結果オブジェクト { success, message }
  */
 function reopenMatch(matchId) {
   var ss = getSpreadsheet_();
-  var sheet = ss.getSheetByName('マッチ');
-  var rowIndex = findRowIndex_(sheet, 0, matchId);
-  if (rowIndex === -1) return { success: false, message: '試合が見つかりません' };
+  var matchSheet = ss.getSheetByName('マッチ');
+  var matchRow = findRowIndex_(matchSheet, 0, matchId);
+  if (matchRow === -1) return { success: false, message: '試合が見つかりません' };
 
   var data = getMultipleSheetData_(['マッチ', 'ラウンド', 'イベント']);
 
@@ -315,7 +323,18 @@ function reopenMatch(matchId) {
     return { success: false, message: 'イベント終了後は編集できません' };
   }
 
-  sheet.getRange(rowIndex, 6).setValue('進行中');
+  // マッチを進行中に戻す
+  matchSheet.getRange(matchRow, 6).setValue('進行中');
+
+  // ラウンドが終了していたら同時に進行中へ戻す（ステータス整合性を維持）
+  if (roundData['ステータス'] === '終了') {
+    var roundSheet = ss.getSheetByName('ラウンド');
+    var roundRow = findRowIndex_(roundSheet, 0, roundData['ラウンドID']);
+    if (roundRow !== -1) {
+      roundSheet.getRange(roundRow, 5).setValue('進行中');
+    }
+  }
+
   return { success: true, message: '試合を再開しました。スコアを編集できます' };
 }
 
