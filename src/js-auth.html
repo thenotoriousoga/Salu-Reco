@@ -211,12 +211,19 @@ function doCreateEventAsOrganizer() {
   var name = document.getElementById('create-ev-name').value.trim();
   var date = document.getElementById('create-ev-date').value;
   var organizer = document.getElementById('create-ev-organizer').value.trim();
+  var emailEl = document.getElementById('create-ev-email');
+  var email = emailEl ? emailEl.value.trim() : '';
 
   if (!name) { showToast('イベント名を入力してください', true); return; }
   if (!date) { showToast('日付を選んでください', true); return; }
   if (!organizer) { showToast('幹事の名前を入力してください', true); return; }
+  // メアドは任意。入力された場合のみ簡易バリデーション
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showToast('メールアドレスの形式が正しくありません', true);
+    return;
+  }
 
-  callServer('createEventAsOrganizer', [name, date, organizer], function(r) {
+  callServer('createEventAsOrganizer', [name, date, organizer, email], function(r) {
     if (!r.success) {
       showToast(r.message, true);
       return;
@@ -230,6 +237,14 @@ function doCreateEventAsOrganizer() {
       asAdmin: isAdmin()
     };
     document.getElementById('created-event-code').textContent = r.code;
+    // メール送信結果のフィードバック
+    if (email) {
+      if (r.emailSent) {
+        showToast('参加コードをメールに送信しました 📧');
+      } else {
+        showToast('メール送信に失敗しましたが、イベントは作成できました', true);
+      }
+    }
     showPage('created-event');
   }, 'イベント作成に失敗しました');
 }
@@ -275,6 +290,8 @@ function enterCreatedEvent() {
   document.getElementById('create-ev-name').value = 'フットサル';
   document.getElementById('create-ev-date').value = '';
   document.getElementById('create-ev-organizer').value = '';
+  var emailEl = document.getElementById('create-ev-email');
+  if (emailEl) emailEl.value = '';
 
   document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
   document.getElementById('page-events').classList.add('active');

@@ -67,15 +67,18 @@ function getEventDetail(eventId) {
 /**
  * イベントを作成する（管理者・幹事共通）
  * イベント作成 + 参加コード自動生成 + 幹事メンバー登録を一括で行う
+ * メールアドレスが指定された場合、参加コードとアプリURLをメール送信する
  * @param {string} name - イベント名
  * @param {string} date - 日付（yyyy-MM-dd 形式）
  * @param {string} organizerName - 幹事の名前
+ * @param {string} [email] - 送信先メールアドレス（任意）
  * @return {Object} 結果オブジェクト
- *   { success, eventId, code, organizerMemberId, message }
+ *   { success, eventId, code, organizerMemberId, emailSent, message }
  */
-function createEventAsOrganizer(name, date, organizerName) {
+function createEventAsOrganizer(name, date, organizerName, email) {
   var trimmedName = (name || '').trim();
   var trimmedOrganizer = (organizerName || '').trim();
+  var trimmedEmail = (email || '').trim();
 
   if (!trimmedName) {
     return { success: false, message: 'イベント名を入力してください' };
@@ -85,6 +88,9 @@ function createEventAsOrganizer(name, date, organizerName) {
   }
   if (!date) {
     return { success: false, message: '日付を選択してください' };
+  }
+  if (trimmedEmail && !isValidEmail_(trimmedEmail)) {
+    return { success: false, message: 'メールアドレスの形式が正しくありません' };
   }
 
   var code = generateUniqueEventCode_();
@@ -112,13 +118,68 @@ function createEventAsOrganizer(name, date, organizerName) {
     ''          // 意気込み
   ]);
 
+  // メール送信（任意）。失敗してもイベント作成自体は成功として扱う
+  var emailSent = false;
+  if (trimmedEmail) {
+    emailSent = sendEventCodeMail_(trimmedEmail, trimmedName, date, code);
+  }
+
   return {
     success: true,
     eventId: eventId,
     code: code,
     organizerMemberId: memberId,
+    emailSent: emailSent,
     message: 'イベントを作成しました'
   };
+}
+
+/**
+ * メールアドレスの簡易バリデーション
+ * @param {string} email
+ * @return {boolean}
+ */
+function isValidEmail_(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+/**
+ * 参加コードとアプリURLをメール送信する
+ * @param {string} to - 送信先メールアドレス
+ * @param {string} eventName - イベント名
+ * @param {string} date - 日付
+ * @param {string} code - 参加コード
+ * @return {boolean} 送信に成功したかどうか
+ */
+function sendEventCodeMail_(to, eventName, date, code) {
+  try {
+    var appUrl = ScriptApp.getService().getUrl() || '';
+    var subject = '【Salu-Rec】イベント「' + eventName + '」の参加コード';
+    var body = [
+      eventName + ' の参加コードをお届けします。',
+      '',
+      '日付　　　: ' + date,
+      '参加コード: ' + code,
+      '',
+      'アプリURL:',
+      appUrl,
+      '',
+      '参加者にはこのメールを転送するか、参加コードを共有してください。',
+      '',
+      '---',
+      'Salu-Rec'
+    ].join('\n');
+    MailApp.sendEmail({
+      to: to,
+      subject: subject,
+      body: body,
+      name: 'Salu-Rec'
+    });
+    return true;
+  } catch (e) {
+    console.warn('メール送信に失敗しました: ' + (e && e.message ? e.message : e));
+    return false;
+  }
 }
 
 /**
