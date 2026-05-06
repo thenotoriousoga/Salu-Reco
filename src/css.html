@@ -358,6 +358,20 @@ body {
   font-size: 0.78rem;
   color: var(--text-muted);
   line-height: 1.4;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.2s ease, opacity 0.2s ease, margin 0.2s ease;
+}
+
+.input-group:focus-within .input-hint {
+  max-height: 3em;
+  opacity: 1;
+  margin-top: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .input-hint { transition: none; }
 }
 
 /* --- メンバーリスト --- */
