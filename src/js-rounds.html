@@ -592,8 +592,8 @@ function ongoingMatchHtml(m, teamColorMap) {
     '<div class="score-team"><span class="team-label team-' + clsB + '-badge">' + esc(m.teamBName) + '</span>' +
     '<span class="score" id="sb-' + m.id + '">' + m.scoreB + '</span></div></div>';
 
-  // 得点記録セクション
-  h += '<div class="goal-section"><h3 style="font-size:0.85rem;">' + svg(IC.goal, 16) + ' 得点を記録</h3>' +
+  // 選手・得点セクション
+  h += '<div class="goal-section"><h3 style="font-size:0.85rem;">' + svg(IC.goal, 16) + ' 選手・得点</h3>' +
     '<div class="goal-team-btns" style="display:flex;gap:8px;margin-bottom:8px;">' +
     '<button class="btn team-' + clsA + '-badge" style="flex:1;padding:10px;" onclick="toggleGoalPanel(\'' + m.id + '\',\'A\')">' + esc(m.teamAName) + '</button>' +
     '<button class="btn team-' + clsB + '-badge" style="flex:1;padding:10px;" onclick="toggleGoalPanel(\'' + m.id + '\',\'B\')">' + esc(m.teamBName) + '</button></div>';
