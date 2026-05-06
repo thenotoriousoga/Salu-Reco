@@ -393,12 +393,25 @@ function renderRoundsList(rounds) {
           svg('<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>', 14) + ' 次の試合へ</button>';
         addMatchArea = '<div id="add-match-' + round.id + '" style="display:none;"></div>';
       }
-      var endRoundBtn = isAdmin()
-        ? '<button class="btn btn-sm btn-secondary" onclick="doEndRound(\'' + round.id + '\')" style="margin-left:auto;">' + svg(IC.flag, 14) + ' ラウンド終了</button>'
-        : '';
-      roundBottomH = '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:8px;border-top:1px solid var(--border-light);">' +
-        addMatchBtn + endRoundBtn + '</div>' +
-        addMatchArea;
+      if (addMatchBtn) {
+        roundBottomH = '<div style="margin-top:12px;padding-top:8px;border-top:1px solid var(--border-light);">' +
+          addMatchBtn + '</div>' + addMatchArea;
+      }
+    }
+
+    // ラウンド操作メニュー（終了前のみ、管理者のみ）
+    var roundMenuH = '';
+    if (round.status !== '終了' && canEditMatch && isAdmin()) {
+      var hasOngoingMatch = (round.matches || []).some(function(m) { return m.status !== '終了'; });
+      var disabledAttr = hasOngoingMatch ? ' aria-disabled="true"' : '';
+      var disabledClass = hasOngoingMatch ? ' status-menu-item-disabled' : '';
+      var tooltipAttr = hasOngoingMatch ? ' title="進行中の試合があります"' : '';
+      roundMenuH = '<div class="status-menu-wrap" onclick="event.stopPropagation()">' +
+        '<button class="status-menu-btn" onclick="toggleRoundMenu(event, \'' + round.id + '\')" aria-label="ラウンド操作">' +
+        svg(IC.more, 16) + '</button>' +
+        '<div class="status-menu" id="round-menu-' + round.id + '">' +
+        '<button class="status-menu-item' + disabledClass + '" onclick="doEndRound(\'' + round.id + '\')"' + disabledAttr + tooltipAttr + '>ラウンド終了</button>' +
+        '</div></div>';
     }
 
     var isRoundEnded = round.status === '終了';
@@ -409,7 +422,7 @@ function renderRoundsList(rounds) {
 
     return '<div class="card"><div' + roundToggle + ' class="round-section-header"' + (headerCursor ? ' style="' + headerCursor + '"' : '') + '>' +
       '<h3 style="margin:0;">ラウンド' + round.roundNumber + '</h3>' +
-      '<div style="display:flex;align-items:center;gap:4px;">' + statusBadgeHtml(round.status) +
+      '<div style="display:flex;align-items:center;gap:4px;">' + roundMenuH + statusBadgeHtml(round.status) +
       expandIcon + '</div></div>' +
       '<div class="' + roundBodyClass + '">' + teamsH + matchesH + roundBottomH + '</div></div>';
   }).join('');
@@ -848,8 +861,25 @@ function closeAllMatchMenus_() {
   });
 }
 
+/** ラウンドの三点メニューの開閉 */
+function toggleRoundMenu(e, roundId) {
+  e.stopPropagation();
+  var target = document.getElementById('round-menu-' + roundId);
+  var wasOpen = target && target.classList.contains('open');
+  closeAllRoundMenus_();
+  if (target && !wasOpen) target.classList.add('open');
+}
+
+/** 開いているラウンドメニューを全て閉じる */
+function closeAllRoundMenus_() {
+  document.querySelectorAll('.status-menu.open[id^="round-menu-"]').forEach(function(el) {
+    el.classList.remove('open');
+  });
+}
+
 // メニュー外クリックで閉じる
 document.addEventListener('click', closeAllMatchMenus_);
+document.addEventListener('click', closeAllRoundMenus_);
 
 // ===================================
 // タイマー機能
