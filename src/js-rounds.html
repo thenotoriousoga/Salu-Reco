@@ -359,7 +359,7 @@ function renderRoundsList(rounds) {
         var ongoing = m.status !== '終了';
         var badge = ongoing
           ? '<span class="event-status-badge badge-ongoing">進行中</span>'
-          : '<span class="event-status-badge badge-done">終了</span>';
+          : '<span class="event-status-badge badge-ended">終了</span>';
         var scoreH = (ongoing && canEditMatch) ? ongoingMatchHtml(m, teamColorMap) : endedMatchHtml(m, teamColorMap);
         if (ongoing && canEditMatch) {
           return '<div class="round-card" style="margin-left:0;"><div class="round-header"><span class="round-title">第' + m.matchNumber + '試合</span><div style="display:flex;align-items:center;gap:4px;">' + badge + '</div></div>' + scoreH + '</div>';

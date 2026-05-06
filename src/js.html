@@ -239,11 +239,20 @@ function updateStepIndicator(activeStep) {
  * @param {string} status - ステータス文字列
  * @return {string} バッジHTML
  */
+/**
+ * ステータスバッジのHTMLを生成
+ * エンティティ（イベント/ラウンド/マッチ）を問わず共通のカラールールで描画する
+ *   - 進行中: 緑（badge-ongoing）
+ *   - 終了 / イベント終了: グレー（badge-ended）
+ *   - 準備中・その他: ニュートラル（badge-preparing）
+ * @param {string} status - ステータス文字列
+ * @return {string} バッジHTML
+ */
 function statusBadgeHtml(status) {
   var s = status || '準備中';
   var bc = 'badge-preparing';
-  if (s === 'イベント終了') bc = 'badge-ended';
-  else if (s === '進行中') bc = 'badge-ongoing';
+  if (s === '進行中') bc = 'badge-ongoing';
+  else if (s === 'イベント終了' || s === '終了') bc = 'badge-ended';
   return '<span class="event-status-badge ' + bc + '">' + esc(s) + '</span>';
 }
 
