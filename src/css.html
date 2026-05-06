@@ -1827,6 +1827,20 @@ body {
 .badge-ongoing { background: var(--success-bg); color: var(--success); border: 1px solid var(--success); }
 .badge-ended { background: var(--border-light); color: var(--text-muted); border: 1px solid var(--border); }
 
+/* ステータスバッジ横に出す、次アクションの未達条件ヒント */
+.status-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+.status-hint svg {
+  color: var(--text-muted);
+  vertical-align: -2px;
+  margin-right: 2px;
+}
+
 /* --- MVP結果カード --- */
 .mvp-result-card {
   padding: 16px;

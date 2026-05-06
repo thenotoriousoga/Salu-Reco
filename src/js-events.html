@@ -84,6 +84,10 @@ function renderEventDetail(d, activeTab) {
   var statusH = statusBadgeHtml(ev['ステータス']);
   if (isAdmin()) {
     statusH += buildStatusButtons_(ev['ステータス']);
+    var hint = buildStatusHint_(ev['ステータス']);
+    if (hint) {
+      statusH += '<div class="status-hint">' + svg(IC.info, 12) + ' ' + esc(hint) + '</div>';
+    }
   }
   document.getElementById('ev-detail-status').innerHTML = statusH;
 
@@ -141,15 +145,47 @@ function buildStatusButtons_(status) {
     svg(IC.more, 16) + '</button>' +
     '<div class="status-menu" id="status-menu">';
   items.forEach(function(item) {
-    var disabledClass = item.disabled ? ' status-menu-item-disabled' : '';
-    var disabledAttr = item.disabled ? ' disabled aria-disabled="true"' : '';
-    var onclickAttr = item.disabled ? '' : ' onclick="' + item.action + '"';
     var tooltip = item.tooltip ? ' title="' + esc(item.tooltip) + '"' : '';
-    menuH += '<button class="status-menu-item' + disabledClass + '"' + onclickAttr + disabledAttr + tooltip + '>' +
-      item.label + '</button>';
+    if (item.disabled) {
+      // disabled属性を付けるとクリック・ホバーが拾えない端末があるため、
+      // 見た目だけ無効化しつつクリック時はトーストで理由を案内する
+      var tapAction = item.tooltip
+        ? ' onclick="showDisabledReason_(event, \'' + esc(item.tooltip).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + '\')"'
+        : ' onclick="event.stopPropagation()"';
+      menuH += '<button class="status-menu-item status-menu-item-disabled" aria-disabled="true"' + tooltip + tapAction + '>' +
+        item.label + '</button>';
+    } else {
+      menuH += '<button class="status-menu-item" onclick="' + item.action + '"' + tooltip + '>' +
+        item.label + '</button>';
+    }
   });
   menuH += '</div></div>';
   return menuH;
+}
+
+/**
+ * 無効化されたメニュー項目がクリックされた時、理由をトーストで表示する
+ * メニュー自体が閉じないように伝播は止める
+ * @param {Event} e - クリックイベント
+ * @param {string} reason - 表示する理由
+ */
+function showDisabledReason_(e, reason) {
+  if (e) e.stopPropagation();
+  if (reason) showToast(reason, true);
+}
+
+/**
+ * ステータスバッジ横に表示する「次のアクションに必要な条件」のヒント文言を返す
+ * 三点メニューを開かなくても、何が足りないかユーザーが気づけるようにする
+ * @param {string} status - 現在のイベントステータス
+ * @return {string} ヒント文言（該当なしなら空文字）
+ */
+function buildStatusHint_(status) {
+  var items = getStatusMenuItems_(status);
+  var reasons = items
+    .filter(function(it) { return it.disabled && it.tooltip; })
+    .map(function(it) { return it.tooltip; });
+  return reasons.length > 0 ? reasons.join(' / ') : '';
 }
 
 /**
