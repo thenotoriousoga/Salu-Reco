@@ -397,7 +397,7 @@ function renderRoundsList(rounds) {
     var expandIcon = isRoundEnded ? '<svg class="round-expand-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>' : '';
     var headerCursor = isRoundEnded ? 'cursor:pointer;' : '';
 
-    return '<div class="card"><div' + roundToggle + ' class="round-section-header' + (isRoundEnded ? ' round-section-header-collapsed' : '') + '"' + (headerCursor ? ' style="' + headerCursor + '"' : '') + '>' +
+    return '<div class="card"><div' + roundToggle + ' class="round-section-header"' + (headerCursor ? ' style="' + headerCursor + '"' : '') + '>' +
       '<h3 style="margin:0;">ラウンド' + round.roundNumber + '</h3>' +
       '<div style="display:flex;align-items:center;gap:4px;">' + statusBadgeHtml(round.status) +
       expandIcon + '</div></div>' +
