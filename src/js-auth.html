@@ -234,6 +234,21 @@ function doCreateEventAsOrganizer() {
   }, 'イベント作成に失敗しました');
 }
 
+/** 参加コードをクリップボードにコピー */
+function copyEventCode() {
+  var el = document.getElementById('created-event-code');
+  if (!el) return;
+  var code = (el.textContent || '').trim();
+  if (!code || code === '----') return;
+  copyToClipboard_(code).then(function(ok) {
+    if (ok) {
+      showToast('参加コードをコピーしました 📋');
+    } else {
+      showToast('コピーに失敗しました', true);
+    }
+  });
+}
+
 /** 作成完了画面から、イベント詳細に入る */
 function enterCreatedEvent() {
   if (!pendingCreatedEvent_) {

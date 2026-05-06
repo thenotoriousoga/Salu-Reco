@@ -69,15 +69,15 @@
             <rect x="6" y="26" width="12" height="3.5" rx="0.5" fill="url(#mic-grad)"/>
           </svg>
         </h2>
-        <p class="login-hero-sub">コードを入力してピッチに立とう</p>
+        <p class="login-hero-sub">参加コードを入力してピッチに立とう</p>
       </div>
       <div class="card login-card">
         <div class="login-code-input-wrap">
-          <input type="text" id="login-code" placeholder="コードを入力" class="login-code-input" maxlength="10" autocomplete="off" aria-label="イベントコード">
+          <input type="text" id="login-code" placeholder="参加コードを入力" class="login-code-input" maxlength="10" autocomplete="off" aria-label="参加コード">
         </div>
         <button class="btn btn-primary btn-large" onclick="doLoginWithCode()">
           <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-          試合に参加する！
+          イベントに参加する
         </button>
       </div>
       <div class="login-create-area">
@@ -142,8 +142,7 @@
           イベントを作成しました！
         </h3>
         <p style="margin:16px 0 8px;color:var(--text-muted);font-size:0.85rem;">参加者にこのコードを共有してください</p>
-        <div class="created-event-code" id="created-event-code">----</div>
-        <p style="margin:16px 0;color:var(--text-muted);font-size:0.8rem;">ブックマークすればあとで戻ってこられます</p>
+        <div class="created-event-code" id="created-event-code" role="button" tabindex="0" aria-label="参加コードをコピー" title="タップでコピー" onclick="copyEventCode()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();copyEventCode();}">----</div>
         <button class="btn btn-primary btn-large" onclick="enterCreatedEvent()">
           <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
           イベントに進む

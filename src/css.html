@@ -1989,6 +1989,23 @@ body {
   border-radius: var(--radius);
   margin: 8px 0 16px;
   user-select: all;
+  cursor: pointer;
+  transition: transform 0.1s ease, background-color 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.created-event-code:hover {
+  background: var(--bg);
+}
+.created-event-code:active {
+  transform: scale(0.98);
+}
+.created-event-code:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .created-event-code { transition: none; }
+  .created-event-code:active { transform: none; }
 }
 
 /* --- ロール別表示制御 --- */
