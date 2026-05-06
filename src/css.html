@@ -732,15 +732,17 @@ body {
   opacity: 1;
   box-shadow: var(--shadow-md);
   transform: translateY(-1px);
-  color: white;
+  border-width: 2px;
+  border-style: solid;
+  font-weight: 700;
 }
 
-/* アクティブ時はチームカラーで塗りつぶす */
-.goal-team-btn-active.team-a-badge { background: var(--team-a); border-color: var(--team-a); }
-.goal-team-btn-active.team-b-badge { background: var(--team-b); border-color: var(--team-b); }
-.goal-team-btn-active.team-c-badge { background: var(--team-c); border-color: var(--team-c); }
-.goal-team-btn-active.team-d-badge { background: var(--team-d); border-color: var(--team-d); }
-.goal-team-btn-active.team-e-badge { background: var(--team-e); border-color: var(--team-e); }
+/* アクティブ時はバッジと同じ配色（薄い背景＋濃い文字・枠） */
+.goal-team-btn-active.team-a-badge { background: var(--team-a-bg); color: var(--team-a); border-color: var(--team-a); }
+.goal-team-btn-active.team-b-badge { background: var(--team-b-bg); color: var(--team-b); border-color: var(--team-b); }
+.goal-team-btn-active.team-c-badge { background: var(--team-c-bg); color: var(--team-c); border-color: var(--team-c); }
+.goal-team-btn-active.team-d-badge { background: var(--team-d-bg); color: var(--team-d); border-color: var(--team-d); }
+.goal-team-btn-active.team-e-badge { background: var(--team-e-bg); color: var(--team-e); border-color: var(--team-e); }
 
 /* 下向き三角マーカーもチームカラーに揃える */
 .goal-team-btn-active::after {
