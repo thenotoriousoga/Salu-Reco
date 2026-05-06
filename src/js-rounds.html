@@ -364,8 +364,8 @@ function renderRoundsList(rounds) {
         if (ongoing && canEditMatch) {
           return '<div class="round-card" style="margin-left:0;"><div class="round-header"><span class="round-title">第' + m.matchNumber + '試合</span><div style="display:flex;align-items:center;gap:4px;">' + badge + '</div></div>' + scoreH + '</div>';
         }
-        var scoreSummary = '<span style="font-family:\'Fira Code\',monospace;font-size:0.8rem;font-weight:600;color:var(--text-secondary);margin-left:8px;">' +
-          esc(m.teamAName) + ' ' + m.scoreA + '-' + m.scoreB + ' ' + esc(m.teamBName) + '</span>';
+        var scoreSummary = '<div class="match-header-score">' +
+          esc(m.teamAName) + ' ' + m.scoreA + '-' + m.scoreB + ' ' + esc(m.teamBName) + '</div>';
         var editMenuH = '';
         if (!ongoing && canEditMatch) {
           editMenuH = '<div class="status-menu-wrap" onclick="event.stopPropagation()">' +
@@ -375,9 +375,10 @@ function renderRoundsList(rounds) {
             '<button class="status-menu-item" onclick="reopenMatch(\'' + m.id + '\')">結果を編集</button>' +
             '</div></div>';
         }
-        return '<div class="round-card round-card-collapsed" style="margin-left:0;" onclick="toggleMatchBody(this)">' +
-          '<div class="round-header"><span class="round-title">第' + m.matchNumber + '試合' + scoreSummary + '</span><div style="display:flex;align-items:center;gap:4px;">' + editMenuH + badge +
+        return '<div class="round-card round-card-collapsed match-card-ended" style="margin-left:0;" onclick="toggleMatchBody(this)">' +
+          '<div class="round-header"><span class="round-title">第' + m.matchNumber + '試合</span><div style="display:flex;align-items:center;gap:4px;">' + editMenuH + badge +
           '<svg class="round-expand-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></div></div>' +
+          scoreSummary +
           '<div class="match-body match-body-collapsed">' + scoreH + '</div></div>';
       }).join('');
     }
