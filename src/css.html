@@ -671,6 +671,47 @@ body {
   margin-bottom: 8px;
 }
 
+/* どのチームを編集中かを示すパネルヘッダー */
+.goal-panel-header {
+  display: block;
+  margin: -4px -6px 10px;
+  padding: 6px 10px;
+  border-radius: var(--radius-xs);
+  font-family: 'Fira Code', monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+
+/* チーム選択タブ（選手・得点セクション） */
+.goal-team-btn {
+  position: relative;
+  opacity: 0.55;
+  transition: opacity var(--transition), transform var(--transition), box-shadow var(--transition);
+}
+
+.goal-team-btn:hover { opacity: 0.85; }
+
+.goal-team-btn-active {
+  opacity: 1;
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.goal-team-btn-active::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 8px solid currentColor;
+}
+
 .goal-player-divider {
   height: 1px;
   background: var(--border);

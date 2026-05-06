@@ -513,10 +513,16 @@ var pendingSubs_ = {};
  * @param {Object[]} players - チームメンバー配列 [{ id, name, isSub }, ...]
  *   ペンディング中の助っ人（pendingSubs_）も含む
  * @param {Object} tally - tallyGoalsByTeam_の該当チーム分
+ * @param {string} teamName - チーム表示名
+ * @param {string} teamCls - チームカラークラス（'a' / 'b' / ...）
  * @return {string} HTML文字列
  */
-function goalPanelHtml_(matchId, team, players, tally) {
-  var h = '<div id="goal-panel-' + matchId + '-' + team + '" class="goal-panel" style="display:none;">';
+function goalPanelHtml_(matchId, team, players, tally, teamName, teamCls) {
+  var h = '<div id="goal-panel-' + matchId + '-' + team + '" class="goal-panel goal-panel-' + (teamCls || 'a') + '" style="display:none;">';
+  // どのチームを編集中かを示すヘッダー
+  h += '<div class="goal-panel-header team-' + (teamCls || 'a') + '-badge">' +
+    esc(teamName || '') + ' の選手' +
+    '</div>';
   // 助っ人追加ボタン
   h += '<div class="goal-sub-add-row">' +
     '<button class="btn btn-sm btn-secondary" onclick="openAddSub(\'' + matchId + '\',\'' + team + '\')">' +
@@ -595,11 +601,11 @@ function ongoingMatchHtml(m, teamColorMap) {
   // 選手・得点セクション
   h += '<div class="goal-section"><h3 style="font-size:0.85rem;">' + svg(IC.goal, 16) + ' 選手・得点</h3>' +
     '<div class="goal-team-btns" style="display:flex;gap:8px;margin-bottom:8px;">' +
-    '<button class="btn team-' + clsA + '-badge" style="flex:1;padding:10px;" onclick="toggleGoalPanel(\'' + m.id + '\',\'A\')">' + esc(m.teamAName) + '</button>' +
-    '<button class="btn team-' + clsB + '-badge" style="flex:1;padding:10px;" onclick="toggleGoalPanel(\'' + m.id + '\',\'B\')">' + esc(m.teamBName) + '</button></div>';
+    '<button id="goal-tab-' + m.id + '-A" class="btn team-' + clsA + '-badge goal-team-btn" style="flex:1;padding:10px;" onclick="toggleGoalPanel(\'' + m.id + '\',\'A\')">' + esc(m.teamAName) + '</button>' +
+    '<button id="goal-tab-' + m.id + '-B" class="btn team-' + clsB + '-badge goal-team-btn" style="flex:1;padding:10px;" onclick="toggleGoalPanel(\'' + m.id + '\',\'B\')">' + esc(m.teamBName) + '</button></div>';
 
-  h += goalPanelHtml_(m.id, 'A', playersWithPending_(m, 'A'), tally.A);
-  h += goalPanelHtml_(m.id, 'B', playersWithPending_(m, 'B'), tally.B);
+  h += goalPanelHtml_(m.id, 'A', playersWithPending_(m, 'A'), tally.A, m.teamAName, clsA);
+  h += goalPanelHtml_(m.id, 'B', playersWithPending_(m, 'B'), tally.B, m.teamBName, clsB);
   h += '</div>';
 
   h += '<div style="display:flex;gap:8px;margin-top:12px;">' +
@@ -627,13 +633,21 @@ function playersWithPending_(m, team) {
 function toggleGoalPanel(matchId, team) {
   var panelA = document.getElementById('goal-panel-' + matchId + '-A');
   var panelB = document.getElementById('goal-panel-' + matchId + '-B');
+  var tabA = document.getElementById('goal-tab-' + matchId + '-A');
+  var tabB = document.getElementById('goal-tab-' + matchId + '-B');
   var targetPanel = document.getElementById('goal-panel-' + matchId + '-' + team);
+  var setActive = function(which) {
+    if (tabA) tabA.classList.toggle('goal-team-btn-active', which === 'A');
+    if (tabB) tabB.classList.toggle('goal-team-btn-active', which === 'B');
+  };
   if (targetPanel.style.display === 'none') {
     if (panelA) panelA.style.display = 'none';
     if (panelB) panelB.style.display = 'none';
     targetPanel.style.display = 'block';
+    setActive(team);
   } else {
     targetPanel.style.display = 'none';
+    setActive(null);
   }
 }
 
@@ -1150,8 +1164,11 @@ function refreshGoalPanel_(matchId, team) {
     var wasOpen = oldPanel.style.display !== 'none';
     var parent = oldPanel.parentNode;
 
+    var tName = t === 'A' ? matchCopy.teamAName : matchCopy.teamBName;
+    var tCls = teamColorMap[tName] || (t === 'A' ? 'a' : 'b');
+
     var wrapper = document.createElement('div');
-    wrapper.innerHTML = goalPanelHtml_(matchId, t, playersWithPending_(matchCopy, t), tally[t]);
+    wrapper.innerHTML = goalPanelHtml_(matchId, t, playersWithPending_(matchCopy, t), tally[t], tName, tCls);
     var newPanel = wrapper.firstChild;
     parent.replaceChild(newPanel, oldPanel);
     newPanel.style.display = (t === team || wasOpen) ? 'block' : 'none';
