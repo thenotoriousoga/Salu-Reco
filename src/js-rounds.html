@@ -14,10 +14,9 @@ function renderParticipantCB(members) {
     return;
   }
   c.innerHTML = '<div class="checkbox-grid">' + members.map(function(m) {
-    var exp = '';
     return '<div class="checkbox-item"><input type="checkbox" id="pcb-' + m['メンバーID'] + '" value="' + m['メンバーID'] + '" checked onchange="updateTeamCountOptions()">' +
-      '<label for="pcb-' + m['メンバーID'] + '">' + esc(m['名前']) + exp + '</label></div>';
-  }).join('') + '</div><div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">* = サッカー経験あり</div>';
+      '<label for="pcb-' + m['メンバーID'] + '">' + esc(m['名前']) + '</label></div>';
+  }).join('') + '</div>';
   updateTeamCountOptions();
 }
 

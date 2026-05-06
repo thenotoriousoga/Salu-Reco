@@ -164,7 +164,6 @@ function renderEventStats() {
     return {
       id: mId,
       name: m['名前'],
-      experience: m['サッカー経験'],
       played: played,
       wins: wins,
       losses: losses,
@@ -195,8 +194,6 @@ function renderStatsCards() {
   }
 
   c.innerHTML = stats.map(function(s, i) {
-    var expB = s.experience === 'あり' ? '<span class="badge badge-exp">経験あり</span>' : '<span class="badge badge-noexp">未経験</span>';
-
     // 試合別詳細
     var matchRowsHtml = s.matchDetails.map(function(md) {
       var resultClass = md.result === '勝ち' ? 'stats-match-win' : (md.result === '負け' ? 'stats-match-lose' : (md.result === '引分' ? 'stats-match-draw' : ''));
@@ -220,7 +217,7 @@ function renderStatsCards() {
 
     return '<div class="stats-card stats-card-expandable" onclick="toggleStatsDetail(this)">' +
       '<div class="stats-name">' +
-      '<span class="stats-rank">#' + (i + 1) + '</span>' + esc(s.name) + ' ' + expB +
+      '<span class="stats-rank">#' + (i + 1) + '</span>' + esc(s.name) +
       statsHighlightHtml_(s) +
       '<svg class="stats-expand-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>' +
       '</div>' +
