@@ -215,6 +215,11 @@ function renderStatsCards() {
         '</div>';
     }
 
+    // 試合未実施の場合のプレースホルダー
+    if (!matchRowsHtml && !aiCommentHtml) {
+      matchRowsHtml = '<div class="stats-empty-detail">まだ試合に出場していません</div>';
+    }
+
     return '<div class="stats-card stats-card-expandable" onclick="toggleStatsDetail(this)">' +
       '<div class="stats-name">' +
       '<span class="stats-rank">#' + (i + 1) + '</span>' + esc(s.name) +
