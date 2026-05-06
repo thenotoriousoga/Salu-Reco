@@ -65,30 +65,94 @@ function getEventDetail(eventId) {
 // ===================================
 
 /**
- * 新規イベントを作成する
- * @param {string} date - 日付
+ * イベントを作成する（管理者・幹事共通）
+ * イベント作成 + 参加コード自動生成 + 幹事メンバー登録を一括で行う
  * @param {string} name - イベント名
- * @param {string} code - 参加コード
- * @return {Object} 結果オブジェクト { success, eventId, code, message }
+ * @param {string} date - 日付（yyyy-MM-dd 形式）
+ * @param {string} organizerName - 幹事の名前
+ * @return {Object} 結果オブジェクト
+ *   { success, eventId, code, organizerMemberId, message }
  */
-function createNewEvent(date, name, code) {
-  if (!code || !code.trim()) {
-    return { success: false, message: '参加コードを入力してください' };
-  }
-  code = code.trim().toUpperCase();
+function createEventAsOrganizer(name, date, organizerName) {
+  var trimmedName = (name || '').trim();
+  var trimmedOrganizer = (organizerName || '').trim();
 
-  var existing = getSheetData_('イベント');
-  var dup = existing.find(function(e) { return String(e['コード']).toUpperCase() === code; });
-  if (dup) {
-    return { success: false, message: 'このコードは既に使われています' };
+  if (!trimmedName) {
+    return { success: false, message: 'イベント名を入力してください' };
+  }
+  if (!trimmedOrganizer) {
+    return { success: false, message: 'あなたの名前を入力してください' };
+  }
+  if (!date) {
+    return { success: false, message: '日付を選択してください' };
+  }
+
+  var code = generateUniqueEventCode_();
+  if (!code) {
+    return { success: false, message: '参加コードの生成に失敗しました。時間をおいて再度お試しください' };
   }
 
   var ss = getSpreadsheet_();
-  var sheet = ensureSheet_(ss, 'イベント');
-  var eventId = generateId_();
-  sheet.appendRow([eventId, date, name || 'フットサル', '準備中', '', '', code]);
+  var eventSheet = ensureSheet_(ss, 'イベント');
+  var memberSheet = ensureSheet_(ss, 'メンバー');
 
-  return { success: true, eventId: eventId, code: code, message: 'イベントを作成しました' };
+  var eventId = generateId_();
+  eventSheet.appendRow([eventId, date, trimmedName, '準備中', '', '', code]);
+
+  // 幹事を最初のメンバーとして登録
+  var memberId = generateId_();
+  memberSheet.appendRow([
+    memberId,
+    eventId,
+    trimmedOrganizer,
+    1,          // 年次: デフォルト1
+    'なし',     // サッカー経験: デフォルトなし
+    'はい',     // 幹事: はい
+    '',         // 備考
+    ''          // 意気込み
+  ]);
+
+  return {
+    success: true,
+    eventId: eventId,
+    code: code,
+    organizerMemberId: memberId,
+    message: 'イベントを作成しました'
+  };
+}
+
+/**
+ * 既存イベントと重複しない参加コードを自動生成する
+ * 紛らわしい文字（0/O, 1/I/L）を除いた英数字で構成
+ * @return {string|null} 4文字のコード、生成失敗時はnull
+ */
+function generateUniqueEventCode_() {
+  var chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  var existing = getSheetData_('イベント');
+  var used = {};
+  existing.forEach(function(e) {
+    used[String(e['コード']).toUpperCase()] = true;
+  });
+
+  // 4文字で最大30回試行
+  for (var attempt = 0; attempt < 30; attempt++) {
+    var code = '';
+    for (var i = 0; i < 4; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    if (!used[code]) return code;
+  }
+
+  // 4文字で枯渇した場合は5文字で再試行
+  for (var attempt2 = 0; attempt2 < 30; attempt2++) {
+    var code2 = '';
+    for (var j = 0; j < 5; j++) {
+      code2 += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    if (!used[code2]) return code2;
+  }
+
+  return null;
 }
 
 // ===================================

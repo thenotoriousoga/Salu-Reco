@@ -29,22 +29,6 @@ function renderEventList(events) {
   }).join('');
 }
 
-/** 新規イベントを作成する */
-function createNewEvent() {
-  var name = document.getElementById('ev-name').value.trim() || 'フットサル';
-  var date = document.getElementById('ev-date').value || new Date().toLocaleDateString('ja-JP');
-  var code = document.getElementById('ev-code').value.trim();
-  if (!code) { showToast('参加コードを入力してください', true); return; }
-  callServer('createNewEvent', [date, name, code], function(r) {
-    if (r.success) {
-      showToast(r.message);
-      openEvent(r.eventId);
-    } else {
-      showToast(r.message, true);
-    }
-  });
-}
-
 // ===================================
 // イベント詳細
 // ===================================

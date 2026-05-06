@@ -200,7 +200,14 @@ function showPage(page, skipHash) {
   if (page === 'events' && !currentRole) page = 'login';
 
   document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
-  document.getElementById('page-' + page).classList.add('active');
+  var target = document.getElementById('page-' + page);
+  if (!target) {
+    // 未知のページIDの場合はログインにフォールバック
+    document.getElementById('page-login').classList.add('active');
+    if (!skipHash) pushState_();
+    return;
+  }
+  target.classList.add('active');
 
   // イベント一覧に戻る場合、詳細ビューをリセット
   if (page === 'events' && currentRole === 'admin') {
@@ -312,13 +319,6 @@ function navigateToRoute_(route) {
 // ===================================
 
 document.addEventListener('DOMContentLoaded', function() {
-  // 日付入力の初期値設定
-  var di = document.getElementById('ev-date');
-  if (di) {
-    var t = new Date();
-    di.value = t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0');
-  }
-
   // メンバー名入力でEnterキー対応
   var nameInput = document.getElementById('m-name');
   if (nameInput) {
@@ -342,6 +342,16 @@ document.addEventListener('DOMContentLoaded', function() {
       if (e.key === 'Enter') { e.preventDefault(); doLoginAdmin(); }
     });
   }
+
+  // イベント作成画面の入力でEnterキー対応
+  ['create-ev-name', 'create-ev-organizer'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); doCreateEventAsOrganizer(); }
+      });
+    }
+  });
 
   // ブラウザの戻る/進むボタン対応
   google.script.history.setChangeHandler(function(e) {

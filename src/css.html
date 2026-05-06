@@ -1656,6 +1656,52 @@ body {
 
 .admin-toggle-link:hover { color: var(--text-secondary); text-decoration: underline; }
 
+/* --- イベント作成エリア（ログイン画面内） --- */
+.login-create-area {
+  max-width: 400px;
+  margin: 20px auto 0;
+  padding: 0 20px;
+}
+
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 0 16px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.login-divider::before,
+.login-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.login-create-hint {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 8px;
+}
+
+/* --- 作成完了画面の参加コード --- */
+.created-event-code {
+  font-family: 'Fira Code', monospace;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--primary);
+  letter-spacing: 0.2em;
+  padding: 20px;
+  background: var(--bg-surface);
+  border: 2px dashed var(--primary);
+  border-radius: var(--radius);
+  margin: 8px 0 16px;
+  user-select: all;
+}
+
 /* --- ロール別表示制御 --- */
 body.role-user .admin-only { display: none !important; }
 body.role-admin .user-only { display: none !important; }

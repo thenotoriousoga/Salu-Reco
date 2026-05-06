@@ -162,6 +162,110 @@ function toggleAdminLogin() {
   }
 }
 
+// ===================================
+// イベント作成フロー（管理者・幹事共通）
+// ===================================
+
+/** 作成完了後に「イベントに進む」で使う一時データ */
+var pendingCreatedEvent_ = null;
+
+/**
+ * イベント作成フォーム画面を表示する
+ * 未ログインなら幹事として、管理者ログイン中なら管理者として作成する
+ */
+function showCreateEventForm() {
+  // 日付フィールドに今日を初期値としてセット
+  var dateInput = document.getElementById('create-ev-date');
+  if (dateInput && !dateInput.value) {
+    var t = new Date();
+    dateInput.value = t.getFullYear() + '-' +
+      String(t.getMonth() + 1).padStart(2, '0') + '-' +
+      String(t.getDate()).padStart(2, '0');
+  }
+  showPage('create-event');
+  setTimeout(function() {
+    var nameInput = document.getElementById('create-ev-organizer');
+    if (nameInput) nameInput.focus();
+  }, 50);
+}
+
+/** ログイン画面に戻る */
+function backToLogin() {
+  showPage('login');
+}
+
+/**
+ * 作成フォームから戻る
+ * 管理者ログイン中ならイベント一覧へ、それ以外はログイン画面へ
+ */
+function backFromCreateEvent() {
+  if (isAdmin() && !currentMemberId) {
+    showPage('events');
+  } else {
+    showPage('login');
+  }
+}
+
+/** イベントを作成する（管理者・幹事共通） */
+function doCreateEventAsOrganizer() {
+  var name = document.getElementById('create-ev-name').value.trim();
+  var date = document.getElementById('create-ev-date').value;
+  var organizer = document.getElementById('create-ev-organizer').value.trim();
+
+  if (!name) { showToast('イベント名を入力してください', true); return; }
+  if (!date) { showToast('日付を選んでください', true); return; }
+  if (!organizer) { showToast('幹事の名前を入力してください', true); return; }
+
+  callServer('createEventAsOrganizer', [name, date, organizer], function(r) {
+    if (!r.success) {
+      showToast(r.message, true);
+      return;
+    }
+    // 作成完了画面に遷移し、参加コードを表示
+    pendingCreatedEvent_ = {
+      eventId: r.eventId,
+      code: r.code,
+      memberId: r.organizerMemberId,
+      // 管理者ログイン済みなら admin として入室、未ログインなら幹事として入室
+      asAdmin: isAdmin()
+    };
+    document.getElementById('created-event-code').textContent = r.code;
+    showPage('created-event');
+  }, 'イベント作成に失敗しました');
+}
+
+/** 作成完了画面から、イベント詳細に入る */
+function enterCreatedEvent() {
+  if (!pendingCreatedEvent_) {
+    showPage('login');
+    return;
+  }
+
+  var data = pendingCreatedEvent_;
+  pendingCreatedEvent_ = null;
+
+  if (data.asAdmin) {
+    // 管理者として入室: 一覧に戻れる。currentMemberId は設定しない
+    currentEventId = data.eventId;
+    currentMemberId = null;
+  } else {
+    // 幹事として入室: 管理者権限を付与、そのイベント内のみ操作可能
+    setRole_('admin');
+    currentEventId = data.eventId;
+    currentMemberId = data.memberId;
+  }
+  saveSession_();
+
+  // 入力欄をクリア
+  document.getElementById('create-ev-name').value = 'フットサル';
+  document.getElementById('create-ev-date').value = '';
+  document.getElementById('create-ev-organizer').value = '';
+
+  document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+  document.getElementById('page-events').classList.add('active');
+  openEvent(currentEventId);
+}
+
 /** ログアウト */
 function doLogout() {
   currentRole = null;

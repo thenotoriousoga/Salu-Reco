@@ -80,6 +80,14 @@
           試合に参加する！
         </button>
       </div>
+      <div class="login-create-area">
+        <div class="login-divider"><span>または</span></div>
+        <button class="btn btn-accent btn-large" onclick="showCreateEventForm()">
+          <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          新しくイベントを作る
+        </button>
+        <p class="login-create-hint">幹事として、すぐにイベントを立ち上げられます</p>
+      </div>
       <div class="login-admin-area">
         <a href="javascript:void(0)" onclick="toggleAdminLogin()" class="admin-toggle-link">管理者はこちら</a>
         <div id="admin-login-form" style="display:none;">
@@ -94,6 +102,54 @@
             </button>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- ===== イベント作成画面（管理者・幹事共通） ===== -->
+    <div id="page-create-event" class="page">
+      <div class="card login-card" style="max-width:400px;margin:24px auto;">
+        <h3>
+          <svg class="section-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          イベントを作る
+        </h3>
+        <div class="input-group">
+          <label for="create-ev-name">イベント名</label>
+          <input type="text" id="create-ev-name" value="フットサル" class="input" maxlength="40">
+        </div>
+        <div class="input-group">
+          <label for="create-ev-date">日付</label>
+          <input type="date" id="create-ev-date" class="input">
+        </div>
+        <div class="input-group">
+          <label for="create-ev-organizer">幹事の名前</label>
+          <input type="text" id="create-ev-organizer" placeholder="例: 田中" class="input" maxlength="20">
+        </div>
+        <p class="login-create-hint" style="margin-bottom:12px;">参加コードは自動で発行されます。幹事は最初のメンバーとして自動登録されます</p>
+        <button class="btn btn-primary btn-large" onclick="doCreateEventAsOrganizer()">
+          <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+          作成してはじめる
+        </button>
+        <button class="btn btn-secondary btn-large" onclick="backFromCreateEvent()" style="margin-top:8px;">
+          <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          戻る
+        </button>
+      </div>
+    </div>
+
+    <!-- ===== イベント作成完了画面（参加コード表示） ===== -->
+    <div id="page-created-event" class="page">
+      <div class="card login-card" style="max-width:400px;margin:24px auto;text-align:center;">
+        <h3>
+          <svg class="section-icon" viewBox="0 0 24 24" aria-hidden="true" style="stroke:var(--success);"><polyline points="20 6 9 17 4 12"/></svg>
+          イベントを作成しました！
+        </h3>
+        <p style="margin:16px 0 8px;color:var(--text-muted);font-size:0.85rem;">参加者にこのコードを共有してください</p>
+        <div class="created-event-code" id="created-event-code">----</div>
+        <p style="margin:16px 0;color:var(--text-muted);font-size:0.8rem;">ブックマークすればあとで戻ってこられます</p>
+        <button class="btn btn-primary btn-large" onclick="enterCreatedEvent()">
+          <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+          イベントに進む
+        </button>
       </div>
     </div>
 
@@ -113,19 +169,7 @@
             <svg class="section-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             イベント管理
           </h2>
-          <div class="input-group">
-            <label for="ev-name">名称</label>
-            <input type="text" id="ev-name" value="フットサル" class="input">
-          </div>
-          <div class="input-group">
-            <label for="ev-date">日付</label>
-            <input type="date" id="ev-date" class="input">
-          </div>
-          <div class="input-group">
-            <label for="ev-code">参加コード</label>
-            <input type="text" id="ev-code" placeholder="例: AB12" class="input" maxlength="10" style="text-transform:uppercase;font-family:'Fira Code',monospace;">
-          </div>
-          <button class="btn btn-primary btn-large" onclick="createNewEvent()">
+          <button class="btn btn-primary btn-large" onclick="showCreateEventForm()">
             <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             イベントをキックオフ！
           </button>
