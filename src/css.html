@@ -714,6 +714,40 @@ body {
   color: var(--text-secondary);
 }
 
+/* 得点パネル上部の「助っ人を追加」ボタン */
+.goal-sub-add-row {
+  display: flex;
+  justify-content: flex-end;
+  padding: 6px 0 10px;
+  border-bottom: 1px dashed var(--border);
+  margin-bottom: 8px;
+}
+
+/* ペンディング助っ人の × ボタン */
+.goal-sub-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-left: 6px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--border);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+  vertical-align: middle;
+  transition: background var(--transition);
+}
+
+.goal-sub-remove:hover {
+  background: var(--primary);
+  color: white;
+}
+
 .sub-section {
   margin-top: 12px;
   padding: 10px 12px;
@@ -753,89 +787,43 @@ body {
   font-weight: 500;
 }
 
-/* --- 試合作成フォーム内の助っ人ピッカー --- */
-.sub-pick-section {
-  margin-top: 10px;
+/* --- 助っ人追加モーダル内のピッカー --- */
+.sub-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 50vh;
+  overflow-y: auto;
+  margin-top: 8px;
+}
+
+.sub-picker-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   padding: 10px 12px;
-  background: var(--bg-card);
-  border: 1px dashed var(--border);
-  border-radius: var(--radius-sm);
-}
-
-.sub-pick-title {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-family: 'Fira Code', monospace;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-  margin-bottom: 2px;
-}
-
-.sub-pick-hint {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  margin-bottom: 8px;
-}
-
-.sub-pick-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 0;
-  border-bottom: 1px solid var(--border-light);
-}
-
-.sub-pick-row:last-child { border-bottom: none; }
-
-.sub-pick-name {
-  flex: 1;
-  font-size: 0.85rem;
-  font-weight: 500;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.sub-pick-choice {
-  display: inline-flex;
   border: 1px solid var(--border);
-  border-radius: var(--radius-xs);
-  overflow: hidden;
-  background: var(--bg-surface);
-}
-
-.sub-pick-btn {
-  flex: 0 0 auto;
-  padding: 4px 8px;
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  color: var(--text);
   font-family: inherit;
-  font-size: 0.7rem;
-  font-weight: 500;
+  font-size: 0.9rem;
   cursor: pointer;
-  border-right: 1px solid var(--border);
-  transition: background var(--transition), color var(--transition);
-  max-width: 80px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  transition: background var(--transition), border-color var(--transition);
 }
 
-.sub-pick-btn:last-child { border-right: none; }
-
-.sub-pick-btn:hover { background: var(--bg); }
-
-.sub-pick-btn-active {
-  background: var(--primary);
-  color: white;
-  font-weight: 700;
+.sub-picker-item:hover {
+  background: var(--bg-surface);
+  border-color: var(--primary);
 }
 
-.sub-pick-btn-active:hover { background: var(--primary-dark); }
+.sub-picker-name { font-weight: 500; }
+
+.sub-picker-exp {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
 
 .match-goals-col div {
   padding: 2px 0;

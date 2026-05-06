@@ -500,6 +500,13 @@ function tallyGoalsByTeam_(goals) {
 var expandedTeam_ = {};
 
 /**
+ * 試合中に追加された助っ人のローカル状態
+ * キー: matchId、値: [{ id, name, team, experience }, ...]
+ * endMatch 時にまとめてサーバーに送る。画面を離れる・リロードすると失われる。
+ */
+var pendingSubs_ = {};
+
+/**
  * 1チーム分の得点パネルHTMLを生成する
  * @param {string} matchId - マッチID
  * @param {string} team - チーム識別子（A / B）
@@ -591,13 +598,30 @@ function ongoingMatchHtml(m, teamColorMap) {
     '<button class="btn team-' + clsA + '-badge" style="flex:1;padding:10px;" onclick="toggleGoalPanel(\'' + m.id + '\',\'A\')">' + esc(m.teamAName) + '</button>' +
     '<button class="btn team-' + clsB + '-badge" style="flex:1;padding:10px;" onclick="toggleGoalPanel(\'' + m.id + '\',\'B\')">' + esc(m.teamBName) + '</button></div>';
 
-  h += goalPanelHtml_(m.id, 'A', m.teamA, tally.A);
-  h += goalPanelHtml_(m.id, 'B', m.teamB, tally.B);
+  h += goalPanelHtml_(m.id, 'A', playersWithPending_(m, 'A'), tally.A);
+  h += goalPanelHtml_(m.id, 'B', playersWithPending_(m, 'B'), tally.B);
   h += '</div>';
 
   h += '<div style="display:flex;gap:8px;margin-top:12px;">' +
     '<button class="btn btn-accent" style="flex:1;" onclick="endMatch(\'' + m.id + '\')">' + svg(IC.flag, 16) + ' ホイッスル！</button></div>';
   return h;
+}
+
+/**
+ * マッチの指定チームの出場メンバーに、ペンディング助っ人を加えた配列を返す
+ * @param {Object} m - マッチデータ
+ * @param {string} team - A / B
+ * @return {Object[]} プレイヤー配列 [{ id, name, isSub, isPending }, ...]
+ */
+function playersWithPending_(m, team) {
+  var base = ((team === 'A' ? m.teamA : m.teamB) || []).map(function(p) {
+    return { id: p.id, name: p.name, isSub: !!p.isSub, isPending: false };
+  });
+  var pending = (pendingSubs_[m.id] || []).filter(function(s) { return s.team === team; });
+  pending.forEach(function(s) {
+    base.push({ id: s.id, name: s.name, isSub: true, isPending: true });
+  });
+  return base;
 }
 
 function toggleGoalPanel(matchId, team) {
@@ -774,7 +798,16 @@ function recalcScoresFromGoals(matchId) {
 
 function endMatch(matchId) {
   var goals = collectGoalsFromPanel_(matchId);
-  callServer('endMatch', [matchId, goals], function(r) { if (r.success) { showToast(r.message); openEvent(currentEventId, 'tab-rounds'); } });
+  var newSubs = (pendingSubs_[matchId] || []).map(function(s) {
+    return { memberId: s.id, team: s.team };
+  });
+  callServer('endMatch', [matchId, goals, newSubs], function(r) {
+    if (r.success) {
+      delete pendingSubs_[matchId];
+      showToast(r.message);
+      openEvent(currentEventId, 'tab-rounds');
+    }
+  });
 }
 
 function reopenMatch(matchId) {
@@ -938,5 +971,192 @@ function resetTimer_(matchId) {
     stopBtn.innerHTML = svg('<rect x="6" y="6" width="12" height="12"/>', 14);
     stopBtn.onclick = function() { stopTimer(matchId); };
   }
+}
+// ===================================
+// 助っ人（別チームからの参戦）
+// 試合中にローカル状態へ追加 → endMatch で得点と一緒に送信
+// ===================================
+
+/**
+ * 指定マッチで、既に出場しているメンバーIDの集合を取得する
+ * （通常出場・既存の助っ人・ペンディング助っ人を全て含む）
+ * @param {Object} m - マッチデータ
+ * @return {Object} memberIdをキーにしたtrueのマップ
+ */
+function getMatchMemberIdSet_(m) {
+  var set = {};
+  (m.teamA || []).forEach(function(p) { set[p.id] = true; });
+  (m.teamB || []).forEach(function(p) { set[p.id] = true; });
+  (pendingSubs_[m.id] || []).forEach(function(s) { set[s.id] = true; });
+  return set;
+}
+
+/**
+ * 助っ人追加モーダルを開く
+ * @param {string} matchId - マッチID
+ * @param {string} team - チーム識別子（A / B）
+ */
+function openAddSub(matchId, team) {
+  // cachedRounds から該当マッチを探す
+  var match = null;
+  for (var i = 0; i < cachedRounds.length && !match; i++) {
+    var ms = cachedRounds[i].matches || [];
+    for (var j = 0; j < ms.length; j++) {
+      if (ms[j].id === matchId) { match = ms[j]; break; }
+    }
+  }
+  if (!match) { showToast('試合が見つかりません', true); return; }
+
+  var exclude = getMatchMemberIdSet_(match);
+  var candidates = (currentMembers || []).filter(function(m) { return !exclude[m['メンバーID']]; });
+
+  var teamName = team === 'A' ? match.teamAName : match.teamBName;
+
+  var container = document.getElementById('modal-container');
+  var listHtml;
+  if (candidates.length === 0) {
+    listHtml = '<div class="empty-state" style="padding:16px;"><p>追加できるメンバーがいません</p></div>';
+  } else {
+    listHtml = '<div class="sub-picker-list">' + candidates.map(function(m) {
+      var mid = m['メンバーID'];
+      var name = m['名前'] || '';
+      var exp = m['サッカー経験'] === 'あり' ? '経験あり' : '未経験';
+      // 名前にシングルクォートが入っても壊れないように data 属性で受け渡す
+      return '<button class="sub-picker-item" data-match="' + matchId + '" data-team="' + team + '" data-member="' + mid + '" data-name="' + esc(name) + '" onclick="confirmAddSub(this)">' +
+        '<span class="sub-picker-name">' + esc(name) + '</span>' +
+        '<span class="sub-picker-exp">' + exp + '</span></button>';
+    }).join('') + '</div>';
+  }
+
+  container.innerHTML = '<div class="modal-overlay" id="modal-overlay">' +
+    '<div class="modal-box modal-box-wide" role="dialog" aria-modal="true" aria-labelledby="sub-title">' +
+    '<h3 id="sub-title">助っ人を追加（' + esc(teamName) + '）</h3>' +
+    '<p style="font-size:0.8rem;">別チームから呼びたいメンバーを選んでください。試合終了時にまとめて保存されます。</p>' +
+    listHtml +
+    '<div class="modal-actions" style="margin-top:12px;">' +
+    '<button class="btn btn-secondary" onclick="closeAddSub_()">キャンセル</button>' +
+    '</div></div></div>';
+
+  document.getElementById('modal-overlay').onclick = function(e) {
+    if (e.target === this) closeAddSub_();
+  };
+}
+
+function closeAddSub_() {
+  document.getElementById('modal-container').innerHTML = '';
+}
+
+/**
+ * モーダルで選ばれた助っ人をローカル状態に追加する
+ * @param {HTMLElement} btn - クリックされたボタン（data属性を保持）
+ */
+function confirmAddSub(btn) {
+  var matchId = btn.getAttribute('data-match');
+  var team = btn.getAttribute('data-team');
+  var memberId = btn.getAttribute('data-member');
+  var name = btn.getAttribute('data-name') || '?';
+  if (!matchId || !memberId || (team !== 'A' && team !== 'B')) return;
+
+  if (!pendingSubs_[matchId]) pendingSubs_[matchId] = [];
+  // 既に同じメンバーIDが入っていたら無視（想定外の二重追加対策）
+  var exists = pendingSubs_[matchId].some(function(s) { return s.id === memberId; });
+  if (!exists) {
+    pendingSubs_[matchId].push({ id: memberId, name: name, team: team });
+  }
+
+  closeAddSub_();
+  refreshGoalPanel_(matchId, team);
+  showToast(name + 'が参戦！');
+}
+
+/**
+ * ペンディング中の助っ人を解除する
+ * @param {string} matchId - マッチID
+ * @param {string} memberId - メンバーID
+ */
+function removePendingSub(matchId, memberId) {
+  var list = pendingSubs_[matchId];
+  if (!list) return;
+  var idx = -1;
+  var team = null;
+  for (var i = 0; i < list.length; i++) {
+    if (list[i].id === memberId) { idx = i; team = list[i].team; break; }
+  }
+  if (idx < 0) return;
+  list.splice(idx, 1);
+  if (list.length === 0) delete pendingSubs_[matchId];
+  refreshGoalPanel_(matchId, team);
+}
+
+/**
+ * 指定マッチの得点パネルを再描画する（現在の得点カウントを保持したまま差し替え）
+ * @param {string} matchId - マッチID
+ * @param {string} team - 開いたままにしておくチーム（A / B）
+ */
+function refreshGoalPanel_(matchId, team) {
+  // 現在の得点パネルから goals を収集してから再描画
+  var match = null;
+  for (var i = 0; i < cachedRounds.length && !match; i++) {
+    var ms = cachedRounds[i].matches || [];
+    for (var j = 0; j < ms.length; j++) {
+      if (ms[j].id === matchId) { match = ms[j]; break; }
+    }
+  }
+  if (!match) return;
+
+  // 現在入力されている得点をmatch.goals相当の形でtallyに反映する
+  var currentGoals = collectGoalsFromPanel_(matchId);
+  var matchCopy = {
+    id: match.id,
+    teamAName: match.teamAName,
+    teamBName: match.teamBName,
+    teamA: match.teamA,
+    teamB: match.teamB,
+    goals: currentGoals.map(function(g) {
+      var name = '';
+      if (g.memberId) {
+        var all = (match.teamA || []).concat(match.teamB || []);
+        var p = all.find(function(x) { return x.id === g.memberId; });
+        if (!p) {
+          // ペンディング助っ人
+          var ps = (pendingSubs_[matchId] || []).find(function(x) { return x.id === g.memberId; });
+          if (ps) name = ps.name;
+        } else {
+          name = p.name;
+        }
+      }
+      return { team: g.team, memberId: g.memberId || '', type: g.type || '通常', name: name };
+    }),
+    scoreA: currentGoals.filter(function(g) { return g.team === 'A'; }).length,
+    scoreB: currentGoals.filter(function(g) { return g.team === 'B'; }).length,
+    status: '進行中'
+  };
+
+  var tally = tallyGoalsByTeam_(matchCopy.goals);
+
+  // チームカラーを取得するためラウンドから逆引き
+  var teamColorMap = {};
+  cachedRounds.forEach(function(r) {
+    if (!r.splitData) return;
+    var hasMatch = (r.matches || []).some(function(mm) { return mm.id === matchId; });
+    if (!hasMatch) return;
+    (r.splitData.names || []).forEach(function(n, idx) { teamColorMap[n] = TEAM_CLASSES_[idx] || 'a'; });
+  });
+
+  // A / B 両パネルを差し替え
+  ['A', 'B'].forEach(function(t) {
+    var oldPanel = document.getElementById('goal-panel-' + matchId + '-' + t);
+    if (!oldPanel) return;
+    var wasOpen = oldPanel.style.display !== 'none';
+    var parent = oldPanel.parentNode;
+
+    var wrapper = document.createElement('div');
+    wrapper.innerHTML = goalPanelHtml_(matchId, t, playersWithPending_(matchCopy, t), tally[t]);
+    var newPanel = wrapper.firstChild;
+    parent.replaceChild(newPanel, oldPanel);
+    newPanel.style.display = (t === team || wasOpen) ? 'block' : 'none';
+  });
+
+  recalcScoresFromGoals(matchId);
 }
 </script>
