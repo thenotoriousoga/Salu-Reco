@@ -46,7 +46,7 @@ function openEvent(eventId, activeTab, skipHash) {
     currentMembers = d.members;
     cachedRounds = d.rounds;
     var evStatus = (d.event['ステータス'] || '準備中');
-    cachedMvpData = (evStatus === '試合終了' || evStatus === '完了') ? (d.mvpResults || []) : [];
+    cachedMvpData = (evStatus === 'イベント終了') ? (d.mvpResults || []) : [];
     cachedSurveyVoters = d.surveyVoters || [];
     previewTeams = [];
     previewNames = [];
@@ -105,7 +105,7 @@ function renderEventDetail(d, activeTab) {
   boardNames = [];
 
   // ラウンド作成セクションの表示制御
-  // 進行中ラウンドがある、または試合終了/完了の場合は非表示
+  // 進行中ラウンドがある、またはイベント終了の場合は非表示
   var hasOngoing = (d.rounds || []).some(function(r) { return r.status !== '終了'; });
   var canCreateRound = currentEventStatus === '進行中' && !hasOngoing;
   document.getElementById('round-create-section').style.display = canCreateRound ? '' : 'none';
@@ -175,15 +175,9 @@ function getStatusMenuItems_(status) {
       tooltip: canEnd ? '' : '全てのラウンドと試合を終了してください'
     }];
   }
-  if (status === '試合終了') {
+  if (status === 'イベント終了') {
     return [
-      { label: '完了にする', action: 'doCompleteEvent()' },
       { label: '進行中に戻す', action: 'doReopenEvent()' }
-    ];
-  }
-  if (status === '完了') {
-    return [
-      { label: '試合終了に戻す', action: 'doUncompleteEvent()' }
     ];
   }
   return [];
@@ -251,14 +245,6 @@ function doReopenEvent() {
   confirmStatusChange_('差戻確認', 'イベントを進行中に戻しますか？ラウンドや試合を追加できるようになります。', 'reopenEvent', '差戻');
 }
 
-function doCompleteEvent() {
-  confirmStatusChange_('イベント完了', 'イベントを完了にしますか？完了後は全ての変更ができなくなります。', 'completeEvent', '完了にする');
-}
-
-function doUncompleteEvent() {
-  confirmStatusChange_('差戻確認', 'イベントを試合終了に戻しますか？MVP再選出やアンケート回答が可能になります。', 'uncompleteEvent', '差戻');
-}
-
 // ===================================
 // アンケート
 // ===================================
@@ -275,12 +261,6 @@ function renderSurveyLink(ev) {
   var status = ev['ステータス'] || '準備中';
   var formUrl = ev['フォームURL'] || '';
   var hasMembers = currentMembers && currentMembers.length > 0;
-
-  // 完了時は非表示
-  if (status === '完了') {
-    c.innerHTML = '';
-    return;
-  }
 
   var h = '';
 

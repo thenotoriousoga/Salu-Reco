@@ -239,7 +239,7 @@ function updateEventField_(eventId, colIndex, value) {
 /**
  * イベントのステータスを更新する
  * @param {string} eventId - イベントID
- * @param {string} status - ステータス（準備中/進行中/試合終了/完了）
+ * @param {string} status - ステータス（準備中/進行中/イベント終了）
  * @return {Object} 結果オブジェクト { success }
  */
 function updateEventStatus(eventId, status) {
@@ -274,7 +274,7 @@ function startEvent(eventId) {
 }
 
 /**
- * イベントを「試合終了」状態にする
+ * イベントを「イベント終了」状態にする
  * 全ラウンド・全マッチが終了している必要がある
  * @param {string} eventId - イベントID
  * @return {Object} 結果オブジェクト { success, message }
@@ -303,7 +303,7 @@ function endEvent(eventId) {
     return { success: false, message: '進行中の試合があります。先に試合を終了してください' };
   }
 
-  updateEventStatus(eventId, '試合終了');
+  updateEventStatus(eventId, 'イベント終了');
   return { success: true, message: 'イベントを終了しました。MVP選出が可能です' };
 }
 
@@ -315,60 +315,10 @@ function endEvent(eventId) {
 function reopenEvent(eventId) {
   var event = findEvent_(eventId);
   if (!event) return { success: false, message: 'イベントが見つかりません' };
-  if (event['ステータス'] !== '試合終了') {
-    return { success: false, message: '試合終了状態のイベントのみ再開できます' };
+  if (event['ステータス'] !== 'イベント終了') {
+    return { success: false, message: 'イベント終了状態のイベントのみ再開できます' };
   }
 
   updateEventStatus(eventId, '進行中');
   return { success: true, message: 'イベントを進行中に戻しました' };
-}
-
-/**
- * イベントを「完了」状態にする
- * Googleフォームの回答受付も停止する
- * @param {string} eventId - イベントID
- * @return {Object} 結果オブジェクト { success, message }
- */
-function completeEvent(eventId) {
-  var event = findEvent_(eventId);
-  if (!event) return { success: false, message: 'イベントが見つかりません' };
-  if (event['ステータス'] !== '試合終了') {
-    return { success: false, message: '試合終了状態のイベントのみ完了にできます' };
-  }
-
-  setFormAccepting_(event['フォームID'], false);
-  updateEventStatus(eventId, '完了');
-  return { success: true, message: 'イベントを完了しました' };
-}
-
-/**
- * イベントを「試合終了」状態に戻す（完了から差し戻し）
- * Googleフォームの回答受付を再開する
- * @param {string} eventId - イベントID
- * @return {Object} 結果オブジェクト { success, message }
- */
-function uncompleteEvent(eventId) {
-  var event = findEvent_(eventId);
-  if (!event) return { success: false, message: 'イベントが見つかりません' };
-  if (event['ステータス'] !== '完了') {
-    return { success: false, message: '完了状態のイベントのみ差し戻しできます' };
-  }
-
-  setFormAccepting_(event['フォームID'], true);
-  updateEventStatus(eventId, '試合終了');
-  return { success: true, message: 'イベントを試合終了に戻しました' };
-}
-
-/**
- * Googleフォームの回答受付状態を変更する
- * @param {string} formId - フォームID
- * @param {boolean} accepting - 受付するかどうか
- */
-function setFormAccepting_(formId, accepting) {
-  if (!formId) return;
-  try {
-    FormApp.openById(formId).setAcceptingResponses(accepting);
-  } catch (e) {
-    // フォームが見つからない場合は無視
-  }
 }

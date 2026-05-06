@@ -277,7 +277,7 @@ function saveMvpResults_(eventId, results) {
 
 /**
  * MVP選出を実行する
- * イベントが「試合終了」状態の場合のみ実行可能
+ * イベントが「イベント終了」状態の場合のみ実行可能
  * @param {string} eventId - イベントID
  * @param {number} mvpCount - MVP人数
  * @param {number} subMvpCount - 準MVP人数
@@ -286,8 +286,8 @@ function saveMvpResults_(eventId, results) {
 function selectMVP(eventId, mvpCount, subMvpCount) {
   var event = findEvent_(eventId);
   if (!event) return { success: false, message: 'イベントが見つかりません' };
-  if (event['ステータス'] !== '試合終了') {
-    return { success: false, message: 'MVP選出は試合終了後のみ可能です' };
+  if (event['ステータス'] !== 'イベント終了') {
+    return { success: false, message: 'MVP選出はイベント終了後のみ可能です' };
   }
 
   mvpCount = Number(mvpCount) || 1;

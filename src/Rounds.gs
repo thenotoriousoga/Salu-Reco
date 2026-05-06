@@ -291,7 +291,7 @@ function appendNewSubs_(matchId, newSubs) {
 
 /**
  * 終了した試合を再開する
- * イベントが「試合終了」または「完了」の場合は再開不可
+ * イベントが「イベント終了」の場合は再開不可
  * @param {string} matchId - マッチID
  * @return {Object} 結果オブジェクト { success, message }
  */
@@ -311,7 +311,7 @@ function reopenMatch(matchId) {
 
   var event = data['イベント'].find(function(e) { return e['イベントID'] === roundData['イベントID']; });
   var eventStatus = event ? event['ステータス'] : '';
-  if (eventStatus === '試合終了' || eventStatus === '完了') {
+  if (eventStatus === 'イベント終了') {
     return { success: false, message: 'イベント終了後は編集できません' };
   }
 

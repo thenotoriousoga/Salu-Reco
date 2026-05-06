@@ -97,7 +97,7 @@ function renderEventStats() {
   }
 
   // スタッツタブ表示判定
-  var isFinished = currentEventStatus === '試合終了' || currentEventStatus === '完了';
+  var isFinished = currentEventStatus === 'イベント終了';
   var hasMvp = isFinished && cachedMvpData && cachedMvpData.length > 0 && cachedMvpData.some(function(r) { return Number(r['レーティング']) > 0; });
 
   segBar.style.display = 'flex';
@@ -240,7 +240,7 @@ function renderPostMatch(event, rounds, mvpResults) {
   var c = document.getElementById('post-match-content');
   var status = event['ステータス'] || '準備中';
   var hasMvpResults = mvpResults && mvpResults.length > 0;
-  var canSelectMvp = isAdmin() && status === '試合終了';
+  var canSelectMvp = isAdmin() && status === 'イベント終了';
 
   var trophySvg = '<svg aria-hidden="true" style="width:48px;height:48px;stroke:var(--border);fill:none;stroke-width:1.5;" viewBox="0 0 24 24">' +
     '<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 9 7 12 7s5-3 7.5-3a2.5 2.5 0 0 1 0 5H18"/>' +
@@ -248,8 +248,7 @@ function renderPostMatch(event, rounds, mvpResults) {
 
   if (!hasMvpResults && !canSelectMvp) {
     var msg;
-    if (status === '完了') msg = 'イベントは終了しました';
-    else if (!isAdmin() && status === '試合終了') msg = 'お疲れさまでした！アンケートに回答して、MVP発表を待とう！';
+    if (!isAdmin() && status === 'イベント終了') msg = 'お疲れさまでした！アンケートに回答して、MVP発表を待とう！';
     else msg = '全試合終了後にMVP発表ができます。まずはピッチで暴れよう！';
     c.innerHTML = '<div class="empty-state">' + trophySvg + '<p>' + msg + '</p></div>';
     return;

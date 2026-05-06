@@ -22,7 +22,7 @@ function memberLegendHtml_() {
 
 function renderMemberList(members, surveyVoters) {
   var c = document.getElementById('member-list');
-  // 試合終了・完了時はメンバー編集不可
+  // イベント終了時はメンバー編集不可
   var canEdit = currentEventStatus === '準備中' || currentEventStatus === '進行中';
   var voters = surveyVoters || cachedSurveyVoters || [];
 

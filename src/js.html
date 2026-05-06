@@ -242,8 +242,7 @@ function updateStepIndicator(activeStep) {
 function statusBadgeHtml(status) {
   var s = status || '準備中';
   var bc = 'badge-preparing';
-  if (s === '完了') bc = 'badge-done';
-  else if (s === '試合終了') bc = 'badge-ended';
+  if (s === 'イベント終了') bc = 'badge-ended';
   else if (s === '進行中') bc = 'badge-ongoing';
   return '<span class="event-status-badge ' + bc + '">' + esc(s) + '</span>';
 }
