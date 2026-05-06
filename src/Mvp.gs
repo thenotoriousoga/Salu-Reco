@@ -60,10 +60,10 @@ function getParticipantIds_(matchMembers, matchIds) {
  * @param {Object[]} goals - 得点データ
  * @param {string[]} matchIds - 対象マッチIDの配列
  * @param {string} memberId - メンバーID
- * @return {Object} { goals: number, wins: number, played: number }
+ * @return {Object} { goals: number, wins: number, played: number, subCount: number }
  */
 function calcMemberStats_(matches, matchMembers, goals, matchIds, memberId) {
-  var stats = { goals: 0, wins: 0, played: 0 };
+  var stats = { goals: 0, wins: 0, played: 0, subCount: 0 };
 
   // 得点集計
   goals.forEach(function(g) {
@@ -85,6 +85,7 @@ function calcMemberStats_(matches, matchMembers, goals, matchIds, memberId) {
   matchMembers.forEach(function(mm) {
     if (matchIds.indexOf(mm['マッチID']) < 0 || mm['メンバーID'] !== memberId) return;
     stats.played++;
+    if (mm['助っ人'] === 'はい') stats.subCount++;
 
     var match = matches.find(function(mt) { return mt['マッチID'] === mm['マッチID']; });
     if (!match || match['ステータス'] !== '終了') return;
@@ -125,6 +126,7 @@ function buildMvpPrompt_(participantIds, mvpData, mvpCount, subMvpCount) {
       '  備考: ' + (m['備考'] || 'なし') + '\n' +
       '  幹事: ' + (m['幹事'] || 'いいえ') + '\n' +
       '  出場試合数: ' + stats.played + '\n' +
+      '  うち助っ人での出場数: ' + stats.subCount + '\n' +
       '  得点数: ' + stats.goals + '\n' +
       '  勝利数: ' + stats.wins + '\n' +
       '  チームメイトからのコメント: ' + (comments.length > 0 ? comments.join(', ') : 'なし');
@@ -158,7 +160,8 @@ function buildMvpPrompt_(participantIds, mvpData, mvpCount, subMvpCount) {
     '- 得点数だけで決めない。雰囲気への貢献、チームメイトからの評価を重視\n' +
     '- 未経験者・若手の積極参加は高評価\n' +
     '- 備考欄の情報（性格、役職など）も考慮\n' +
-    '- コメントが多い・ポジティブなメンバーは高評価\n\n' +
+    '- コメントが多い・ポジティブなメンバーは高評価\n' +
+    '- 助っ人での出場（別チームの試合に参戦）はチームへの貢献としてプラス評価。回数が多いほど評価アップ\n\n' +
     '## 幹事ルール\n' +
     '幹事はMVP・準MVPから除外。ただしスコア・称号・コメントは普通に評価。\n\n' +
     '## 採点基準（0〜100点）\n' +

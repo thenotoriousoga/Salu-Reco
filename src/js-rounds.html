@@ -503,16 +503,25 @@ var expandedTeam_ = {};
  * 1チーム分の得点パネルHTMLを生成する
  * @param {string} matchId - マッチID
  * @param {string} team - チーム識別子（A / B）
- * @param {Object[]} players - チームメンバー配列 [{ id, name }, ...]
+ * @param {Object[]} players - チームメンバー配列 [{ id, name, isSub }, ...]
  * @param {Object} tally - tallyGoalsByTeam_の該当チーム分
  * @return {string} HTML文字列
  */
 function goalPanelHtml_(matchId, team, players, tally) {
   var h = '<div id="goal-panel-' + matchId + '-' + team + '" class="goal-panel" style="display:none;">';
+  // 助っ人追加ボタン
+  h += '<div class="goal-sub-add-row">' +
+    '<button class="btn btn-sm btn-secondary" onclick="openAddSub(\'' + matchId + '\',\'' + team + '\')">' +
+    svg('<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>', 14) + ' 助っ人を追加</button>' +
+    '</div>';
   players.forEach(function(p) {
     var cnt = tally.members[p.id] || 0;
-    h += '<div class="goal-player" data-match="' + matchId + '" data-team="' + team + '" data-member="' + p.id + '" data-type="通常">' +
-      '<span class="goal-player-name">' + esc(p.name) + '</span>' +
+    var subBadge = p.isSub ? '<span class="sub-badge">助っ人</span>' : '';
+    var removeBtn = p.isSub
+      ? '<button class="goal-sub-remove" onclick="removeSub(\'' + matchId + '\',\'' + p.id + '\')" aria-label="助っ人を外す" title="助っ人を外す">×</button>'
+      : '';
+    h += '<div class="goal-player' + (p.isSub ? ' goal-player-sub' : '') + '" data-match="' + matchId + '" data-team="' + team + '" data-member="' + p.id + '" data-type="通常">' +
+      '<span class="goal-player-name">' + esc(p.name) + subBadge + removeBtn + '</span>' +
       '<div class="goal-count">' +
       '<button class="btn btn-sm btn-secondary" onclick="changeGoal(\'' + matchId + '\',\'' + team + '\',\'' + p.id + '\',\'通常\',-1)">-</button>' +
       '<span id="gc-' + matchId + '-' + team + '-' + p.id + '">' + cnt + '</span>' +
@@ -652,6 +661,10 @@ function endedMatchHtml(m, teamColorMap) {
       '</div>';
   }
 
+  // 助っ人一覧と追加ボタン（イベントが完了していなければ編集可能）
+  var canEditSub = isAdmin() && currentEventStatus !== '完了';
+  var subH = renderSubSectionHtml_(m, clsA, clsB, canEditSub);
+
   return '<div class="match-result" style="display:flex;justify-content:center;align-items:center;gap:12px;padding:12px 0;">' +
     '<div class="match-result-team' + resultA + '" style="text-align:center;padding:8px 16px;border-radius:var(--radius-sm);flex:1;">' +
     '<div class="team-label team-' + clsA + '-badge" style="display:inline-block;margin-bottom:4px;">' + esc(m.teamAName) + '</div>' +
@@ -660,7 +673,48 @@ function endedMatchHtml(m, teamColorMap) {
     '<div class="match-result-team' + resultB + '" style="text-align:center;padding:8px 16px;border-radius:var(--radius-sm);flex:1;">' +
     '<div class="team-label team-' + clsB + '-badge" style="display:inline-block;margin-bottom:4px;">' + esc(m.teamBName) + '</div>' +
     '<div style="font-family:\'Fira Code\',monospace;font-size:1.5rem;font-weight:700;">' + sB + '</div></div>' +
-    '</div>' + goalsSummary;
+    '</div>' + goalsSummary + subH;
+}
+
+/**
+ * 助っ人セクションのHTMLを生成する（終了マッチ表示用）
+ * @param {Object} m - マッチデータ
+ * @param {string} clsA - チームAカラークラス
+ * @param {string} clsB - チームBカラークラス
+ * @param {boolean} canEdit - 助っ人の追加・削除が可能か
+ * @return {string} HTML文字列
+ */
+function renderSubSectionHtml_(m, clsA, clsB, canEdit) {
+  var subsA = (m.teamA || []).filter(function(p) { return p.isSub; });
+  var subsB = (m.teamB || []).filter(function(p) { return p.isSub; });
+  if (subsA.length === 0 && subsB.length === 0 && !canEdit) return '';
+
+  var rowHtml = function(p, team) {
+    var x = canEdit
+      ? '<button class="goal-sub-remove" onclick="event.stopPropagation();removeSub(\'' + m.id + '\',\'' + p.id + '\')" aria-label="助っ人を外す" title="助っ人を外す">×</button>'
+      : '';
+    return '<div class="sub-chip team-' + (team === 'A' ? clsA : clsB) + '-badge">' + esc(p.name) +
+      '<span class="sub-badge">助っ人</span>' + x + '</div>';
+  };
+
+  var listA = subsA.map(function(p) { return rowHtml(p, 'A'); }).join('');
+  var listB = subsB.map(function(p) { return rowHtml(p, 'B'); }).join('');
+
+  var addBtns = canEdit
+    ? '<div class="sub-add-row" onclick="event.stopPropagation()">' +
+      '<button class="btn btn-sm btn-secondary" onclick="event.stopPropagation();openAddSub(\'' + m.id + '\',\'A\')">+ ' + esc(m.teamAName) + 'に助っ人</button>' +
+      '<button class="btn btn-sm btn-secondary" onclick="event.stopPropagation();openAddSub(\'' + m.id + '\',\'B\')">+ ' + esc(m.teamBName) + 'に助っ人</button>' +
+      '</div>'
+    : '';
+
+  var hasSubs = subsA.length > 0 || subsB.length > 0;
+  var listH = hasSubs
+    ? '<div class="sub-list"><div class="sub-list-col">' + listA + '</div><div class="sub-list-col">' + listB + '</div></div>'
+    : '';
+
+  return '<div class="sub-section">' +
+    '<div class="sub-section-title">助っ人出場</div>' +
+    listH + addBtns + '</div>';
 }
 
 // ===================================
@@ -898,5 +952,87 @@ function resetTimer_(matchId) {
     stopBtn.innerHTML = svg('<rect x="6" y="6" width="12" height="12"/>', 14);
     stopBtn.onclick = function() { stopTimer(matchId); };
   }
+}
+
+// ===================================
+// 助っ人（別チームからの参戦）
+// ===================================
+
+/**
+ * 指定マッチで、既に出場しているメンバーIDの集合を取得する
+ * （通常出場・助っ人を問わず、A/B両チームの全員）
+ * @param {Object} m - マッチデータ
+ * @return {Object} memberIdをキーにしたtrueのマップ
+ */
+function getMatchMemberIdSet_(m) {
+  var set = {};
+  (m.teamA || []).forEach(function(p) { set[p.id] = true; });
+  (m.teamB || []).forEach(function(p) { set[p.id] = true; });
+  return set;
+}
+
+/** 助っ人追加モーダルを開く */
+function openAddSub(matchId, team) {
+  var match = null;
+  for (var i = 0; i < cachedRounds.length && !match; i++) {
+    var ms = cachedRounds[i].matches || [];
+    for (var j = 0; j < ms.length; j++) {
+      if (ms[j].id === matchId) { match = ms[j]; break; }
+    }
+  }
+  if (!match) { showToast('試合が見つかりません', true); return; }
+
+  var exclude = getMatchMemberIdSet_(match);
+  var candidates = (currentMembers || []).filter(function(m) { return !exclude[m['メンバーID']]; });
+
+  var teamName = team === 'A' ? match.teamAName : match.teamBName;
+
+  var container = document.getElementById('modal-container');
+  var listHtml;
+  if (candidates.length === 0) {
+    listHtml = '<div class="empty-state" style="padding:16px;"><p>追加できるメンバーがいません</p></div>';
+  } else {
+    listHtml = '<div class="sub-picker-list">' + candidates.map(function(m) {
+      var mid = m['メンバーID'];
+      var exp = m['サッカー経験'] === 'あり' ? '経験あり' : '未経験';
+      return '<button class="sub-picker-item" onclick="confirmAddSub(\'' + matchId + '\',\'' + team + '\',\'' + mid + '\')">' +
+        '<span class="sub-picker-name">' + esc(m['名前']) + '</span>' +
+        '<span class="sub-picker-exp">' + exp + '</span></button>';
+    }).join('') + '</div>';
+  }
+
+  container.innerHTML = '<div class="modal-overlay" id="modal-overlay">' +
+    '<div class="modal-box modal-box-wide" role="dialog" aria-modal="true" aria-labelledby="sub-title">' +
+    '<h3 id="sub-title">助っ人を追加（' + esc(teamName) + '）</h3>' +
+    '<p style="font-size:0.8rem;">このイベントに参加しているメンバーから選んでください。</p>' +
+    listHtml +
+    '<div class="modal-actions" style="margin-top:12px;">' +
+    '<button class="btn btn-secondary" onclick="closeAddSub_()">キャンセル</button>' +
+    '</div></div></div>';
+
+  document.getElementById('modal-overlay').onclick = function(e) {
+    if (e.target === this) closeAddSub_();
+  };
+}
+
+function closeAddSub_() {
+  document.getElementById('modal-container').innerHTML = '';
+}
+
+function confirmAddSub(matchId, team, memberId) {
+  closeAddSub_();
+  callServer('addSubstitute', [matchId, memberId, team], function(r) {
+    showToast(r.message, !r.success);
+    if (r.success) openEvent(currentEventId, 'tab-rounds');
+  }, '助っ人の追加に失敗しました');
+}
+
+function removeSub(matchId, memberId) {
+  showConfirm('助っ人を外す', 'この助っ人をこの試合から外しますか？（この助っ人が記録した得点も削除されます）', function() {
+    callServer('removeSubstitute', [matchId, memberId], function(r) {
+      showToast(r.message, !r.success);
+      if (r.success) openEvent(currentEventId, 'tab-rounds');
+    }, '助っ人の削除に失敗しました');
+  }, '外す');
 }
 </script>
