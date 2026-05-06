@@ -599,7 +599,7 @@ function ongoingMatchHtml(m, teamColorMap) {
     '<span class="score" id="sb-' + m.id + '">' + m.scoreB + '</span></div></div>';
 
   // 選手・得点セクション
-  h += '<div class="goal-section"><h3 style="font-size:0.85rem;">' + svg(IC.goal, 16) + ' 選手・得点</h3>' +
+  h += '<div class="goal-section"><h3 class="goal-section-title">' + svg(IC.goal, 16) + ' 選手・得点</h3>' +
     '<div class="goal-team-btns" style="display:flex;gap:8px;margin-bottom:8px;">' +
     '<button id="goal-tab-' + m.id + '-A" class="btn team-' + clsA + '-badge goal-team-btn" style="flex:1;padding:10px;" onclick="toggleGoalPanel(\'' + m.id + '\',\'A\')">' + esc(m.teamAName) + '</button>' +
     '<button id="goal-tab-' + m.id + '-B" class="btn team-' + clsB + '-badge goal-team-btn" style="flex:1;padding:10px;" onclick="toggleGoalPanel(\'' + m.id + '\',\'B\')">' + esc(m.teamBName) + '</button></div>';
@@ -1011,15 +1011,26 @@ function getMatchMemberIdSet_(m) {
  * @param {string} team - チーム識別子（A / B）
  */
 function openAddSub(matchId, team) {
-  // cachedRounds から該当マッチを探す
+  // cachedRounds から該当マッチを探す（候補の所属チーム表示にも使う）
   var match = null;
+  var round = null;
   for (var i = 0; i < cachedRounds.length && !match; i++) {
     var ms = cachedRounds[i].matches || [];
     for (var j = 0; j < ms.length; j++) {
-      if (ms[j].id === matchId) { match = ms[j]; break; }
+      if (ms[j].id === matchId) { match = ms[j]; round = cachedRounds[i]; break; }
     }
   }
   if (!match) { showToast('試合が見つかりません', true); return; }
+
+  // メンバーID → そのラウンドでの所属チーム名 のマップ
+  var memberTeamMap = {};
+  if (round && round.splitData) {
+    var names = round.splitData.names || [];
+    (round.splitData.teams || []).forEach(function(ids, idx) {
+      var teamName = names[idx] || ('チーム' + String.fromCharCode(65 + idx));
+      ids.forEach(function(id) { memberTeamMap[id] = teamName; });
+    });
+  }
 
   var exclude = getMatchMemberIdSet_(match);
   var candidates = (currentMembers || []).filter(function(m) { return !exclude[m['メンバーID']]; });
@@ -1034,18 +1045,18 @@ function openAddSub(matchId, team) {
     listHtml = '<div class="sub-picker-list">' + candidates.map(function(m) {
       var mid = m['メンバーID'];
       var name = m['名前'] || '';
-      var exp = m['サッカー経験'] === 'あり' ? '経験あり' : '未経験';
+      var fromTeam = memberTeamMap[mid] || '未割当';
       // 名前にシングルクォートが入っても壊れないように data 属性で受け渡す
       return '<button class="sub-picker-item" data-match="' + matchId + '" data-team="' + team + '" data-member="' + mid + '" data-name="' + esc(name) + '" onclick="confirmAddSub(this)">' +
         '<span class="sub-picker-name">' + esc(name) + '</span>' +
-        '<span class="sub-picker-exp">' + exp + '</span></button>';
+        '<span class="sub-picker-from">' + esc(fromTeam) + '</span></button>';
     }).join('') + '</div>';
   }
 
   container.innerHTML = '<div class="modal-overlay" id="modal-overlay">' +
     '<div class="modal-box modal-box-wide" role="dialog" aria-modal="true" aria-labelledby="sub-title">' +
     '<h3 id="sub-title">助っ人を追加（' + esc(teamName) + '）</h3>' +
-    '<p style="font-size:0.8rem;">別チームから呼びたいメンバーを選んでください。試合終了時にまとめて保存されます。</p>' +
+    '<p style="font-size:0.8rem;">別チームから呼びたいメンバーを選んでください。</p>' +
     listHtml +
     '<div class="modal-actions" style="margin-top:12px;">' +
     '<button class="btn btn-secondary" onclick="closeAddSub_()">キャンセル</button>' +
