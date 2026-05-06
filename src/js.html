@@ -151,9 +151,10 @@ function callServer(funcName, args, onSuccess, errorMsg) {
 }
 
 /**
- * data-info属性付きラベルに、情報アイコンボタンと吹き出しを自動展開する
+ * data-info属性付きラベルに、情報アイコンとホバー吹き出しを自動展開する
  * 使い方: <label for="xxx" data-info="説明文">ラベル</label>
- * → ラベル横にℹボタン、inputの後ろに吹き出しを挿入する
+ * → ラベル末尾に .info-tip-wrap（ℹアイコン + 吹き出し）を追加し、
+ *    CSSの :hover / :focus-within で吹き出しがふわっと出る
  */
 function hydrateInfoTips_() {
   document.querySelectorAll('label[data-info]').forEach(function(label) {
@@ -163,78 +164,33 @@ function hydrateInfoTips_() {
     var text = label.getAttribute('data-info') || '';
     var forId = label.getAttribute('for') || '';
     var tipId = 'tip-' + (forId || Math.random().toString(36).slice(2, 8));
+    var labelText = label.textContent.trim();
 
-    // ボタン生成（ラベル末尾に追加）
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'info-tip-btn';
-    btn.setAttribute('aria-label', label.textContent.trim() + 'の説明');
-    btn.setAttribute('aria-expanded', 'false');
-    btn.setAttribute('aria-controls', tipId);
-    btn.innerHTML = svg(IC.info, 16);
-    btn.addEventListener('click', function(e) { toggleInfoTip(e, btn); });
-    label.appendChild(btn);
+    // wrap要素（アイコン + 吹き出しを内包）
+    var wrap = document.createElement('span');
+    wrap.className = 'info-tip-wrap';
 
-    // 吹き出し生成（input-groupの末尾に追加）
-    var group = label.closest('.input-group') || label.parentElement;
-    if (!group) return;
-    var tip = document.createElement('div');
+    // アイコン部分（tabindexでキーボードフォーカス可能）
+    var trigger = document.createElement('span');
+    trigger.className = 'info-tip-trigger';
+    trigger.setAttribute('role', 'button');
+    trigger.setAttribute('tabindex', '0');
+    trigger.setAttribute('aria-label', labelText + 'の説明');
+    trigger.setAttribute('aria-describedby', tipId);
+    trigger.innerHTML = svg(IC.info, 16);
+
+    // 吹き出し
+    var tip = document.createElement('span');
     tip.className = 'info-tip';
     tip.id = tipId;
     tip.setAttribute('role', 'tooltip');
-    tip.hidden = true;
     tip.textContent = text;
-    group.appendChild(tip);
 
-    // inputにaria-describedbyを紐付け
-    if (forId) {
-      var input = document.getElementById(forId);
-      if (input) {
-        var existing = input.getAttribute('aria-describedby');
-        input.setAttribute('aria-describedby', existing ? existing + ' ' + tipId : tipId);
-      }
-    }
+    wrap.appendChild(trigger);
+    wrap.appendChild(tip);
+    label.appendChild(wrap);
   });
 }
-
-/**
- * 情報チップの開閉
- * @param {Event} e - クリックイベント
- * @param {HTMLElement} btn - ボタン要素
- */
-function toggleInfoTip(e, btn) {
-  if (e) e.stopPropagation();
-  var tipId = btn.getAttribute('aria-controls');
-  if (!tipId) return;
-  var tip = document.getElementById(tipId);
-  if (!tip) return;
-  var willOpen = tip.hasAttribute('hidden');
-  closeAllInfoTips_(btn);
-  if (willOpen) {
-    tip.removeAttribute('hidden');
-    btn.setAttribute('aria-expanded', 'true');
-  } else {
-    tip.setAttribute('hidden', '');
-    btn.setAttribute('aria-expanded', 'false');
-  }
-}
-
-/** 全ての情報チップを閉じる（指定ボタンは除外可） */
-function closeAllInfoTips_(exceptBtn) {
-  document.querySelectorAll('.info-tip-btn[aria-expanded="true"]').forEach(function(b) {
-    if (b === exceptBtn) return;
-    b.setAttribute('aria-expanded', 'false');
-    var id = b.getAttribute('aria-controls');
-    if (id) { var t = document.getElementById(id); if (t) t.setAttribute('hidden', ''); }
-  });
-}
-
-/** 情報チップの外側クリックで閉じる */
-document.addEventListener('click', function(e) {
-  var tgt = e.target;
-  if (tgt && tgt.closest && (tgt.closest('.info-tip-btn') || tgt.closest('.info-tip'))) return;
-  closeAllInfoTips_();
-});
 
 /**
  * カスタム確認モーダルを表示する

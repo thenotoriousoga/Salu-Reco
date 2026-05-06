@@ -352,26 +352,28 @@ body {
   flex: 1;
 }
 
-/* --- 情報チップ（ラベル横のℹボタンで開閉するツールチップ） --- */
-.info-tip-btn {
-  appearance: none;
-  background: transparent;
-  border: none;
-  padding: 0;
+/* --- 情報チップ（ラベル横のℹアイコン、ホバー/フォーカスで吹き出し表示） --- */
+.info-tip-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
   margin-left: 4px;
-  width: 18px;
-  height: 18px;
+  vertical-align: middle;
+}
+
+.info-tip-trigger {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-muted);
-  cursor: pointer;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  vertical-align: middle;
+  color: var(--text-muted);
+  cursor: help;
   line-height: 1;
   -webkit-tap-highlight-color: transparent;
 }
-.info-tip-btn svg {
+.info-tip-trigger svg {
   width: 16px;
   height: 16px;
   fill: none;
@@ -380,28 +382,60 @@ body {
   stroke-linecap: round;
   stroke-linejoin: round;
 }
-.info-tip-btn:hover,
-.info-tip-btn[aria-expanded="true"] {
+.info-tip-trigger:hover,
+.info-tip-wrap:focus-within .info-tip-trigger {
   color: var(--primary);
 }
-.info-tip-btn:focus-visible {
+.info-tip-trigger:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
 
+/* 吹き出し本体: 絶対配置でアイコンの上に表示 */
 .info-tip {
-  width: 100%;
-  margin-top: 6px;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translate(-50%, 4px);
+  min-width: 180px;
+  max-width: 240px;
   padding: 8px 10px;
   font-size: 0.78rem;
-  color: var(--text-secondary);
-  background: var(--bg-surface);
-  border: 1px solid var(--border-light);
-  border-radius: 8px;
+  font-weight: 400;
   line-height: 1.5;
+  color: #fff;
+  background: rgba(33, 37, 41, 0.95);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  opacity: 0;
+  pointer-events: none;
+  white-space: normal;
+  z-index: 20;
+  transition: opacity 0.18s ease, transform 0.18s ease;
 }
-.info-tip[hidden] {
-  display: none;
+
+/* 吹き出しの矢印 */
+.info-tip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: rgba(33, 37, 41, 0.95);
+}
+
+/* ホバー・フォーカスでふわっと表示 */
+.info-tip-wrap:hover .info-tip,
+.info-tip-wrap:focus-within .info-tip {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .info-tip { transition: opacity 0.1s linear; transform: translateX(-50%); }
+  .info-tip-wrap:hover .info-tip,
+  .info-tip-wrap:focus-within .info-tip { transform: translateX(-50%); }
 }
 
 /* --- メンバーリスト --- */
