@@ -673,7 +673,10 @@ body {
 
 /* どのチームを編集中かを示すパネルヘッダー */
 .goal-panel-header {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   margin: -4px -6px 10px;
   padding: 6px 10px;
   border-radius: var(--radius-xs);
@@ -681,14 +684,46 @@ body {
   font-size: 0.8rem;
   font-weight: 700;
   letter-spacing: 0.02em;
+}
+
+.goal-panel-header-title {
+  flex: 1;
   text-align: center;
+}
+
+/* ヘッダー右端の助っ人追加アイコンボタン */
+.goal-sub-add-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.6);
+  color: inherit;
+  cursor: pointer;
+  transition: background var(--transition), transform var(--transition);
+  flex-shrink: 0;
+}
+
+.goal-sub-add-icon:hover {
+  background: white;
+  transform: scale(1.05);
+}
+
+.goal-sub-add-icon svg {
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
 }
 
 /* チーム選択タブ（選手・得点セクション） */
 .goal-team-btn {
   position: relative;
   opacity: 0.55;
-  transition: opacity var(--transition), transform var(--transition), box-shadow var(--transition);
+  transition: opacity var(--transition), transform var(--transition), box-shadow var(--transition), background var(--transition), color var(--transition);
 }
 
 .goal-team-btn:hover { opacity: 0.85; }
@@ -697,8 +732,17 @@ body {
   opacity: 1;
   box-shadow: var(--shadow-md);
   transform: translateY(-1px);
+  color: white;
 }
 
+/* アクティブ時はチームカラーで塗りつぶす */
+.goal-team-btn-active.team-a-badge { background: var(--team-a); border-color: var(--team-a); }
+.goal-team-btn-active.team-b-badge { background: var(--team-b); border-color: var(--team-b); }
+.goal-team-btn-active.team-c-badge { background: var(--team-c); border-color: var(--team-c); }
+.goal-team-btn-active.team-d-badge { background: var(--team-d); border-color: var(--team-d); }
+.goal-team-btn-active.team-e-badge { background: var(--team-e); border-color: var(--team-e); }
+
+/* 下向き三角マーカーもチームカラーに揃える */
 .goal-team-btn-active::after {
   content: '';
   position: absolute;
@@ -711,6 +755,12 @@ body {
   border-right: 8px solid transparent;
   border-top: 8px solid currentColor;
 }
+
+.goal-team-btn-active.team-a-badge::after { border-top-color: var(--team-a); }
+.goal-team-btn-active.team-b-badge::after { border-top-color: var(--team-b); }
+.goal-team-btn-active.team-c-badge::after { border-top-color: var(--team-c); }
+.goal-team-btn-active.team-d-badge::after { border-top-color: var(--team-d); }
+.goal-team-btn-active.team-e-badge::after { border-top-color: var(--team-e); }
 
 .goal-player-divider {
   height: 1px;

@@ -519,14 +519,12 @@ var pendingSubs_ = {};
  */
 function goalPanelHtml_(matchId, team, players, tally, teamName, teamCls) {
   var h = '<div id="goal-panel-' + matchId + '-' + team + '" class="goal-panel goal-panel-' + (teamCls || 'a') + '" style="display:none;">';
-  // どのチームを編集中かを示すヘッダー
+  // どのチームを編集中かを示すヘッダー（右側に助っ人追加アイコン）
   h += '<div class="goal-panel-header team-' + (teamCls || 'a') + '-badge">' +
-    esc(teamName || '') + ' の選手' +
-    '</div>';
-  // 助っ人追加ボタン
-  h += '<div class="goal-sub-add-row">' +
-    '<button class="btn btn-sm btn-secondary" onclick="openAddSub(\'' + matchId + '\',\'' + team + '\')">' +
-    svg('<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>', 14) + ' 助っ人を追加</button>' +
+    '<span class="goal-panel-header-title">' + esc(teamName || '') + ' の選手</span>' +
+    '<button class="goal-sub-add-icon" onclick="openAddSub(\'' + matchId + '\',\'' + team + '\')" aria-label="助っ人を追加" title="助っ人を追加">' +
+    svg('<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/>', 16) +
+    '</button>' +
     '</div>';
   players.forEach(function(p) {
     var cnt = tally.members[p.id] || 0;
