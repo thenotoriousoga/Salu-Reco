@@ -1,5 +1,6 @@
 package com.salurec.shared.web
 
+import com.salurec.event.application.exception.EventNotFoundException
 import com.salurec.shared.domain.DomainException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -13,6 +14,15 @@ import org.springframework.web.bind.annotation.RestControllerAdvice
  */
 @RestControllerAdvice
 class GlobalExceptionHandler {
+
+    @ExceptionHandler(EventNotFoundException::class)
+    fun handleEventNotFound(ex: EventNotFoundException): ResponseEntity<ApiErrorResponse> =
+        ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+            ApiErrorResponse(
+                code = "EVENT_NOT_FOUND",
+                message = ex.message ?: "イベントが見つかりません",
+            ),
+        )
 
     @ExceptionHandler(IllegalArgumentException::class)
     fun handleIllegalArgument(ex: IllegalArgumentException): ResponseEntity<ApiErrorResponse> =

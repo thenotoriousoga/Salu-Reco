@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.salurec.shared.AbstractIntegrationTest
+import com.salurec.shared.WithMockAuthPrincipal
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
@@ -16,8 +17,11 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 
 /**
  * Event の API 結合テスト。
+ * 認可は SecurityConfig で URL ベースに集約しているため、管理者として振る舞うテストは
+ * @WithMockAuthPrincipal(role = ADMIN) で AuthPrincipal を注入する。
  */
 @AutoConfigureMockMvc
+@WithMockAuthPrincipal
 class EventControllerIntegrationTest : AbstractIntegrationTest() {
 
     @Autowired
@@ -53,5 +57,73 @@ class EventControllerIntegrationTest : AbstractIntegrationTest() {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(body)),
         ).andExpect(status().isBadRequest)
+    }
+
+    @Test
+    fun `イベント詳細が取得できる`() {
+        val body = mapOf("name" to "詳細テスト大会", "date" to "2026-07-01")
+        val createRes = mockMvc.perform(
+            post("/api/events")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)),
+        ).andExpect(status().isCreated).andReturn().response.contentAsString
+        val eventId = objectMapper.readTree(createRes)["eventId"].asText()
+
+        mockMvc.perform(get("/api/events/$eventId"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.id").value(eventId))
+            .andExpect(jsonPath("$.name").value("詳細テスト大会"))
+            .andExpect(jsonPath("$.status").value("Preparing"))
+    }
+
+    @Test
+    fun `存在しないイベントIDは404を返す`() {
+        mockMvc.perform(get("/api/events/00000000-0000-0000-0000-000000000000"))
+            .andExpect(status().isNotFound)
+            .andExpect(jsonPath("$.code").value("EVENT_NOT_FOUND"))
+    }
+
+    @Test
+    fun `startで進行中に遷移し、finishで終了、reopenで進行中に戻る`() {
+        val body = mapOf("name" to "遷移テスト大会", "date" to "2026-08-01")
+        val createRes = mockMvc.perform(
+            post("/api/events")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)),
+        ).andReturn().response.contentAsString
+        val eventId = objectMapper.readTree(createRes)["eventId"].asText()
+
+        // start: Preparing -> InProgress
+        mockMvc.perform(post("/api/events/$eventId/start"))
+            .andExpect(status().isNoContent)
+        mockMvc.perform(get("/api/events/$eventId"))
+            .andExpect(jsonPath("$.status").value("InProgress"))
+
+        // finish: InProgress -> Finished
+        mockMvc.perform(post("/api/events/$eventId/finish"))
+            .andExpect(status().isNoContent)
+        mockMvc.perform(get("/api/events/$eventId"))
+            .andExpect(jsonPath("$.status").value("Finished"))
+
+        // reopen: Finished -> InProgress
+        mockMvc.perform(post("/api/events/$eventId/reopen"))
+            .andExpect(status().isNoContent)
+        mockMvc.perform(get("/api/events/$eventId"))
+            .andExpect(jsonPath("$.status").value("InProgress"))
+    }
+
+    @Test
+    fun `準備中のイベントを直接finishすると409を返す`() {
+        val body = mapOf("name" to "不正遷移大会", "date" to "2026-09-01")
+        val createRes = mockMvc.perform(
+            post("/api/events")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)),
+        ).andReturn().response.contentAsString
+        val eventId = objectMapper.readTree(createRes)["eventId"].asText()
+
+        mockMvc.perform(post("/api/events/$eventId/finish"))
+            .andExpect(status().isConflict)
+            .andExpect(jsonPath("$.code").value("CONFLICT"))
     }
 }

@@ -10,7 +10,6 @@ import { InputGroup } from "@/shared/components/ui/InputGroup";
 import { Icon } from "@/shared/icons/ic";
 import { toast } from "@/shared/store/toast";
 import { useLoadingStore } from "@/shared/store/loading";
-import { createEvent } from "@/features/event/api/event-api";
 
 /**
  * バックエンド `CreateEventRequest` と同じルールをクライアントでも検証する。
@@ -24,6 +23,24 @@ const schema = z.object({
 });
 
 type FormValues = z.infer<typeof schema>;
+
+type CreateResult = {
+  eventId: string;
+  joinCode: string;
+};
+
+async function postCreateEvent(values: FormValues): Promise<CreateResult> {
+  const res = await fetch("/api/events", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(values),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => null);
+    throw new Error(err?.message ?? `作成に失敗しました (${res.status})`);
+  }
+  return (await res.json()) as CreateResult;
+}
 
 /**
  * イベント作成フォーム。
@@ -41,7 +58,7 @@ export function CreateEventForm() {
   const onSubmit = form.handleSubmit(async (values) => {
     loading.show("作成中...");
     try {
-      const result = await createEvent(values);
+      const result = await postCreateEvent(values);
       toast.info(`参加コード: ${result.joinCode}`);
       router.push("/events");
       router.refresh();

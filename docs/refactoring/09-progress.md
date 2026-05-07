@@ -14,9 +14,9 @@
 | Phase 0: プロジェクト基盤整備 | ✅ **完了** | Docker Compose で3サービス起動・ヘルスチェック通過 |
 | Phase 1: ウォーキングスケルトン (Event) | ✅ **完了** | Event 作成/一覧が API と UI で動作。全テスト緑 |
 | Phase 1.5: デザインシステム移植 | ✅ **完了** | 既存 `src/css.html` を `globals.css` に移植、SVGアイコン・共通UIを React 化 |
-| Phase 2: 認証基盤 | **次はここから** | |
-| Phase 3: Event コンテキスト完成 | 未着手 | |
-| Phase 4: Member コンテキスト | 未着手 | |
+| Phase 2: 認証基盤 | ✅ **完了** | JWT ログイン(管理者パスワード/参加コード)と Cookie セッションが動作 |
+| Phase 3: Event コンテキスト完成 | ✅ **完了** | 詳細取得・ステータス遷移 API、QR+コピー UI、動的認可が動作 |
+| Phase 4: Member コンテキスト | **次はここから** | |
 | Phase 5: Match Operation (Round + Match 独立集約) | 未着手 | |
 | Phase 6: MVP Evaluation | 未着手 | |
 | Phase 7: Survey (Web フォーム自前化) | 未着手 | |
@@ -262,46 +262,96 @@ Phase 2 以降はこの基盤に乗せて画面を作る。
 
 - `next/font/google` で読み込んだフォントは自動で CSS 変数に割り当てられるので、既存の `font-family: 'Fira Sans'` は `font-family: var(--font-fira-sans)` に置き換えるだけで動く
 - `<body>` をクライアントコンポーネント (`RoleBody`) にするには RSC から直接 `<body>` を書かずに Server の `<html>` 直下に置く
+- **`<body>` に Tailwind の `flex flex-col` を付けてはいけない**。既存デザインは `.content { max-width: 600px; margin: 0 auto }` で中央寄せしているが、flex コンテキストでは `margin: auto` が水平中央寄せとして効かず、カードが左寄せになって「右側に広い余白」が出る。GAS 版の body は block 要素として設計されているので、そのまま踏襲する
+- ログイン画面固有のクラス (`.login-hero`, `.login-hero-icon`, `.login-logo`, `.login-hero-title`, `.login-mic`, `.login-code-input`, `.login-admin-area`, `.admin-toggle-link` 等) は globals.css への初回移植で抜け漏れやすい。追加分は末尾のログインセクションに追記した
+- 開発モードの Next.js 開発インジケーター(左下の N 丸バッジ)は `next.config.ts` の `devIndicators: false` で消せる
 - Tailwind v4 は `@import "tailwindcss"` だけで自動的にユーティリティが有効。今回は大半を独自クラスで賄うが、Phase 2 以降の細かい調整には使う
 - `TabBar` はイベント詳細画面 (Phase 3) で必要になるタイミングで追加
 
 ---
 
-## Phase 2: 認証基盤
+## Phase 2: 認証基盤 ✅ 完了
 
 ### 概要タスク
-- [ ] `backend/build.gradle.kts` に `spring-boot-starter-security` と `spring-security-test` を追加(Phase 0 では外してある)
-- [ ] `SecurityConfig.kt` (Spring Security)
-- [ ] `JwtTokenProvider.kt`
-- [ ] `JwtAuthenticationFilter.kt`
-- [ ] Identity コンテキスト: `AuthController` (login-admin, login-with-code)
-- [ ] 既存 Event API に `@PreAuthorize` を付与
-- [ ] Frontend: `/login` ページ + Route Handler で Set-Cookie
-- [ ] Frontend: `(admin)/layout.tsx` で認証ガード
+- [x] `backend/build.gradle.kts` に `spring-boot-starter-security` / `spring-security-test` / `spring-boot-starter-security-test`(Spring Boot 4 で MockMvc 統合に必要) を追加
+- [x] `SecurityConfig.kt` — URL パターン + HTTP メソッドで認可を一括定義(@PreAuthorize は使わない)
+- [x] `JwtAuthTokenIssuer.kt` — jjwt による HS256 署名・検証
+- [x] `JwtAuthenticationFilter.kt` — `Authorization: Bearer <JWT>` を検証して SecurityContext に載せる
+- [x] Identity コンテキスト: Domain(AuthPrincipal / Role / AuthTokenIssuer I/F)+ Application(LoginAsAdmin / LoginWithJoinCode UseCase) + Presentation(AuthController: login-admin / login-with-code / me)
+- [x] Event API の認可は `SecurityConfig` で URL ベースに集約(POST/GET /api/events は ADMIN)
+- [x] Frontend: `/login` ページ(既存 `src/index.html` #page-login のデザインを踏襲)
+- [x] Frontend: `/api/auth/login` と `/api/auth/logout` Route Handler(httpOnly Cookie 発行)
+- [x] Frontend: `shared/lib/auth.ts`(Server Component から Cookie → `/api/auth/me` で検証)
+- [x] Frontend: `/events` 配下に認証ガード `layout.tsx` を配置
+- [x] Frontend: `RoleSync` でサーバー取得ロールを Zustand ストアに同期
+- [x] Frontend: `AppHeader` のログアウトボタンを `/api/auth/logout` 呼び出しに接続
+- [x] Frontend: `server-only` パッケージでサーバー専用モジュールをクライアントから import した時点でビルドエラー化
+- [x] Frontend: クライアントコンポーネントは `/api/events` Route Handler 経由で呼び出し(Cookie の JWT を Next.js 側で Authorization に転送)
 
 ### Phase 2 完了条件
-- [ ] 管理者パスワードでログインできる
-- [ ] 参加コードでログインできる
-- [ ] 未認証で API 叩くと 401 が返る
+- [x] 管理者パスワードでログインできる
+- [x] 参加コードでログインできる
+- [x] 未認証で API を叩くと 401 (INVALID_CREDENTIALS / UNAUTHENTICATED) が返る
+- [x] USER トークンで管理者エンドポイントを叩くと 403 が返る
+- [x] `/events` に直接アクセスすると `/login` にリダイレクトされる
+- [x] ログイン後に `/events` で一覧が取得できる
+- [x] 全テストが通る(Identity の結合テスト5件 + UseCase 単体テスト7件を新規追加)
+
+### Phase 2 の Tips・メモ
+
+- **Spring Boot 4 の破壊変更**:
+  - MockMvc の Security 自動統合には `spring-boot-starter-security-test` が必須。`spring-security-test` 単体だと `@WithMockUser` が効かない
+- **認可の集約**: Controller に `@PreAuthorize` を撒くと Presentation がフレームワーク依存してノイズになる。URL ベースで `SecurityConfig` に集約。動的認可(特定イベントへのアクセス可否など)が必要になる Phase 3 以降では、Controller 内で `AuthPrincipal.canAccessEvent(eventId)` を呼び出すパターンに統一
+- **JWT シークレット**: 短い開発用シークレットでも HS256 の最低 256bit 要件を満たすため、SHA-256 で派生鍵化してから `hmacShaKeyFor` に渡している
+- **Next.js 15: Cookie は async**: `cookies()` は Promise を返すので `await cookies()` する必要あり(Next 14 以前とは違う)
+- **クライアント→API の経路**: RSC がサーバーで `/api/events` を叩くルートと、Client Component が Next の Route Handler を叩くルートの2経路。Client から直接バックエンドを叩く経路は用意せず、Cookie の JWT を Next.js 側で転送する構造
+- **`server-only` パッケージ**: `shared/lib/auth.ts` のような `next/headers` 使用ファイルをクライアントから誤 import するとビルドエラーになり、事故を防げる
+- **テスト用参加コード**: `JoinCode.ALLOWED_CHARS` から `I`, `L`, `O`, `0`, `1` が除外されているのでテストコードは要注意
 
 ---
 
-## Phase 3: Event コンテキスト完成
+## Phase 3: Event コンテキスト完成 ✅ 完了
 
 ### 概要タスク
-- [ ] Event 詳細取得 Query
-- [ ] ステータス遷移: `start` / `finish` / `reopen`
-- [ ] 参加コード重複チェック (UseCase レベル)
-- [ ] Frontend: イベント詳細画面の雛形
-- [ ] Frontend: 参加コードコピーボタン + QRコード表示
+- [x] Event 詳細取得 Query (`GET /api/events/{id}`)
+- [x] ステータス遷移 UseCase: `StartEventUseCase` / `FinishEventUseCase` / `ReopenEventUseCase`
+- [x] ステータス遷移 API: `POST /api/events/{id}/start` / `/finish` / `/reopen`
+- [x] Port: `MemberCountPort`(Phase 4 で差し替え) / `RoundStatusPort`(Phase 5 で差し替え)
+- [x] 仮実装 Adapter: `StubMemberCountAdapter` / `StubRoundStatusAdapter`
+- [x] `EventNotFoundException` + `GlobalExceptionHandler` で 404 ハンドリング
+- [x] 動的認可: Controller で `AuthPrincipal.canAccessEvent(eventId)` を使う
+- [x] テスト: Event 詳細・ステータス遷移の結合テスト + `@WithMockAuthPrincipal` カスタムアノテーション
+- [x] Frontend: イベント詳細画面の雛形
+- [x] Frontend: 参加コードコピーボタン + QR コード表示
+- [x] Frontend: ステータス遷移 UI (進行中にする / イベントを終了 / 進行中に戻す)
+- [x] Frontend: Route Handler `/api/events/{id}/{action}` で Cookie の JWT を転送
+- [x] Frontend: QR コード経由で `/login?code=XXXXX` に来たとき参加コード入力欄に自動セット
 
 ### Phase 3 完了条件
-- [ ] 3 状態 (Preparing / InProgress / Finished) の遷移が API 経由で動く
-- [ ] QRコードが Event 詳細画面に表示される
+- [x] 3 状態 (Preparing / InProgress / Finished) の遷移が API 経由で動く
+- [x] QR コードが Event 詳細画面に表示される
+
+### Phase 3 の Tips・メモ
+
+- **テストで `@AuthenticationPrincipal AuthPrincipal` を注入する方法**:
+  - `@WithMockUser` はデフォルトで `org.springframework.security.core.userdetails.User` を principal にするため、Controller で `AuthPrincipal` を受けるとキャストできず null になる
+  - カスタムアノテーション `@WithMockAuthPrincipal(role = ADMIN)` + `WithSecurityContextFactory` を用意して解決
+- **他コンテキスト依存の UseCase は Port で分離**:
+  - Event の `start` は Member のメンバー数、`finish` は Round の進行中判定が必要
+  - Port を切って `@Component` のダミー Adapter で先行実装。Phase 4/5 で実実装に差し替え
+- **動的認可は Controller で**:
+  - URL パターンで表現できない「特定イベントへのアクセス可否」のような条件は Controller 内で `AuthPrincipal.canAccessEvent()` を使う
+  - これなら Presentation 層は `@PreAuthorize` に依存せず、Security 設定も URL ベースで完結
+- **openapi-fetch の path パラメータ**:
+  - 3 つの遷移エンドポイントを1関数で書こうとするとパス文字列型が推論できず any キャストが必要
+  - 型安全を優先して `startEvent` / `finishEvent` / `reopenEvent` をそれぞれ個別関数に
+- **QR コードは `qrcode.react` の `QRCodeSVG`**:
+  - 外部サービスに依存せずにクライアント生成
+  - `value` には `/login?code=XXXXX` の完全 URL を埋め、`LoginForm` が `useSearchParams` でプリセットを拾う
 
 ---
 
-## Phase 4: Member コンテキスト
+## Phase 4: Member コンテキスト ← 次はここから
 
 ### 概要タスク
 - [ ] Flyway V2: members テーブル

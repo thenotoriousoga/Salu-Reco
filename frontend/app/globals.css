@@ -546,3 +546,166 @@ body:not(.role-user):not(.role-admin) .user-only {
   position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
   overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
 }
+
+
+/* ===================================
+   Login Screen (元: src/css.html の #page-login 関連)
+   =================================== */
+
+.login-hero {
+  text-align: center;
+  padding: 48px 20px 24px;
+}
+
+.login-hero-icon {
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 16px;
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.08) 0%, rgba(251, 191, 36, 0.12) 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    0 8px 32px rgba(251, 191, 36, 0.2),
+    0 4px 16px rgba(220, 38, 38, 0.1);
+}
+
+.login-hero-icon .login-logo {
+  width: 80px;
+  height: 80px;
+}
+
+.login-hero-title {
+  font-family: var(--font-luckiest-guy), var(--font-fira-code), monospace;
+  font-size: 2rem;
+  font-weight: 400;
+  color: var(--text);
+  margin-bottom: 6px;
+  justify-content: center;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.login-mic {
+  width: 28px;
+  height: 38px;
+  flex-shrink: 0;
+}
+
+.login-hero-sub {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.login-card {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.login-code-input-wrap {
+  margin-bottom: 16px;
+}
+
+.login-code-input {
+  width: 100%;
+  padding: 16px 20px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  font-family: var(--font-fira-code), monospace;
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--bg-card);
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  margin-bottom: 12px;
+}
+
+.login-code-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.12);
+}
+
+.login-code-input::placeholder {
+  font-size: 1rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+  text-transform: none;
+}
+
+.login-admin-area {
+  max-width: 400px;
+  margin: 32px auto 0;
+  text-align: center;
+}
+
+.login-section {
+  margin-bottom: 8px;
+}
+
+.login-section h3 {
+  margin-bottom: 4px;
+}
+
+.login-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.admin-toggle-link {
+  display: inline-block;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+}
+
+.admin-toggle-link:hover {
+  color: var(--text-secondary);
+  text-decoration: underline;
+}
+
+/* --- ログイン画面からのイベント作成エリア(今後 Phase 3 以降で使う) --- */
+.login-create-area {
+  max-width: 400px;
+  margin: 20px auto 0;
+  padding: 0 20px;
+}
+
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 0 16px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.login-divider::before,
+.login-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.login-create-hint {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 8px;
+}

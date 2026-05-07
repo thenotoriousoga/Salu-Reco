@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useRoleStore } from "@/shared/store/role";
 import { BrandLogo, BrandMic } from "./BrandLogo";
 import { Icon } from "@/shared/icons/ic";
@@ -10,12 +11,19 @@ import { Icon } from "@/shared/icons/ic";
  * ログアウトボタンはロール未設定時は非表示。
  */
 export function AppHeader() {
+  const router = useRouter();
   const role = useRoleStore((s) => s.role);
   const setRole = useRoleStore((s) => s.setRole);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {
+      // ignore: Cookie が消えていれば十分
+    }
     setRole(null);
-    // Phase 2 でログアウト処理(Cookie 削除・ルーティング) を追加する
+    router.push("/login");
+    router.refresh();
   };
 
   return (

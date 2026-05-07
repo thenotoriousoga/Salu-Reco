@@ -1,11 +1,13 @@
 package com.salurec.event.infrastructure.persistence.query
 
+import com.salurec.event.application.query.dto.EventDetailDto
 import com.salurec.event.application.query.dto.EventListItemDto
 import com.salurec.event.application.query.service.EventQueryService
 import com.salurec.event.infrastructure.persistence.entity.EventJpaEntity
 import jakarta.persistence.EntityManager
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.util.UUID
 
 /**
  * Event の Read 側クエリサービス実装。
@@ -27,14 +29,30 @@ class EventQueryServiceImpl(
 
         return em.createQuery(jpql, EventJpaEntity::class.java)
             .resultList
-            .map {
-                EventListItemDto(
-                    id = it.id.toString(),
-                    name = it.name,
-                    date = it.eventDate,
-                    status = it.status,
-                    joinCode = it.joinCode,
-                )
-            }
+            .map { it.toListItem() }
     }
+
+    override fun findDetail(id: String): EventDetailDto? {
+        val uuid = try {
+            UUID.fromString(id)
+        } catch (_: IllegalArgumentException) {
+            return null
+        }
+        val entity = em.find(EventJpaEntity::class.java, uuid) ?: return null
+        return EventDetailDto(
+            id = entity.id.toString(),
+            name = entity.name,
+            date = entity.eventDate,
+            status = entity.status,
+            joinCode = entity.joinCode,
+        )
+    }
+
+    private fun EventJpaEntity.toListItem(): EventListItemDto = EventListItemDto(
+        id = id.toString(),
+        name = name,
+        date = eventDate,
+        status = status,
+        joinCode = joinCode,
+    )
 }

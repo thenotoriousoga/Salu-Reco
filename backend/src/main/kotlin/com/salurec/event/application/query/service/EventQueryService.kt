@@ -1,5 +1,6 @@
 package com.salurec.event.application.query.service
 
+import com.salurec.event.application.query.dto.EventDetailDto
 import com.salurec.event.application.query.dto.EventListItemDto
 
 /**
@@ -8,4 +9,5 @@ import com.salurec.event.application.query.dto.EventListItemDto
  */
 interface EventQueryService {
     fun list(): List<EventListItemDto>
+    fun findDetail(id: String): EventDetailDto?
 }

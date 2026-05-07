@@ -1,8 +1,11 @@
 import { redirect } from "next/navigation";
+import { getAuthInfo } from "@/shared/lib/auth";
 
 /**
- * ルート(/)はイベント一覧へリダイレクトする。
+ * ルート (/) はロールに応じてリダイレクト。
+ * 未ログインならログイン画面へ、ログイン済みならイベント一覧へ。
  */
-export default function Home() {
-  redirect("/events");
+export default async function Home() {
+  const auth = await getAuthInfo();
+  redirect(auth ? "/events" : "/login");
 }

@@ -24,6 +24,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
 
@@ -45,6 +46,9 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     // Spring Boot 4.0 でモジュール分割されたため、MockMvc 用の companion スターターを追加する
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
+    // Spring Boot 4.0 では Security と MockMvc の自動統合にこのスターターが必要
+    testImplementation("org.springframework.boot:spring-boot-starter-security-test")
+    testImplementation("org.springframework.security:spring-security-test")
     testImplementation("io.kotest:kotest-runner-junit5:5.9.1")
     testImplementation("io.kotest:kotest-assertions-core:5.9.1")
     testImplementation("io.mockk:mockk:1.13.13")
