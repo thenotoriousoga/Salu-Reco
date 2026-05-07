@@ -1,5 +1,22 @@
 # AGENTS.md — Salu-Rec
 
+## ⚠️ リプレース作業中
+
+本プロジェクトは **GAS版から Next.js + Spring Boot (Kotlin) + PostgreSQL への全面リプレース中**です。
+
+- 新実装は `backend/` と `frontend/` にあり、Docker Compose で動きます
+- 既存 GAS 版 (`src/`) は Phase 9 (最終フェーズ) まで維持します
+- 作業を再開するときは [docs/refactoring/09-progress.md](docs/refactoring/09-progress.md) で進捗を確認してください
+- 設計方針・決定理由は [docs/refactoring/README.md](docs/refactoring/README.md) に集約されています
+
+本 AGENTS.md は **GAS 版の仕様を記述**した既存ドキュメントです。リプレース作業中は以下として扱います。
+
+- GAS 版への変更: このドキュメントを参照
+- 新実装への変更: `docs/refactoring/` を参照
+- 両方を参照すべきケース: まず新実装の設計書を読み、不明点を本ドキュメントで補完
+
+---
+
 ## プロジェクト概要
 
 フットサルの試合管理・MVP選出を行うWebアプリ。Google Apps Script（GAS）で完結し、スマホブラウザから利用できる。

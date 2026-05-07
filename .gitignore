@@ -5,9 +5,38 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+*.iml
 
 # Kiro
 .kiro/
 
 # clasp (contains script ID)
 .clasp.json
+
+# ---- Refactoring (new stack) ----
+
+# Backend (Kotlin + Gradle)
+backend/.gradle/
+backend/build/
+backend/.kotlin/
+backend/out/
+
+# Frontend (Next.js + pnpm)
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.turbo/
+# 万一コンテナ外で pnpm を叩いた場合にストアがプロジェクト配下に作られても Git に入れない
+frontend/.pnpm-store/
+
+# Monorepo
+node_modules/
+
+# Environment
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Docker
+docker-compose.override.yml

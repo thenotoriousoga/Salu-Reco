@@ -7,10 +7,11 @@ Salu-Rec を以下の技術スタックで再構築する。
 | レイヤー | Before | After |
 |---|---|---|
 | フロントエンド | GAS HTMLService + Vanilla JS | **Next.js 15 (App Router) + TypeScript** |
-| バックエンド | Google Apps Script (.gs) | **Spring Boot 3.x + Kotlin** |
+| バックエンド | Google Apps Script (.gs) | **Spring Boot 4.0.6 + Kotlin 2.3** |
 | データストア | Google スプレッドシート | **PostgreSQL 16** |
-| アンケート | Google フォーム | Google フォーム連携 or 自前実装(後続で決定) |
-| 設計思想 | 手続き的 | **ドメイン駆動設計 (DDD) + モジュラモノリス** |
+| アンケート | Google フォーム | **アプリ内 Web フォーム** (自前化) |
+| 開発環境 | GAS Editor + clasp | **Docker Compose 完結**(ホスト OS に依存ツールを入れない) |
+| 設計思想 | 手続き的 | **ドメイン駆動設計 + モジュラモノリス + CQRS** |
 
 ## 非ゴール
 
@@ -82,16 +83,17 @@ UI出し分けは JWT のペイロード(roleクレーム)を元に行う。
 
 | 項目 | 採用 | 理由 |
 |---|---|---|
-| 言語 | Kotlin 2.0+ | ユーザー指定 |
-| フレームワーク | Spring Boot 3.3+ | 標準選択肢。Spring Modulith で境界強制も可能 |
-| ビルド | Gradle (Kotlin DSL) | Kotlinプロジェクト標準 |
-| 永続化 | **Spring Data JPA (Hibernate 6)** | Persistence Modelパターンでドメインと分離。国内事例豊富、DDDとも共存可能 |
+| 言語 | **Kotlin 2.3.21** | ユーザー指定。2026-04 時点の最新安定版 |
+| JDK | **OpenJDK 21 (LTS)** | Spring Boot 4.x 要件 |
+| フレームワーク | **Spring Boot 4.0.6** | 新規プロジェクトのため長期運用可能な最新系列 (3.5 系は 2026-06 EOS) |
+| ビルド | Gradle 8.14 (Kotlin DSL) | Kotlinプロジェクト標準 |
+| 永続化 | **Spring Data JPA (Hibernate 6)** | Persistence Modelパターンでドメインと分離。DDDと共存可能 |
 | DB | PostgreSQL 16 | JSON / UUID / 配列サポートが豊富 |
 | マイグレーション | Flyway | Spring Boot との統合が容易。`ddl-auto=validate` 固定 |
 | JSONB型 | hypersistence-utils | Hibernate6系で JSONB カラムをマッピング |
 | UUID生成 | **uuid-creator (UUID v7)** | 時系列順ID生成、B-Treeインデックスの断片化抑制 |
 | 認証 | Spring Security + JWT (jjwt) | ステートレス、Next.jsと相性◎ |
-| 入力検証 | jakarta.validation + Konform | DTO層とドメイン層で役割分離 |
+| 入力検証 | jakarta.validation | 標準 |
 | API 文書化 | springdoc-openapi | OpenAPI 3 自動生成 |
 | ロギング | SLF4J + Logback | 標準 |
 | テスト | JUnit 5 + Kotest + MockK + Testcontainers | RDBテストは Testcontainers が鉄板 |
@@ -102,7 +104,8 @@ UI出し分けは JWT のペイロード(roleクレーム)を元に行う。
 | 項目 | 採用 | 理由 |
 |---|---|---|
 | フレームワーク | Next.js 15 (App Router) | Server Components でサーバー側レンダリング活用 |
-| 言語 | TypeScript 5.5+ | ユーザー指定 |
+| 言語 | TypeScript 5.x | 型安全 |
+| ランタイム | **Node.js 24 LTS** | Active LTS (20.x は 2026-04 EOL 済み) |
 | スタイル | Tailwind CSS v4 + shadcn/ui | 既存のVibrant & Block-basedデザインを移植しやすい |
 | フォーム | React Hook Form + Zod | 型安全な入力検証 |
 | サーバー状態 | TanStack Query v5 | キャッシュ/楽観的更新 |
@@ -115,10 +118,10 @@ UI出し分けは JWT のペイロード(roleクレーム)を元に行う。
 
 | 項目 | 採用 | 理由 |
 |---|---|---|
+| 開発環境 | **Docker Compose** | ホストにツールを入れない。OS 非依存 |
 | ホスティング | 未定(Fly.io / Railway 候補) | 小規模スタートに適する |
 | CI | GitHub Actions | 既存リポジトリで利用中 |
-| コンテナ | Docker | バックエンドデプロイ用 |
-| ローカル開発 | Docker Compose | PostgreSQL含め `docker compose up` で起動 |
+| コンテナ | Docker (マルチステージビルド) | 開発と本番で Dockerfile を共有 |
 
 ## ディレクトリ構成 (Monorepo)
 
@@ -189,6 +192,10 @@ UI出し分けは JWT のペイロード(roleクレーム)を元に行う。
 | [02-context-map.md](02-context-map.md) | 境界づけられたコンテキストとマップ |
 | [03-aggregates.md](03-aggregates.md) | 集約の設計(エンティティ、値オブジェクト、不変条件) |
 | [04-rdb-schema.md](04-rdb-schema.md) | PostgreSQL 向けスキーマ設計 |
-| [05-backend-architecture.md](05-backend-architecture.md) | Spring Boot + Kotlin のレイヤー構成 |
+| [05-backend-architecture.md](05-backend-architecture.md) | Spring Boot + Kotlin のレイヤー構成 (オニオン × CQRS) |
 | [06-frontend-architecture.md](06-frontend-architecture.md) | Next.js のディレクトリ構成とデータフェッチ戦略 |
 | [07-migration-plan.md](07-migration-plan.md) | 段階的マイグレーション計画 |
+| [08-execution-guide.md](08-execution-guide.md) | **実行手順書 (Phase ごとのコマンド・ファイル例)** |
+| [09-progress.md](09-progress.md) | **進捗チェックリスト (再開時は最初にここを見る)** |
+| [10-decisions.md](10-decisions.md) | 設計決定記録 (ADR) |
+| [11-docker-environment.md](11-docker-environment.md) | Docker 環境の構成と運用 |

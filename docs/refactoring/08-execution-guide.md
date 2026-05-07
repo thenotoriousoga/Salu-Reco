@@ -9,31 +9,27 @@
 3. 各 Phase の詳細はこのドキュメントの該当セクションを参照
 4. 設計判断の理由は `10-decisions.md`、Docker 環境は `11-docker-environment.md` を参照
 
-## 前提
+## 前提・原則
 
 - ホスト OS には **Docker 以外の開発ツールを入れない** (ADR-010)
-- 全てのコマンドは `docker compose exec` 経由で実行
+- **ユーザーがホストから直接叩くコマンドは `docker` と `docker compose` のみ**
+- `./gradlew`, `pnpm`, `mv`, `cp`, `cat` などは **必ず** `docker compose run --rm tools ...` または `docker compose exec <service> ...` 経由
+- `$(pwd)` などシェル変数展開は使わない(Windows cmd / PowerShell で動かない)
+- ファイル作成・編集は IDE で行う
 - 既存 `src/` (GAS 版) は Phase 9 まで触らない
-- ドキュメント更新は適宜、同時に `09-progress.md` のチェックを付ける
+- 実装のたびに `09-progress.md` のチェックを更新する
 
 ---
 
 ## Phase 0: プロジェクト基盤整備
 
-**ゴール**: Monorepo 化、Docker Compose、空の backend/frontend が `docker compose up` で起動する。
+**ゴール**: `docker compose up -d` で backend / frontend / db が起動する状態を作る。
 
-### 0-1. ルート設定ファイル作成
+### 0-1. ルート設定ファイル作成 (IDE で作成)
 
-**作成するファイル**:
+以下のファイルを作成する。
 
-- `package.json` (workspace root)
-- `pnpm-workspace.yaml`
-- `.nvmrc` (参考情報のみ、使わない)
-- `.gitignore` を更新
-- `.dockerignore`
-- `.env.example`
-
-#### `package.json` (root)
+#### `package.json` (リポジトリルート)
 
 ```json
 {
@@ -42,49 +38,125 @@
   "packageManager": "pnpm@9.12.3",
   "engines": {
     "node": ">=24.0.0"
-  },
-  "scripts": {
-    "up": "docker compose up -d",
-    "down": "docker compose down",
-    "logs": "docker compose logs -f",
-    "backend": "docker compose exec backend bash",
-    "frontend": "docker compose exec frontend bash",
-    "dev": "docker compose exec dev bash",
-    "gen:api": "docker compose exec dev bash -c 'cd frontend && pnpm gen:api'",
-    "test:backend": "docker compose exec dev bash -c 'cd backend && ./gradlew test'",
-    "test:frontend": "docker compose exec dev bash -c 'cd frontend && pnpm test'"
   }
 }
 ```
 
-#### `pnpm-workspace.yaml`
+#### `pnpm-workspace.yaml` (リポジトリルート)
 
 ```yaml
 packages:
   - "frontend"
 ```
 
-### 0-2. Docker 関連ファイル作成
+#### `.env.example` (リポジトリルート)
 
-`11-docker-environment.md` 記載のファイルをすべて作成:
+```
+ADMIN_PASSWORD=changeme
+GEMINI_API_KEY=
+JWT_SECRET=local-dev-secret-change-me
+```
 
-- `docker-compose.yml`
-- `docker/dev.Dockerfile`
+#### `.dockerignore` (リポジトリルート)
+
+```
+.git
+.gitignore
+**/.gradle
+**/build
+**/node_modules
+**/.next
+**/dist
+**/.env
+**/.env.local
+.vscode
+.idea
+```
+
+#### `.gitignore` 更新
+
+既存の `.gitignore` に以下を追記:
+
+```gitignore
+# ---- Refactoring (new stack) ----
+
+# Backend (Kotlin + Gradle)
+backend/.gradle/
+backend/build/
+backend/.kotlin/
+backend/out/
+
+# Frontend (Next.js + pnpm)
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.turbo/
+
+# Monorepo
+node_modules/
+pnpm-lock.yaml.backup
+
+# Environment
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Docker
+docker-compose.override.yml
+
+# IDE
+.idea/
+*.iml
+.vscode/settings.json
+
+# OS
+.DS_Store
+Thumbs.db
+```
+
+### 0-2. Docker 関連ファイル作成 (IDE で作成)
+
+`11-docker-environment.md` のテンプレをそのまま配置:
+
+- `docker/tools.Dockerfile`
 - `docker/backend.Dockerfile`
 - `docker/frontend.Dockerfile`
-- `docker/postgres/init.sql` (空でOK、必要になったら追加)
-- `.devcontainer/devcontainer.json`
-- `.env.example`
+- `docker/postgres/init.sql` (空ファイル)
+- `docker-compose.yml`
 
-### 0-3. Spring Boot 空プロジェクト (backend/)
+### 0-3. `.env` ファイルを作成
 
-#### `backend/settings.gradle.kts`
+IDE で `.env.example` を `.env` としてコピー、または:
+
+```
+docker compose run --rm tools bash -c "cp .env.example .env"
+```
+
+### 0-4. tools イメージをビルドする
+
+```
+docker compose build tools
+```
+
+tools サービスには JDK 21, Node 24, pnpm, Gradle 8.14, psql が入っている。
+以降のコマンド実行はこのコンテナを使う。
+
+### 0-5. backend プロジェクトの骨組み (tools コンテナで生成)
+
+#### Gradle Wrapper 生成
+
+```
+docker compose run --rm tools bash -c "mkdir -p backend && cd backend && gradle wrapper --gradle-version 8.14"
+```
+
+#### `backend/settings.gradle.kts` (IDE で作成)
 
 ```kotlin
 rootProject.name = "salu-rec-backend"
 ```
 
-#### `backend/build.gradle.kts`
+#### `backend/build.gradle.kts` (IDE で作成)
 
 ```kotlin
 plugins {
@@ -113,6 +185,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-validation")
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
 
@@ -157,32 +230,9 @@ tasks.withType<Test> {
 }
 ```
 
-**注意**: バージョン番号(特に `hypersistence-utils`, `springdoc-openapi`)は、Spring Boot 4.0.6 リリース時点で互換のあるものを使用。起動時に不整合が出た場合はリリースノートを参照して調整。
+**注意**: Spring Boot 4.0 + Kotlin 2.3 リリース直後のため、`hypersistence-utils`, `springdoc-openapi`, `kotest` など一部のライブラリのバージョン互換に調整が必要な可能性がある。ビルド失敗したらそのライブラリの最新互換版を調べて更新する。
 
-#### `backend/gradle/wrapper/gradle-wrapper.properties`
-
-```
-distributionBase=GRADLE_USER_HOME
-distributionPath=wrapper/dists
-distributionUrl=https\://services.gradle.org/distributions/gradle-8.14-bin.zip
-zipStoreBase=GRADLE_USER_HOME
-zipStorePath=wrapper/dists
-```
-
-Gradle ラッパーは次のコマンドで生成(dev コンテナ内):
-
-```bash
-docker compose run --rm dev bash -c "cd backend && gradle wrapper --gradle-version 8.14"
-```
-
-ただし素のイメージに Gradle CLI が入っていないため、**最初だけ一時コンテナで Gradle を動かしてラッパーを作る**:
-
-```bash
-# ホストで実行 (Dockerのみ使用)
-docker run --rm -v "$(pwd)/backend:/workspace" -w /workspace gradle:8.14-jdk21 gradle wrapper
-```
-
-#### `backend/src/main/kotlin/com/salurec/SaluRecApplication.kt`
+#### `backend/src/main/kotlin/com/salurec/SaluRecApplication.kt` (IDE で作成)
 
 ```kotlin
 package com.salurec
@@ -198,7 +248,7 @@ fun main(args: Array<String>) {
 }
 ```
 
-#### `backend/src/main/resources/application.yml`
+#### `backend/src/main/resources/application.yml` (IDE で作成)
 
 ```yaml
 spring:
@@ -221,6 +271,12 @@ spring:
 server:
   port: 8080
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
 salurec:
   admin-password: ${ADMIN_PASSWORD:changeme}
   jwt:
@@ -233,90 +289,60 @@ salurec:
 logging:
   level:
     org.hibernate.SQL: DEBUG
-    org.hibernate.orm.jdbc.bind: TRACE
 ```
 
-### 0-4. Next.js 空プロジェクト (frontend/)
+#### 依存をダウンロードして確認
 
-dev コンテナ内で Next.js を初期化:
-
-```bash
-docker compose run --rm dev bash -c "pnpm create next-app@latest frontend --typescript --tailwind --eslint --app --turbopack --import-alias '@/*' --no-src-dir --use-pnpm"
+```
+docker compose run --rm tools bash -c "cd backend && ./gradlew --no-daemon build -x test"
 ```
 
-このコマンドを打つ前にまだ `dev` サービスが存在しないので、`docker-compose.yml` に dev サービスを書いた状態でなら動く。初回は `docker compose build dev` 後に上記を実行。
+初回はダウンロードに時間がかかる。`gradle-cache` ボリュームにキャッシュされる。
 
-#### `frontend/package.json` (追加依存)
+### 0-6. frontend プロジェクトの骨組み (tools コンテナで生成)
 
-```bash
-docker compose run --rm dev bash -c "cd frontend && pnpm add \
-  @tanstack/react-query \
-  zod \
-  react-hook-form \
-  @hookform/resolvers \
-  zustand \
-  openapi-fetch \
-  jose"
+Next.js プロジェクトを新規作成:
 
-docker compose run --rm dev bash -c "cd frontend && pnpm add -D \
-  openapi-typescript \
-  vitest \
-  @vitejs/plugin-react \
-  @testing-library/react \
-  @testing-library/jest-dom \
-  @playwright/test"
+```
+docker compose run --rm tools bash -c "pnpm create next-app@latest frontend --typescript --tailwind --eslint --app --turbopack --import-alias '@/*' --no-src-dir --use-pnpm --yes"
 ```
 
-### 0-5. .gitignore 更新
+**確認**: `frontend/package.json` と `frontend/app/page.tsx` が生成される。
 
-`.gitignore` の末尾に追加:
+#### 追加依存をインストール
 
-```gitignore
-# Backend (Kotlin + Gradle)
-backend/.gradle/
-backend/build/
-backend/.kotlin/
-backend/out/
-
-# Frontend (Next.js + pnpm)
-frontend/node_modules/
-frontend/.next/
-frontend/out/
-frontend/.turbo/
-
-# Monorepo
-node_modules/
-
-# Environment
-.env
-.env.local
-.env.*.local
-!.env.example
-
-# Docker
-docker-compose.override.yml
-
-# IDE
-.idea/
-*.iml
-.vscode/settings.json
-
-# OS
-.DS_Store
-Thumbs.db
+```
+docker compose run --rm tools bash -c "cd frontend && pnpm add @tanstack/react-query zod react-hook-form @hookform/resolvers zustand openapi-fetch jose"
 ```
 
-### 0-6. README を更新 (旧READMEは退避)
-
-```bash
-docker compose exec dev bash -c "mv README.md docs/legacy-readme.md"
+```
+docker compose run --rm tools bash -c "cd frontend && pnpm add -D openapi-typescript vitest @vitejs/plugin-react @testing-library/react @testing-library/jest-dom @playwright/test"
 ```
 
-(または手動移動 → `docs/legacy-readme.md` とする)
+#### `frontend/package.json` の scripts に API 生成コマンドを追記 (IDE で編集)
 
-新しい `README.md` はシンプルに:
+```json
+{
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test": "vitest --run",
+    "gen:api": "openapi-typescript http://backend:8080/v3/api-docs -o shared/api/schema.ts"
+  }
+}
+```
 
-```markdown
+### 0-7. 旧 README を退避し、新 README を作成
+
+```
+docker compose run --rm tools bash -c "mv README.md docs/legacy-readme.md"
+```
+
+新 `README.md` を IDE で作成:
+
+````markdown
 # Salu-Rec
 
 フットサルの試合管理・MVP選出を行う Web アプリ。
@@ -326,92 +352,76 @@ docker compose exec dev bash -c "mv README.md docs/legacy-readme.md"
 
 ## 開発環境 (Docker 完結)
 
-ホスト OS に必要: **Docker Desktop** (または Docker Engine) のみ。
+ホストに必要: **Docker Desktop** (または Docker Engine) のみ。
 
-\`\`\`bash
-# 起動
-docker compose up -d
-
-# ログ
-docker compose logs -f
-
-# 停止
-docker compose down
-\`\`\`
+```
+docker compose up -d      # 起動
+docker compose logs -f    # ログ
+docker compose down       # 停止
+docker compose down -v    # ボリュームごと削除
+```
 
 - Backend: http://localhost:8080
 - Frontend: http://localhost:3000
 - API Docs: http://localhost:8080/swagger-ui
-\`\`\`
+- Health: http://localhost:8080/actuator/health
+
+開発コマンド詳細は [docs/refactoring/08-execution-guide.md](docs/refactoring/08-execution-guide.md) を参照。
+````
+
+### 0-8. AGENTS.md を更新
+
+既存の AGENTS.md は GAS 版前提。モノレポ化後の構成を反映するため、先頭に「リプレース中」のセクションを追加。
+IDE で編集する(変更量が多いので手動編集が妥当)。
+
+### 0-9. 初回起動
+
 ```
-
-### 0-7. 動作確認
-
-```bash
-# 全コンテナ起動
 docker compose up -d
+```
 
-# 起動ログ確認
+起動ログを追う:
+
+```
 docker compose logs -f backend
+```
+
+別ターミナルで frontend ログ:
+
+```
 docker compose logs -f frontend
-
-# ヘルスチェック
-curl http://localhost:8080/actuator/health   # { "status": "UP" }
-curl http://localhost:3000                    # Next.js デフォルトページ
 ```
 
-### 0-8. GitHub Actions CI の追加 (任意だが推奨)
+### 0-10. 動作確認
 
-`.github/workflows/ci.yml`:
+ブラウザまたはホスト側から(Docker の機能だけを使うので OS 依存なし):
 
-```yaml
-name: CI
-
-on:
-  push:
-    branches: [main, master]
-  pull_request:
-
-jobs:
-  backend-test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - name: Build & Test backend
-        run: |
-          docker compose build dev
-          docker compose run --rm dev bash -c "cd backend && ./gradlew test"
-
-  frontend-test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - name: Install & Test frontend
-        run: |
-          docker compose build dev
-          docker compose run --rm dev bash -c "cd frontend && pnpm install --frozen-lockfile && pnpm test"
+```
+docker compose run --rm tools bash -c "curl -sSf http://backend:8080/actuator/health"
+docker compose run --rm tools bash -c "curl -sSf http://frontend:3000"
 ```
 
-既存の `deploy-gas.yml` はそのまま残す (Phase 9 まで)。
+- backend のヘルスチェックが `{"status":"UP"}` を返す
+- frontend が Next.js のデフォルトページの HTML を返す
 
 ### Phase 0 完了条件
 
-- [ ] `docker compose up -d` で3サービスが起動する
-- [ ] `curl http://localhost:8080/actuator/health` が `UP` を返す
-- [ ] `http://localhost:3000` で Next.js のデフォルトページが表示される
-- [ ] `docker compose down -v && docker compose up` で再起動しても動く
+- [ ] `docker compose up -d` で 3 サービスが起動する
+- [ ] http://localhost:8080/actuator/health が UP
+- [ ] http://localhost:3000 で Next.js デフォルトページ表示
+- [ ] `docker compose down -v && docker compose up -d` で再起動できる
+
+Phase 0 が完了したら `09-progress.md` のチェックボックスを全部埋める。
 
 ---
 
 ## Phase 1: ウォーキングスケルトン (Event 集約)
 
-**ゴール**: 認証なしで Event 作成 → 一覧が動く。Domain / Application / Infrastructure / Presentation の全層を貫通実装。
+**ゴール**: 認証なしで Event の作成・一覧が API と UI で動く。Domain / Application / Infrastructure / Presentation の全層を貫通実装。
 
 ### 1-1. Flyway マイグレーション
 
-`backend/src/main/resources/db/migration/V1__init_events.sql`:
+IDE で `backend/src/main/resources/db/migration/V1__init_events.sql` を作成:
 
 ```sql
 CREATE TABLE events (
@@ -440,83 +450,67 @@ FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 ### 1-2. Shared Kernel
 
-```
-com.salurec.shared
-├── domain/
-│   ├── EntityId.kt
-│   ├── DomainEvent.kt
-│   ├── DomainEventPublisher.kt
-│   ├── DomainException.kt
-│   ├── IdGenerator.kt
-│   └── Clock.kt
-└── infrastructure/
-    ├── UuidV7IdGenerator.kt
-    ├── SystemClock.kt
-    └── SpringDomainEventPublisher.kt
-```
+以下のファイルを IDE で作成 (詳細なコードは `05-backend-architecture.md` 参照):
 
-**各ファイルの具体的な中身は `05-backend-architecture.md` 参照**。
+- `backend/src/main/kotlin/com/salurec/shared/domain/EntityId.kt`
+- `shared/domain/DomainEvent.kt`
+- `shared/domain/DomainEventPublisher.kt`
+- `shared/domain/DomainException.kt`
+- `shared/domain/IdGenerator.kt`
+- `shared/domain/Clock.kt`
+- `shared/infrastructure/UuidV7IdGenerator.kt`
+- `shared/infrastructure/SystemClock.kt`
+- `shared/infrastructure/SpringDomainEventPublisher.kt`
+- `shared/web/GlobalExceptionHandler.kt`
+- `shared/web/ApiErrorResponse.kt`
 
-### 1-3. Event コンテキスト (Phase 1 のコア)
+### 1-3. Event コンテキスト (Phase 1 最小構成)
 
-1. `domain/model/Event.kt`, `EventId.kt`, `EventName.kt`, `EventStatus.kt`, `JoinCode.kt`
-2. `domain/repository/EventRepository.kt` (I/F)
-3. `domain/service/JoinCodeGenerator.kt` (I/F)
-4. `domain/event/EventCreated.kt`
-5. `application/command/command/CreateEventCommand.kt`
-6. `application/command/result/CreateEventResult.kt`
-7. `application/command/usecase/CreateEventUseCase.kt`
-8. `application/query/dto/EventListItemDto.kt`
-9. `application/query/service/EventQueryService.kt` (I/F)
-10. `infrastructure/persistence/entity/EventJpaEntity.kt`
-11. `infrastructure/persistence/repository/EventJpaRepository.kt`
-12. `infrastructure/persistence/repository/EventRepositoryImpl.kt`
-13. `infrastructure/persistence/query/EventQueryServiceImpl.kt`
-14. `infrastructure/persistence/mapper/EventEntityMapper.kt`
-15. `infrastructure/service/JoinCodeGeneratorImpl.kt`
-16. `presentation/controller/EventCommandController.kt`
-17. `presentation/controller/EventQueryController.kt`
-18. `presentation/dto/request/CreateEventRequest.kt`
-19. `presentation/dto/response/CreateEventResponse.kt`
-20. `presentation/dto/response/EventListResponse.kt`
+**ファイル一覧** (詳細は `05-backend-architecture.md` + `03-aggregates.md` を参照):
 
-**Phase 1 時点では `MemberRegistrationPort` の呼び出しは省略**(Phase 4 で追加)。幹事メンバー自動登録は Phase 4 まで保留し、Phase 1 はシンプルに Event だけ作る。
+Domain:
+- `event/domain/model/EventId.kt`
+- `event/domain/model/EventName.kt`
+- `event/domain/model/EventStatus.kt`
+- `event/domain/model/JoinCode.kt`
+- `event/domain/model/Event.kt`
+- `event/domain/repository/EventRepository.kt`
+- `event/domain/service/JoinCodeGenerator.kt`
+- `event/domain/event/EventCreated.kt`
 
-### 1-4. 共通エラーハンドラ
+Application (Command):
+- `event/application/command/command/CreateEventCommand.kt`
+- `event/application/command/result/CreateEventResult.kt`
+- `event/application/command/usecase/CreateEventUseCase.kt`
 
-`shared/web/GlobalExceptionHandler.kt`:
+Application (Query):
+- `event/application/query/dto/EventListItemDto.kt`
+- `event/application/query/service/EventQueryService.kt`
 
-```kotlin
-package com.salurec.shared.web
+Infrastructure:
+- `event/infrastructure/persistence/entity/EventJpaEntity.kt`
+- `event/infrastructure/persistence/repository/EventJpaRepository.kt`
+- `event/infrastructure/persistence/repository/EventRepositoryImpl.kt`
+- `event/infrastructure/persistence/query/EventQueryServiceImpl.kt`
+- `event/infrastructure/persistence/mapper/EventEntityMapper.kt`
+- `event/infrastructure/service/JoinCodeGeneratorImpl.kt`
 
-import org.springframework.http.HttpStatus
-import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.ExceptionHandler
-import org.springframework.web.bind.annotation.RestControllerAdvice
+Presentation:
+- `event/presentation/controller/EventCommandController.kt`
+- `event/presentation/controller/EventQueryController.kt`
+- `event/presentation/dto/request/CreateEventRequest.kt`
+- `event/presentation/dto/response/CreateEventResponse.kt`
+- `event/presentation/dto/response/EventListResponse.kt`
 
-@RestControllerAdvice
-class GlobalExceptionHandler {
-    @ExceptionHandler(IllegalArgumentException::class)
-    fun handleIllegalArgument(e: IllegalArgumentException) =
-        ResponseEntity.status(HttpStatus.BAD_REQUEST)
-            .body(ApiErrorResponse(code = "BAD_REQUEST", message = e.message ?: ""))
+**Phase 1 の範囲**:
+- 幹事メンバー自動登録は Phase 4 で実装(Phase 1 時点では Event 単体)
+- ステータス遷移 (`start`, `finish`, `reopen`) は Phase 3 で実装
 
-    @ExceptionHandler(IllegalStateException::class)
-    fun handleIllegalState(e: IllegalStateException) =
-        ResponseEntity.status(HttpStatus.CONFLICT)
-            .body(ApiErrorResponse(code = "ILLEGAL_STATE", message = e.message ?: ""))
-}
+### 1-4. ArchUnit テスト
 
-data class ApiErrorResponse(val code: String, val message: String)
-```
+`backend/src/test/kotlin/com/salurec/architecture/LayerDependencyTest.kt` を作成(テンプレは `05-backend-architecture.md` 参照)。
 
-### 1-5. ArchUnit テスト
-
-`backend/src/test/kotlin/com/salurec/architecture/LayerDependencyTest.kt`:
-
-(`05-backend-architecture.md` のテスト例をそのまま配置)
-
-### 1-6. Testcontainers セットアップ
+### 1-5. Testcontainers 基盤
 
 `backend/src/test/kotlin/com/salurec/shared/AbstractIntegrationTest.kt`:
 
@@ -550,87 +544,70 @@ abstract class AbstractIntegrationTest {
 }
 ```
 
-### 1-7. OpenAPI スキーマ生成 + フロント型生成
-
-1. 起動中の backend で OpenAPI を取得:
-   ```bash
-   curl http://localhost:8080/v3/api-docs -o frontend/shared/api/openapi.json
-   ```
-2. frontend で型生成:
-   ```bash
-   docker compose exec dev bash -c "cd frontend && pnpm gen:api"
-   ```
-
-`frontend/package.json` の scripts に追加:
-
-```json
-"scripts": {
-  "gen:api": "openapi-typescript http://backend:8080/v3/api-docs -o shared/api/schema.ts"
-}
-```
-
-**注意**: `backend:8080` は Docker ネットワーク内のホスト名。
-
-### 1-8. フロントエンド: イベント一覧 + 作成
-
-ディレクトリ構成 (Phase 1 の最小):
+### 1-6. テスト実行
 
 ```
-frontend/
-├── app/
-│   ├── layout.tsx
-│   ├── page.tsx                      → /events へリダイレクト
-│   ├── events/
-│   │   ├── page.tsx                  Server Component: 一覧
-│   │   └── new/
-│   │       └── page.tsx              Client Component: 作成フォーム
-├── features/
-│   └── event/
-│       ├── api/
-│       │   └── event-api.ts
-│       └── components/
-│           └── event-list.tsx
-└── shared/
-    ├── api/
-    │   ├── client.ts
-    │   └── schema.ts                 (自動生成)
-    └── components/ui/
-        ├── button.tsx
-        └── card.tsx
+docker compose exec backend ./gradlew test
 ```
 
-**各ファイル詳細は `06-frontend-architecture.md` 参照**。Phase 1 時点では認証なしの前提で書く(Phase 2 で追加)。
+または backend が起動していない状態で:
+
+```
+docker compose run --rm tools bash -c "cd backend && ./gradlew test"
+```
+
+### 1-7. OpenAPI 型生成
+
+backend を起動した状態で:
+
+```
+docker compose run --rm tools bash -c "cd frontend && pnpm gen:api"
+```
+
+生成された `frontend/shared/api/schema.ts` を git 管理対象にする。
+
+### 1-8. Frontend (Phase 1 最小)
+
+IDE でファイル作成 (詳細は `06-frontend-architecture.md` 参照):
+
+- `frontend/shared/api/client.ts`
+- `frontend/features/event/api/event-api.ts`
+- `frontend/features/event/components/event-list.tsx`
+- `frontend/app/page.tsx` (→ `/events` リダイレクト)
+- `frontend/app/events/page.tsx`
+- `frontend/app/events/new/page.tsx`
 
 ### 1-9. 動作確認
 
-```bash
-# イベント作成
-curl -X POST http://localhost:8080/api/events \
-  -H "Content-Type: application/json" \
-  -d '{"name":"テスト大会","date":"2026-06-01","organizerName":"山田太郎"}'
-
-# イベント一覧取得
-curl http://localhost:8080/api/events
+```
+docker compose run --rm tools bash -c 'curl -sSf -X POST http://backend:8080/api/events -H "Content-Type: application/json" -d "{\"name\":\"テスト大会\",\"date\":\"2026-06-01\",\"organizerName\":\"山田太郎\"}"'
 ```
 
-ブラウザで http://localhost:3000/events を開き、作成したイベントが一覧表示されれば完了。
+```
+docker compose run --rm tools bash -c "curl -sSf http://backend:8080/api/events"
+```
+
+ブラウザで `http://localhost:3000/events` を開き、作成したイベントが一覧表示される。
 
 ### Phase 1 完了条件
 
-- [ ] Flyway マイグレーション (V1) が起動時に自動適用される
-- [ ] Event の作成・一覧・詳細APIが動作する
+- [ ] V1 マイグレーションが起動時に自動適用される
+- [ ] Event の作成・一覧 API が動作する
 - [ ] ArchUnit テストがグリーン
 - [ ] Testcontainers 結合テストがグリーン
 - [ ] OpenAPI スキーマが `/v3/api-docs` で生成される
-- [ ] frontend から API 呼び出しで一覧が表示される
+- [ ] frontend から API 呼び出しで一覧表示される
+
+Phase 1 完了後、`09-progress.md` を更新する。
 
 ---
 
 ## Phase 2 以降
 
-Phase 2 (認証) 以降の詳細手順は、**Phase 0/1 完了時に次のフェーズのガイドを追記する**形で進める。
+Phase 2 (認証) 以降の詳細手順は、**Phase 1 完了時に次のフェーズのガイドを追記する** 形で進める。
+
 理由:
-- Phase 1 の実装で確立したテンプレート(Mapper の書き方、テスト構成など)を前提にする方が具体的に書ける
+- Phase 1 で確立したテンプレート(Mapper の書き方、テスト構成など)を前提にする方が具体的に書ける
 - 早すぎる詳細化は陳腐化する
 
 **次のフェーズを追加する際は、このドキュメントに Phase N のセクションを追加し、`09-progress.md` にチェックボックスを追加すること。**
@@ -649,24 +626,24 @@ Phase 2 〜 9 の概要は `07-migration-plan.md` を参照。
 4. Flyway マイグレーション追加 (`V2__xxx.sql`, `V3__xxx.sql`...)
 5. Domain → Application → Infrastructure → Presentation の順に実装
 6. ArchUnit テストを更新
-7. OpenAPI から型生成し直す: `pnpm gen:api`
+7. OpenAPI から型生成し直す: `docker compose run --rm tools bash -c "cd frontend && pnpm gen:api"`
 8. frontend 側を実装
 9. `09-progress.md` のチェックボックスを更新
 
 ### PR 前のチェック
 
-```bash
-docker compose exec dev bash -c "cd backend && ./gradlew test"
-docker compose exec dev bash -c "cd frontend && pnpm test && pnpm lint && pnpm build"
+```
+docker compose run --rm tools bash -c "cd backend && ./gradlew test"
+docker compose run --rm tools bash -c "cd frontend && pnpm test && pnpm lint && pnpm build"
 ```
 
 ### マイグレーションの検証
 
-```bash
-# 新規マイグレーション追加後、クリーン環境でテスト
+```
 docker compose down -v
 docker compose up -d db
-docker compose exec backend ./gradlew flywayInfo
+docker compose run --rm tools bash -c "cd backend && ./gradlew flywayInfo"
+docker compose up -d backend
 ```
 
 ---
@@ -675,18 +652,19 @@ docker compose exec backend ./gradlew flywayInfo
 
 ### 新しいパッケージを追加する (backend)
 
-1. `backend/build.gradle.kts` の `dependencies` に追記
-2. `docker compose exec dev bash -c "cd backend && ./gradlew --refresh-dependencies"`
+1. IDE で `backend/build.gradle.kts` の `dependencies` に追記
+2. `docker compose restart backend` で反映
+3. または `docker compose run --rm tools bash -c "cd backend && ./gradlew --refresh-dependencies"`
 
 ### 新しいパッケージを追加する (frontend)
 
-```bash
-docker compose exec dev bash -c "cd frontend && pnpm add <package>"
+```
+docker compose run --rm tools bash -c "cd frontend && pnpm add <package>"
 ```
 
 ### DB を完全リセット
 
-```bash
+```
 docker compose down -v
 docker compose up -d
 ```
@@ -695,18 +673,32 @@ docker compose up -d
 
 `bootRun --continuous` で自動再起動される。手動でやりたい場合:
 
-```bash
+```
 docker compose restart backend
 ```
 
 ### API ドキュメントを見る
 
-http://localhost:8080/swagger-ui
+ブラウザで http://localhost:8080/swagger-ui
 
 ### ログを絞って見る
 
-```bash
-docker compose logs --tail=100 backend | grep ERROR
+```
+docker compose logs --tail=200 backend
+```
+
+### DB に接続
+
+```
+docker compose exec db psql -U salurec -d salurec
+```
+
+### コンテナに入って調査
+
+```
+docker compose exec backend bash
+docker compose exec frontend sh
+docker compose run --rm tools bash
 ```
 
 ---
@@ -718,3 +710,4 @@ docker compose logs --tail=100 backend | grep ERROR
 3. **設計判断が発生したら `10-decisions.md` に ADR を追加**
 4. **実装で学んだテンプレートは `08-execution-guide.md` に追記**
 5. **新語が出たら必ず `01-ubiquitous-language.md` に記録**
+6. **ホストで直接 `./gradlew` や `pnpm` を叩かない**(ADR-010)

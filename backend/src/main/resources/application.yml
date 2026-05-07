@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: salu-rec
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/salurec}
+    username: ${SPRING_DATASOURCE_USERNAME:salurec}
+    password: ${SPRING_DATASOURCE_PASSWORD:salurec}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.format_sql: true
+      hibernate.jdbc.time_zone: UTC
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    # Phase 0 時点でマイグレーションが空でもエラーにしない
+    baseline-on-migrate: true
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+salurec:
+  admin-password: ${ADMIN_PASSWORD:changeme}
+  jwt:
+    secret: ${JWT_SECRET:local-dev-secret-change-me}
+    expiration-minutes: 480
+  gemini:
+    api-key: ${GEMINI_API_KEY:}
+    model: gemini-2.0-flash-exp
+
+logging:
+  level:
+    org.hibernate.SQL: DEBUG

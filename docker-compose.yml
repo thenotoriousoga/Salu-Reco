@@ -1,0 +1,84 @@
+name: salu-rec
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: salurec
+      POSTGRES_PASSWORD: salurec
+      POSTGRES_DB: salurec
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U salurec"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../docker/backend.Dockerfile
+      target: dev
+    volumes:
+      - ./backend:/app
+      - gradle-cache:/root/.gradle
+      # Testcontainers から兄弟コンテナを起動できるように Docker ソケットを共有する
+      - /var/run/docker.sock:/var/run/docker.sock
+    working_dir: /app
+    # 常駐コンテナとして起動する(bootRun / test は `docker compose exec` で手動起動)。
+    # こうしておくと Gradle デーモンと incremental ビルドが効くので、2回目以降が劇的に速くなる。
+    command: tail -f /dev/null
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/salurec
+      SPRING_DATASOURCE_USERNAME: salurec
+      SPRING_DATASOURCE_PASSWORD: salurec
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-changeme}
+      JWT_SECRET: ${JWT_SECRET:-local-dev-secret-change-me}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      # Testcontainers の Docker-out-of-Docker サポート
+      # (ホスト側 Docker で起動した兄弟コンテナへの接続先を host.docker.internal に向ける)
+      TESTCONTAINERS_HOST_OVERRIDE: host.docker.internal
+      TESTCONTAINERS_RYUK_DISABLED: "true"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../docker/frontend.Dockerfile
+      target: dev
+    volumes:
+      - ./frontend:/app
+      - frontend-node-modules:/app/node_modules
+      # pnpm のコンテンツアドレスストア。プロジェクトや node_modules とは別ボリュームで永続化する
+      - pnpm-store:/pnpm-store
+    working_dir: /app
+    command: sh -c "pnpm install && pnpm dev"
+    ports:
+      - "3000:3000"
+    environment:
+      # ブラウザから API を直接叩く場合の URL(ホスト OS から見えるポート)
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
+      # サーバーサイドレンダリング時にコンテナ内から API を呼び出す URL
+      BACKEND_INTERNAL_URL: http://backend:8080
+      WATCHPACK_POLLING: "true"
+      # pnpm ストアの場所を固定ボリュームに向ける(frontend 配下に .pnpm-store を作らせない)
+      PNPM_STORE_DIR: /pnpm-store
+      PNPM_STORE_PATH: /pnpm-store
+      # 非対話環境向けフラグ(pnpm の確認プロンプトをスキップ)
+      CI: "true"
+
+volumes:
+  db-data:
+  gradle-cache:
+  frontend-node-modules:
+  pnpm-store:

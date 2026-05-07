@@ -16,11 +16,11 @@
 | ADR-007 | イベント作成時のメール送信を廃止 | Accepted | 2026-05 |
 | ADR-008 | 論理削除・楽観的ロックを採用しない | Accepted | 2026-05 |
 | ADR-009 | 技術スタック最新化 (Spring Boot 4.0.x / Kotlin 2.3 / Node 24 LTS) | Accepted | 2026-05 |
-| ADR-010 | Docker 完結開発環境 (ホスト OS に依存ツールを入れない) | Accepted | 2026-05 |
-| ADR-011 | DevContainer 採用 | Accepted | 2026-05 |
-| ADR-012 | 認証方式は管理者パスワード + 参加コード (AS IS 踏襲) | Accepted | 2026-05 |
-| ADR-013 | 幹事を MVP 選出対象から除外 (AS IS 踏襲) | Accepted | 2026-05 |
-| ADR-014 | チーム3以上の対戦カードは手動選択 (AS IS 踏襲) | Accepted | 2026-05 |
+| ADR-010 | Docker 完結開発環境 + OS 非依存コマンド統一 | Accepted | 2026-05 |
+| ADR-011 | 認証方式は管理者パスワード + 参加コード (AS IS 踏襲) | Accepted | 2026-05 |
+| ADR-012 | 幹事を MVP 選出対象から除外 (AS IS 踏襲) | Accepted | 2026-05 |
+| ADR-013 | チーム3以上の対戦カードは手動選択 (AS IS 踏襲) | Accepted | 2026-05 |
+| ADR-014 | 既存デザインシステムを移植(Tailwind での再構築を採用しない) | Accepted | 2026-05 |
 
 ---
 
@@ -285,76 +285,52 @@ Accepted (2026-05)
 
 ---
 
-## ADR-010: Docker 完結開発環境
+## ADR-010: Docker 完結開発環境 + OS 非依存コマンド統一
 
 ### ステータス
 Accepted
 
 ### コンテキスト
-ホスト OS(Windows)に言語ランタイムやツールをインストールしたくない、という強い要望。チーム再現性・OS 差分の排除・本番環境との一致を優先。
+ホスト OS(Windows)に言語ランタイムやツールをインストールしたくない、という強い要望。
+加えて、OS ごとのシェル差分(PowerShell / cmd / bash / zsh など)も排除したい。
 
 ### 決定
-**ホスト OS には Docker 以外の開発ツールをインストールしない**。以下を徹底する。
+**ホスト OS には Docker 以外の開発ツールをインストールしない**。
+**ユーザーがホストから直接叩くコマンドは `docker` と `docker compose` のみ**に統一する。
 
 - 全ての開発コマンドは Docker コンテナ内で実行
 - Java / Gradle / Kotlin / Node.js / pnpm / psql / Flyway CLI はすべてコンテナ提供
-- `./gradlew`, `pnpm` などを直接叩かず、`docker compose exec` 経由で叩く
-- 本番デプロイも Docker イメージで行う(同一アーキテクチャで dev/prod 一致)
-- ホスト必須: **Docker Engine (Docker Desktop on Windows/Mac、または WSL2 上の Docker)** のみ
-- Git はホスト側で OK(多くの開発者が既に入れている / IDE と統合されている)
+- `./gradlew`, `pnpm`, `mv`, `cp`, `cat` などは **`docker compose run --rm tools` または `docker compose exec` 経由**で叩く
+- `$(pwd)` のようなシェル変数展開を使わない(Windows cmd で動かない)
+- 本番デプロイも Docker イメージで行う
+- **DevContainer は採用しない**(シンプルな compose 構成を優先)
+- ホスト必須: **Docker Engine (Docker Desktop on Windows/Mac、または WSL2 / Linux の Docker)** のみ
+- Git はホスト側で OK
 
 ### 理由
 - "It works on my machine" 問題の根絶
-- Windows/Mac/Linux で同じ開発体験
+- Windows / macOS / Linux で同じコマンドが動く(PowerShell / cmd / bash / zsh 全対応)
 - 本番環境と完全同一のランタイム
 - 新メンバー参加時のセットアップが `docker compose up` のみ
 - 依存ライブラリのホスト汚染ゼロ
+- DevContainer はエディタ統合の利点はあるが、シンプルさ優先でスキップ
 
 ### 代替案
-- ホストに SDK インストール: バージョン管理ツール (sdkman, nvm, asdf) 必須、OS差分対応が面倒
+- ホストに SDK インストール: バージョン管理ツール必須、OS 差分対応が面倒
+- DevContainer: エディタ統合は便利だが、学習コスト + 構成が増える
 - Nix / devbox: 強力だが学習コスト高
 
 ### 運用ルール
 - `build.gradle.kts`, `package.json` 等の設定変更時はコンテナ再ビルド(`docker compose build`)
 - 依存追加・変更は必ずコンテナ内で実行 (`docker compose exec backend ./gradlew --refresh-dependencies`)
-- IDE は Kiro / VS Code を想定、DevContainer 連携推奨
+- ファイル操作(移動・コピー)も `docker compose run --rm tools` 経由
 
 ### 参照
 - `08-execution-guide.md`, `11-docker-environment.md`
 
 ---
 
-## ADR-011: DevContainer 採用
-
-### ステータス
-Accepted
-
-### コンテキスト
-Docker 完結環境を採用したが、IDE との統合体験を落としたくない。
-
-### 決定
-**VS Code / Kiro の DevContainer 機能を採用する**。
-
-- `.devcontainer/devcontainer.json` で開発環境を宣言
-- エディタ・ターミナル・デバッガすべてコンテナ内で動作
-- 複数コンテナ(backend + frontend + postgres) を扱うため `dockerComposeFile` ベースで構成
-- ホストの IDE 拡張と連動(Kotlin/TS 補完)
-
-### 理由
-- コード補完・ジャンプ・デバッガを IDE に統合した状態で Docker 完結を実現
-- チームメンバー間で開発環境が完全同一
-- Kiro は VS Code 互換なので DevContainer を理解する
-
-### 代替案
-- docker-compose のみ: シンプルだがエディタ統合が弱い
-- Gitpod / GitHub Codespaces: クラウド依存、コスト発生
-
-### 参照
-- `11-docker-environment.md`
-
----
-
-## ADR-012: 認証方式 (管理者パスワード + 参加コード)
+## ADR-011: 認証方式 (管理者パスワード + 参加コード)
 
 ### ステータス
 Accepted
@@ -376,7 +352,7 @@ Accepted
 
 ---
 
-## ADR-013: 幹事を MVP 選出対象から除外
+## ADR-012: 幹事を MVP 選出対象から除外
 
 ### ステータス
 Accepted
@@ -390,7 +366,7 @@ Accepted
 
 ---
 
-## ADR-014: チーム3以上の対戦カード選択
+## ADR-013: チーム3以上の対戦カード選択
 
 ### ステータス
 Accepted
@@ -402,3 +378,47 @@ Accepted
 - 総当たり / 順番固定 / ランダムなど好みが分かれる
 - 現場の柔軟性を優先
 - 必要なら将来「総当たり自動生成」ボタンをおまけ追加
+
+
+## ADR-014: 既存デザインシステムを移植(Tailwind での再構築を採用しない)
+
+**ステータス**: Accepted
+**日付**: 2026-05
+
+### コンテキスト
+
+GAS 版の `src/css.html` に定義された独自のデザインシステム(Vibrant & Block-based)は、
+CSS 変数 + 独自クラス (`.card`, `.btn-primary` 等) で構成されており、フレームワーク非依存。
+リプレース後もユーザー(現場で片手操作するフットサル幹事)は同じ画面感覚で使いたい。
+
+当初 `06-frontend-architecture.md` では Tailwind ベースで再構築する方針だったが、
+その場合 DOM 構造や命名が変わり、既存画面と微妙に見た目が異なる。現場の混乱を避けるため、
+見た目の完全再現を優先する。
+
+### 決定
+
+- `src/css.html` の CSS 変数と主要コンポーネントクラスをそのまま `frontend/app/globals.css` に移植する
+- React コンポーネント (`Card`, `Button`, `Input`, `TabBar`, `Badge`, `Toast`, `Modal`, `LoadingOverlay`) は
+  既存クラスを `className` に付けるだけの薄いラッパーとして実装する
+- Tailwind v4 は残すが、新しいデザイントークンを生やさない。必要な最小限のレイアウト調整にだけ使う
+- フォントは `next/font/google` で Fira Sans / Fira Code / Luckiest Guy をロードする
+
+### 結果
+
+- 既存画面のピクセル単位での見た目が保持される
+- Phase 2 以降は新コンポーネントを組み合わせるだけで「既存デザインに沿った画面」ができる
+- Tailwind のユーティリティを全画面で使う運用と比べ、クラス命名は独自クラスに寄る
+
+### 代替案
+
+| 案 | 採用しなかった理由 |
+|---|---|
+| Tailwind ベースで theme に既存トークンをマップして再構築 | DOM 構造と命名が変わり、現場ユーザーの画面感覚を損なう。移行コストも高い |
+| CSS Modules ですべて書き直す | CSS 変数だけ移植しても、コンポーネントごとに class を切る必要があり移植量が膨らむ |
+| MUI / shadcn/ui 等の UI ライブラリを採用 | 既存デザイン(鮮やかな赤+ゴールド)と雰囲気が大きく違うため、結局スタイル上書きが必要になり無駄 |
+
+### 参照
+
+- 移植手順: `09-progress.md` Phase 1.5
+- 移植元: `src/css.html`(全スタイル), `src/js.html`(IC アイコン定義, svg ヘルパー), `src/index.html`(HTML 構造)
+- 設計原則: `docs/design-system.md`
