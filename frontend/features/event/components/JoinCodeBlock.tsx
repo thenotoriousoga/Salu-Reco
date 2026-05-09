@@ -1,7 +1,7 @@
 "use client";
 
 import { QRCodeSVG } from "qrcode.react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Icon } from "@/shared/icons/ic";
 import { toast } from "@/shared/store/toast";
 
@@ -11,10 +11,14 @@ type JoinCodeBlockProps = {
 
 /**
  * 参加コードをクリックでコピー、同時に QR コードも並べて表示する。
- * 元: 既存の `.created-event-code` を踏襲しつつ QRコードを追加(ADR-007)。
  */
 export function JoinCodeBlock({ joinCode }: JoinCodeBlockProps) {
   const [copied, setCopied] = useState(false);
+  const [qrValue, setQrValue] = useState<string | null>(null);
+
+  useEffect(() => {
+    setQrValue(`${window.location.origin}/login?code=${encodeURIComponent(joinCode)}`);
+  }, [joinCode]);
 
   const handleCopy = async () => {
     try {
@@ -26,11 +30,6 @@ export function JoinCodeBlock({ joinCode }: JoinCodeBlockProps) {
       toast.error("コピーに失敗しました");
     }
   };
-
-  const qrValue =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/login?code=${encodeURIComponent(joinCode)}`
-      : `/login?code=${encodeURIComponent(joinCode)}`;
 
   return (
     <div style={{ display: "grid", gap: 16, placeItems: "center" }}>
@@ -58,21 +57,23 @@ export function JoinCodeBlock({ joinCode }: JoinCodeBlockProps) {
           </span>
         </span>
       </button>
-      <div
-        style={{
-          padding: 12,
-          background: "white",
-          borderRadius: "var(--radius-sm)",
-          border: "2px solid var(--border)",
-        }}
-      >
-        <QRCodeSVG
-          value={qrValue}
-          size={160}
-          level="M"
-          includeMargin={false}
-        />
-      </div>
+      {qrValue ? (
+        <div
+          style={{
+            padding: 12,
+            background: "white",
+            borderRadius: "var(--radius-sm)",
+            border: "2px solid var(--border)",
+          }}
+        >
+          <QRCodeSVG
+            value={qrValue}
+            size={160}
+            level="M"
+            includeMargin={false}
+          />
+        </div>
+      ) : null}
       <p
         style={{
           fontSize: "0.75rem",

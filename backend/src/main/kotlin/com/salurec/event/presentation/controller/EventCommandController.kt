@@ -33,11 +33,13 @@ class EventCommandController(
         val command = CreateEventCommand(
             name = request.name,
             date = request.date!!,
+            organizerName = request.organizerName,
         )
         val result = createEventUseCase.execute(command)
         val body = CreateEventResponse(
             eventId = result.eventId.value,
             joinCode = result.joinCode.value,
+            organizerMemberId = result.organizerMemberId,
         )
         return ResponseEntity.status(HttpStatus.CREATED).body(body)
     }

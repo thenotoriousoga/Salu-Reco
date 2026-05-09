@@ -8,6 +8,10 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends docker.io \
  && rm -rf /var/lib/apt/lists/*
 
+# Testcontainers のコンテナ再利用を有効化(ruby 再起動時に postgres を使い回す)。
+# testcontainers.reuse.enable は $HOME/.testcontainers.properties から読み取る。
+RUN mkdir -p /root && echo "testcontainers.reuse.enable=true" > /root/.testcontainers.properties
+
 WORKDIR /app
 EXPOSE 8080
 

@@ -78,4 +78,12 @@ tasks.withType<Test> {
     environment("TESTCONTAINERS_RYUK_DISABLED", "true")
     // Testcontainers のコンテナ再利用を有効化してテストの2回目以降を高速化
     systemProperty("testcontainers.reuse.enable", "true")
+
+    // 並列実行。SpringBoot の ApplicationContext はクラスごとに共有されるため
+    // forkEvery=0 でフォークを増やさず、並列 fork 数だけ増やす。
+    maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
+    forkEvery = 0L
+
+    // JVM 起動オーバーヘッドを下げる
+    jvmArgs("-XX:+UseParallelGC", "-XX:TieredStopAtLevel=1", "-noverify")
 }

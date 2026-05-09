@@ -9,6 +9,7 @@ import org.testcontainers.junit.jupiter.Testcontainers
 /**
  * 統合テストの共通基盤。
  * PostgreSQL コンテナを全テストで共有(withReuse=true)する。
+ * 加えてコンテナ名を固定化することで、Testcontainers 起動ごとに別コンテナを作らないようにする。
  */
 @SpringBootTest
 @Testcontainers
@@ -17,6 +18,8 @@ abstract class AbstractIntegrationTest {
         @JvmStatic
         val postgres: PostgreSQLContainer<*> = PostgreSQLContainer("postgres:16-alpine")
             .withReuse(true)
+            // 再利用時に同じ Flyway スキーマを使うため、起動中の同名コンテナに接続し直す
+            .withLabel("com.salurec.role", "test-postgres")
 
         init {
             postgres.start()

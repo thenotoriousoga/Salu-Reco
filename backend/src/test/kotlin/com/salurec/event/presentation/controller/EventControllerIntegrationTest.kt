@@ -85,13 +85,33 @@ class EventControllerIntegrationTest : AbstractIntegrationTest() {
 
     @Test
     fun `startで進行中に遷移し、finishで終了、reopenで進行中に戻る`() {
-        val body = mapOf("name" to "遷移テスト大会", "date" to "2026-08-01")
+        val body = mapOf(
+            "name" to "遷移テスト大会",
+            "date" to "2026-08-01",
+            "organizerName" to "幹事太郎",
+        )
         val createRes = mockMvc.perform(
             post("/api/events")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(body)),
         ).andReturn().response.contentAsString
         val eventId = objectMapper.readTree(createRes)["eventId"].asText()
+
+        // 2人目のメンバーを直接登録(start にはメンバー2名以上が必要)
+        val memberBody = mapOf(
+            "members" to listOf(
+                mapOf(
+                    "name" to "選手2",
+                    "seniorityYear" to 1,
+                    "soccerExperience" to "Inexperienced",
+                ),
+            ),
+        )
+        mockMvc.perform(
+            post("/api/events/$eventId/members")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(memberBody)),
+        ).andExpect(status().isCreated)
 
         // start: Preparing -> InProgress
         mockMvc.perform(post("/api/events/$eventId/start"))
@@ -110,6 +130,20 @@ class EventControllerIntegrationTest : AbstractIntegrationTest() {
             .andExpect(status().isNoContent)
         mockMvc.perform(get("/api/events/$eventId"))
             .andExpect(jsonPath("$.status").value("InProgress"))
+    }
+
+    @Test
+    fun `メンバー不足で start を叩くと400を返す`() {
+        val body = mapOf("name" to "メンバー不足大会", "date" to "2026-10-01")
+        val createRes = mockMvc.perform(
+            post("/api/events")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(body)),
+        ).andReturn().response.contentAsString
+        val eventId = objectMapper.readTree(createRes)["eventId"].asText()
+
+        mockMvc.perform(post("/api/events/$eventId/start"))
+            .andExpect(status().isBadRequest)
     }
 
     @Test

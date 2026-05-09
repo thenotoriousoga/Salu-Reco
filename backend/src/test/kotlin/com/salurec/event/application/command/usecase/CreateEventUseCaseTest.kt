@@ -1,6 +1,7 @@
 package com.salurec.event.application.command.usecase
 
 import com.salurec.event.application.command.command.CreateEventCommand
+import com.salurec.event.application.port.MemberRegistrationPort
 import com.salurec.event.domain.event.EventCreated
 import com.salurec.event.domain.model.Event
 import com.salurec.event.domain.model.EventStatus
@@ -33,11 +34,13 @@ class CreateEventUseCaseTest : DescribeSpec({
             val savedSlot = slot<Event>()
             every { eventRepository.save(capture(savedSlot)) } answers { savedSlot.captured }
 
+            val memberRegistration = mockk<MemberRegistrationPort>(relaxed = true)
             val eventPublisher = mockk<DomainEventPublisher>(relaxed = true)
 
             val useCase = CreateEventUseCase(
                 eventRepository = eventRepository,
                 joinCodeGenerator = joinCodeGenerator,
+                memberRegistration = memberRegistration,
                 idGenerator = idGenerator,
                 eventPublisher = eventPublisher,
             )
@@ -48,11 +51,46 @@ class CreateEventUseCaseTest : DescribeSpec({
 
             result.eventId.value shouldBe generatedId
             result.joinCode.value shouldBe "ABCDE"
+            result.organizerMemberId shouldBe null
 
             savedSlot.captured.status shouldBe EventStatus.Preparing
             savedSlot.captured.name.value shouldBe "テスト大会"
 
             verify(exactly = 1) { eventPublisher.publish(match { it is EventCreated }) }
+            verify(exactly = 0) { memberRegistration.registerOrganizer(any(), any()) }
+        }
+
+        it("organizerName 指定時は幹事メンバーを登録する") {
+            val idGenerator = mockk<IdGenerator>()
+            every { idGenerator.generate() } returns UUID.randomUUID().toString()
+
+            val joinCodeGenerator = mockk<JoinCodeGenerator>()
+            every { joinCodeGenerator.generateUnique() } returns JoinCode("XYZ23")
+
+            val eventRepository = mockk<EventRepository>()
+            every { eventRepository.save(any()) } answers { firstArg() }
+
+            val memberRegistration = mockk<MemberRegistrationPort>()
+            every { memberRegistration.registerOrganizer(any(), any()) } returns "organizer-member-id"
+
+            val useCase = CreateEventUseCase(
+                eventRepository = eventRepository,
+                joinCodeGenerator = joinCodeGenerator,
+                memberRegistration = memberRegistration,
+                idGenerator = idGenerator,
+                eventPublisher = mockk(relaxed = true),
+            )
+
+            val result = useCase.execute(
+                CreateEventCommand(
+                    name = "幹事テスト大会",
+                    date = LocalDate.of(2026, 7, 1),
+                    organizerName = "田中",
+                ),
+            )
+
+            result.organizerMemberId shouldBe "organizer-member-id"
+            verify(exactly = 1) { memberRegistration.registerOrganizer(any(), "田中") }
         }
     }
 })

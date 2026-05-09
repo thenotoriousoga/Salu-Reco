@@ -16,8 +16,8 @@
 | Phase 1.5: デザインシステム移植 | ✅ **完了** | 既存 `src/css.html` を `globals.css` に移植、SVGアイコン・共通UIを React 化 |
 | Phase 2: 認証基盤 | ✅ **完了** | JWT ログイン(管理者パスワード/参加コード)と Cookie セッションが動作 |
 | Phase 3: Event コンテキスト完成 | ✅ **完了** | 詳細取得・ステータス遷移 API、QR+コピー UI、動的認可が動作 |
-| Phase 4: Member コンテキスト | **次はここから** | |
-| Phase 5: Match Operation (Round + Match 独立集約) | 未着手 | |
+| Phase 4: Member コンテキスト | ✅ **完了** | メンバーCRUD、キュー方式一括登録、意気込み編集、幹事自動登録が動作 |
+| Phase 5: Match Operation (Round + Match 独立集約) | **次はここから** | |
 | Phase 6: MVP Evaluation | 未着手 | |
 | Phase 7: Survey (Web フォーム自前化) | 未着手 | |
 | Phase 8: 仕上げ・デプロイ | 未着手 | |
@@ -351,26 +351,48 @@ Phase 2 以降はこの基盤に乗せて画面を作る。
 
 ---
 
-## Phase 4: Member コンテキスト ← 次はここから
+## Phase 4: Member コンテキスト ✅ 完了
 
 ### 概要タスク
-- [ ] Flyway V2: members テーブル
-- [ ] Member ドメイン (含む `enthusiasm`)
-- [ ] MemberRegistrationPort の実装 (Adapter 経由)
-- [ ] `CreateEventUseCase` から呼び出すよう Phase 1 の Event を拡張
-- [ ] 一括登録 UseCase
-- [ ] 意気込み編集 API (本人のみ)
-- [ ] Frontend: メンバー管理タブ
-- [ ] Frontend: 意気込み編集モーダル
+- [x] Flyway V2: members テーブル
+- [x] Member ドメイン (Member / MemberId / MemberName / SoccerExperience + イベント3種)
+- [x] MemberRepository (Write) + MemberQueryService (Read)
+- [x] BulkRegisterMembers / UpdateMember / UpdateEnthusiasm / DeleteMember UseCase
+- [x] Member Controller (Command + Query) + DTO
+- [x] Event の `MemberRegistrationPort` → `MemberRegistrationAdapter` で幹事自動登録
+- [x] `StubMemberCountAdapter` → `MemberCountAdapter` (実カウント) に差し替え
+- [x] SecurityConfig に Member エンドポイント追加(CRUD は ADMIN、意気込み更新・一覧は USER も可)
+- [x] Frontend: メンバー管理タブ(キュー方式の登録フォーム、一覧、経験/幹事バッジ、編集/削除ボタン)
+- [x] Frontend: メンバー編集モーダル(名前/年次/経験/幹事/備考/意気込み)
+- [x] Frontend: Route Handler `/api/events/{id}/members` と `/members/{memberId}/enthusiasm`
+- [x] Frontend: イベント作成フォームに `organizerName` を追加
+- [x] Frontend: 詳細ページにタブバー(メンバー/試合/結果)を追加
+- [x] テスト: Member Domain 単体 + 結合テスト4件追加
+- [x] ArchUnit テスト緑・全50件緑
 
 ### Phase 4 完了条件
-- [ ] イベント作成時に幹事メンバーが自動登録される
-- [ ] メンバーの一括登録が動く
-- [ ] 意気込みを本人のみ編集できる
+- [x] イベント作成時に幹事メンバーが自動登録される
+- [x] メンバーの一括登録が動く
+- [x] 意気込みを(本人を含む)ユーザーが更新できる(Phase 4 時点では本人判定は `canAccessEvent` レベル)
+- [x] 画面からメンバー登録→一覧表示→編集→削除の一連の動線が動く
+
+### Phase 4 の Tips・メモ
+
+- **Spring Boot 4 (Jackson 3) は Kotlin Module 自動登録されない**:
+  - data class のデフォルト値(`isOrganizer: Boolean = false` など)が効かず、欠落時に `Cannot map null into type boolean` エラー
+  - DTO 側を `Boolean? = false` にして `organizerFlag()` のようなヘルパーで変換する方がシンプル
+  - 将来 Jackson 3 対応の Kotlin Module が Spring Boot に組み込まれたら外して OK
+- **`is` プレフィクスの Kotlin プロパティ**:
+  - Jackson はデフォルトで `isFoo` → JSON キー `foo` として扱う。既存 GAS API と合わせるため `@get:JsonProperty("isOrganizer")` で明示する
+- **Stub Adapter を `@Primary` で差し替え**:
+  - Phase 3 で作った `StubMemberCountAdapter` を削除して実装版 `MemberCountAdapter` に。`@Component` + `@Primary` で自動置換
+- **テスト高速化の設定**:
+  - Gradle 並列実行(`maxParallelForks`) + Testcontainers reuse (`testcontainers.reuse.enable=true`) + JVM 起動オプション(`TieredStopAtLevel=1`)で改善
+  - Docker イメージ側に `/root/.testcontainers.properties` を置いて再起動後も reuse 設定が維持されるよう
 
 ---
 
-## Phase 5: Match Operation (Round + Match 独立集約)
+## Phase 5: Match Operation (Round + Match 独立集約) ← 次はここから
 
 ### 概要タスク
 - [ ] Flyway V3: rounds, matches, match_participants, goals

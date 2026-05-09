@@ -709,3 +709,163 @@ body:not(.role-user):not(.role-admin) .user-only {
   color: var(--text-muted);
   margin-top: 8px;
 }
+
+
+/* ===================================
+   Member Form / List
+   =================================== */
+
+.member-form-name {
+  margin-bottom: 14px;
+}
+
+.input-name {
+  font-size: 1.1rem;
+  font-weight: 500;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+}
+
+/* 年次・経験・幹事を横3列で並べる */
+.member-form-attrs {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.attr-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.attr-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.attr-input {
+  padding: 8px 10px;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.attr-label-cb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  height: 100%;
+  padding-top: 22px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.attr-label-cb input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.member-form-note {
+  margin-bottom: 14px;
+}
+
+.note-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  transition: color var(--transition);
+}
+
+.note-toggle:hover {
+  color: var(--text-secondary);
+}
+
+/* 小さい端末では 2 列 */
+@media (max-width: 374px) {
+  .member-form-attrs {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* --- メンバーリスト(アイコン版) --- */
+.member-item-v2 {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.member-item-v2:last-child {
+  border-bottom: none;
+}
+
+.member-main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.member-name-v2 {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.member-years {
+  font-weight: 400;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.member-icons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 4px;
+}
+
+.member-delete-btn {
+  margin-left: auto;
+}
+
+.member-edit-btn {
+  padding: 6px 10px;
+  min-height: 32px;
+  min-width: 32px;
+}
+
+.member-sub {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+  padding-left: 2px;
+  line-height: 1.4;
+}
+
+/* 編集モーダルの横幅拡張 */
+.modal-box-wide {
+  max-width: 400px;
+}
+
+
+/* 選手一覧の見出し横の凡例 */
+.member-legend-inline {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-left: 8px;
+}

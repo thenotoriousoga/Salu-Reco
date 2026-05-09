@@ -6,4 +6,5 @@ package com.salurec.event.presentation.dto.response
 data class CreateEventResponse(
     val eventId: String,
     val joinCode: String,
+    val organizerMemberId: String? = null,
 )

@@ -20,6 +20,10 @@ const schema = z.object({
     .min(1, "イベント名を入力してください")
     .max(100, "イベント名は100文字以内です"),
   date: z.string().min(1, "開催日を入力してください"),
+  organizerName: z
+    .string()
+    .max(50, "幹事名は50文字以内です")
+    .optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -52,7 +56,7 @@ export function CreateEventForm() {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { name: "フットサル", date: "" },
+    defaultValues: { name: "フットサル", date: "", organizerName: "" },
   });
 
   const onSubmit = form.handleSubmit(async (values) => {
@@ -90,6 +94,20 @@ export function CreateEventForm() {
         error={form.formState.errors.date?.message}
       >
         <Input id="create-ev-date" type="date" {...form.register("date")} />
+      </InputGroup>
+
+      <InputGroup
+        label="幹事名"
+        htmlFor="create-ev-organizer"
+        error={form.formState.errors.organizerName?.message}
+      >
+        <Input
+          id="create-ev-organizer"
+          type="text"
+          maxLength={50}
+          placeholder="例: 田中(未入力なら後で追加)"
+          {...form.register("organizerName")}
+        />
       </InputGroup>
 
       <Button

@@ -8,8 +8,7 @@ import java.time.LocalDate
 
 /**
  * イベント作成リクエスト。
- *
- * Phase 1 時点では幹事メンバー登録は含めない(Phase 4 で追加)。
+ * 幹事として作成する場合は `organizerName` も指定する(Member コンテキストに自動登録される)。
  */
 data class CreateEventRequest(
     @field:NotBlank(message = "イベント名を入力してください")
@@ -19,4 +18,7 @@ data class CreateEventRequest(
     @field:NotNull(message = "開催日を入力してください")
     @field:JsonFormat(pattern = "yyyy-MM-dd")
     val date: LocalDate?,
+
+    @field:Size(max = 50, message = "幹事名は50文字以内です")
+    val organizerName: String? = null,
 )

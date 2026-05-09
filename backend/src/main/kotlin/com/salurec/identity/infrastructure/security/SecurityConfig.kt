@@ -70,6 +70,19 @@ class SecurityConfig(
                     //     「該当イベントのみ」の判定は Controller で AuthPrincipal.canAccessEvent を使う ---
                     .requestMatchers(HttpMethod.GET, "/api/events/*").hasAnyRole("ADMIN", "USER")
 
+                    // --- Member コンテキスト: 登録/更新/削除は管理者のみ ---
+                    .requestMatchers(HttpMethod.POST, "/api/events/*/members").hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.PUT, "/api/events/*/members/*").hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.DELETE, "/api/events/*/members/*").hasRole("ADMIN")
+
+                    // --- Member コンテキスト: 意気込み更新はメンバー本人 (USER) 可、
+                    //     実際の本人判定は Controller 内で AuthPrincipal.canAccessEvent + eventId で担保 ---
+                    .requestMatchers(HttpMethod.PUT, "/api/events/*/members/*/enthusiasm")
+                        .hasAnyRole("ADMIN", "USER")
+
+                    // --- Member コンテキスト: 一覧は ADMIN もしくは当該イベント USER ---
+                    .requestMatchers(HttpMethod.GET, "/api/events/*/members").hasAnyRole("ADMIN", "USER")
+
                     // --- デフォルト: 認証必須(追加エンドポイント増やしたときに意図しない公開を防ぐ) ---
                     .anyRequest().authenticated()
             }

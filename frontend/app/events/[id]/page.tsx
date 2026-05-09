@@ -6,6 +6,7 @@ import { Card } from "@/shared/components/ui/Card";
 import { Icon } from "@/shared/icons/ic";
 import { getEventDetail } from "@/features/event/api/event-api";
 import { EventStatusControls } from "@/features/event/components/EventStatusControls";
+import { EventDetailTabs } from "@/features/event/components/EventDetailTabs";
 import { JoinCodeBlock } from "@/features/event/components/JoinCodeBlock";
 
 type EventStatus = "Preparing" | "InProgress" | "Finished";
@@ -83,16 +84,7 @@ export default async function EventDetailPage({
         <JoinCodeBlock joinCode={event.joinCode} />
       </Card>
 
-      <Card>
-        <h3>
-          <Icon name="info" size={18} className="section-icon" />
-          このイベントについて
-        </h3>
-        <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", lineHeight: 1.7 }}>
-          メンバー管理 / 試合管理 / 結果 / MVP 選出は後続フェーズで実装します。
-          このページではイベント基本情報と参加コード、ステータス遷移のみ操作できます。
-        </p>
-      </Card>
+      <EventDetailTabs eventId={event.id} />
     </>
   );
 }

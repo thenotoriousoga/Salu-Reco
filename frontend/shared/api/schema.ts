@@ -4,6 +4,38 @@
  */
 
 export interface paths {
+    "/api/events/{eventId}/members/{memberId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["update"];
+        post?: never;
+        delete: operations["delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}/members/{memberId}/enthusiasm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["updateEnthusiasmApi"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/events": {
         parameters: {
             query?: never;
@@ -62,6 +94,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["finish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_1"];
+        put?: never;
+        post: operations["registerBulk"];
         delete?: never;
         options?: never;
         head?: never;
@@ -136,16 +184,46 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        UpdateMemberRequest: {
+            name: string;
+            /** Format: int32 */
+            seniorityYear: number;
+            /** @enum {string} */
+            soccerExperience: "Experienced" | "Inexperienced";
+            isOrganizer?: boolean;
+            note?: string;
+            enthusiasm?: string;
+        };
+        Unit: Record<string, never>;
+        UpdateEnthusiasmRequest: {
+            enthusiasm: string;
+        };
         CreateEventRequest: {
             name: string;
             /** Format: date */
             date: string;
+            organizerName?: string;
         };
         CreateEventResponse: {
             eventId: string;
             joinCode: string;
+            organizerMemberId?: string;
         };
-        Unit: Record<string, never>;
+        BulkRegisterMembersRequest: {
+            members: components["schemas"]["MemberInputRequest"][];
+        };
+        MemberInputRequest: {
+            name: string;
+            /** Format: int32 */
+            seniorityYear: number;
+            /** @enum {string} */
+            soccerExperience: "Experienced" | "Inexperienced";
+            isOrganizer?: boolean;
+            note?: string;
+        };
+        BulkRegisterMembersResponse: {
+            memberIds: string[];
+        };
         LoginWithJoinCodeRequest: {
             joinCode: string;
         };
@@ -178,6 +256,20 @@ export interface components {
             status: string;
             joinCode: string;
         };
+        MemberListResponse: {
+            members: components["schemas"]["MemberResponse"][];
+        };
+        MemberResponse: {
+            id: string;
+            eventId: string;
+            name: string;
+            /** Format: int32 */
+            seniorityYear: number;
+            soccerExperience: string;
+            isOrganizer: boolean;
+            note: string;
+            enthusiasm: string;
+        };
         MeResponse: {
             authenticated: boolean;
             role?: string;
@@ -192,6 +284,83 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                eventId: string;
+                memberId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateMemberRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Unit"];
+                };
+            };
+        };
+    };
+    delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                eventId: string;
+                memberId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Unit"];
+                };
+            };
+        };
+    };
+    updateEnthusiasmApi: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                eventId: string;
+                memberId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateEnthusiasmRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Unit"];
+                };
+            };
+        };
+    };
     list: {
         parameters: {
             query?: never;
@@ -298,6 +467,54 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["Unit"];
+                };
+            };
+        };
+    };
+    list_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MemberListResponse"];
+                };
+            };
+        };
+    };
+    registerBulk: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkRegisterMembersRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BulkRegisterMembersResponse"];
                 };
             };
         };

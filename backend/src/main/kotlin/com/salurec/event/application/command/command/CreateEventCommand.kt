@@ -4,11 +4,11 @@ import java.time.LocalDate
 
 /**
  * イベント作成コマンド。
- *
- * Phase 1 時点では Event 単体の作成のみ。
- * 幹事メンバー自動登録は Phase 4 で追加する。
+ * 幹事が作成するフローの場合は `organizerName` を指定すると、
+ * 作成と同時に幹事メンバーが登録される。
  */
 data class CreateEventCommand(
     val name: String,
     val date: LocalDate,
+    val organizerName: String? = null,
 )
