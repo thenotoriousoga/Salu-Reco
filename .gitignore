@@ -7,8 +7,8 @@ Thumbs.db
 .idea/
 *.iml
 
-# Kiro
-.kiro/
+# Kiro（steering/ と skills/ はチーム共有するため Git 管理する）
+.kiro/settings/
 
 # clasp (contains script ID)
 .clasp.json
