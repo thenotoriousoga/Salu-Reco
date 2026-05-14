@@ -10,6 +10,9 @@ Thumbs.db
 # Kiro（steering/ と skills/ はチーム共有するため Git 管理する）
 .kiro/settings/
 
+# Skills CLI (他エディタ向けのユニバーサル出力。Kiro は .kiro/skills/ を使用)
+.agents/
+
 # clasp (contains script ID)
 .clasp.json
 

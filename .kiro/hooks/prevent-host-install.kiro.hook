@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Prevent Host OS Install",
+  "description": "シェルコマンド実行前に、ホストOSへの直接インストール（pnpm install, npm install, ./gradlew等）を検出して警告する。このプロジェクトでは全てのビルド・テストはDockerコンテナ内で実行する。",
+  "version": "1",
+  "when": {
+    "type": "preToolUse",
+    "toolTypes": [
+      "shell"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "このシェルコマンドを確認してください。このプロジェクトではビルド・テスト・依存インストールは全てDockerコンテナ内で実行します。以下のコマンドをホストOSで直接実行してはいけません:\n- pnpm install / npm install / yarn install\n- pnpm build / pnpm tsc / pnpm dev\n- ./gradlew (Docker外)\n- pip install / gem install 等\n\n正しい実行方法:\n- フロントエンド: docker compose exec frontend pnpm ...\n- バックエンド: docker compose exec backend ./gradlew ...\n\nもしコマンドがDockerコンテナ経由でない場合は、docker compose exec を付けて再実行してください。git操作やファイル操作（ls, cat等）はホストOSで問題ありません。"
+  }
+}
