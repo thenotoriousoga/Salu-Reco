@@ -1,256 +1,100 @@
 # AGENTS.md — Salu-Rec
 
-## ⚠️ リプレース作業中
+フットサルの試合管理・MVP選出を行うWebアプリ。GAS版から Next.js + Spring Boot (Kotlin) + PostgreSQL へ全面リプレース中。
 
-本プロジェクトは **GAS版から Next.js + Spring Boot (Kotlin) + PostgreSQL への全面リプレース中**です。
+## 現在のステータス
 
-- 新実装は `backend/` と `frontend/` にあり、Docker Compose で動きます
-- 既存 GAS 版 (`src/`) は Phase 9 (最終フェーズ) まで維持します
-- 作業を再開するときは [docs/refactoring/09-progress.md](docs/refactoring/09-progress.md) で進捗を確認してください
+- **リプレース進捗**: [docs/refactoring/09-progress.md](docs/refactoring/09-progress.md) を確認
+- 新実装は `backend/` と `frontend/` にあり、Docker Compose で動作する
+- 既存 GAS 版 (`src/`) は Phase 9（最終フェーズ）で廃止予定
 
-本 AGENTS.md は **GAS 版の仕様を記述**した既存ドキュメントです。リプレース作業中は以下として扱います。
+## ドキュメントルーティング
 
-- GAS 版への変更: このドキュメントを参照
-- 新実装への変更: 下記の設計ドキュメントを参照
-- 両方を参照すべきケース: まず新実装の設計書を読み、不明点を本ドキュメントで補完
+変更対象に応じて、以下のドキュメントを参照する。
 
-### 新実装のドキュメント
+| 変更対象 | 参照先 |
+|---|---|
+| バックエンド (`backend/`) | [docs/backend/AGENTS.md](docs/backend/AGENTS.md) |
+| フロントエンド (`frontend/`) | [docs/frontend/AGENTS.md](docs/frontend/AGENTS.md) |
+| API 仕様 (`api/openapi.yaml`) | [api/openapi.yaml](api/openapi.yaml) |
+| Docker 環境 | [docs/docker-strategy.md](docs/docker-strategy.md) |
+| GAS 版 (`src/`) | [docs/legacy/gas-spec.md](docs/legacy/gas-spec.md) |
+
+### 設計ドキュメント
 
 | 対象 | 場所 |
 |---|---|
-| バックエンド設計 | [docs/backend/design/](docs/backend/design/README.md) |
-| バックエンド AGENTS | [docs/backend/AGENTS.md](docs/backend/AGENTS.md) |
-| フロントエンド設計 | [docs/frontend/](docs/frontend/README.md) |
-| フロントエンド AGENTS | [docs/frontend/AGENTS.md](docs/frontend/AGENTS.md) |
-| API 仕様 | [api/openapi.yaml](api/openapi.yaml) |
-| Docker 環境 | [docs/docker-strategy.md](docs/docker-strategy.md) |
-| リプレース進捗 | [docs/refactoring/09-progress.md](docs/refactoring/09-progress.md) |
+| バックエンド設計（アーキテクチャ・DDD・パッケージ構成） | [docs/backend/design/](docs/backend/design/README.md) |
+| フロントエンド設計（コンポーネント・ルーティング・状態管理） | [docs/frontend/](docs/frontend/README.md) |
+| ER図（テーブル概要） | [docs/er-diagram.md](docs/er-diagram.md) |
+| Git ルール | [docs/git-rules.md](docs/git-rules.md) |
 
----
+## プロジェクト全体に適用されるルール
 
-## プロジェクト概要
+### 1. 実行環境
 
-フットサルの試合管理・MVP選出を行うWebアプリ。Google Apps Script（GAS）で完結し、スマホブラウザから利用できる。
-全データはイベント単位で管理され、イベントを横断した集計は行わない。
+ビルド・テスト・依存管理は全て Docker コンテナ内で実行する。ホスト OS で直接実行してよいのは `git` と `docker compose` のみ。
 
-### ロール（権限モデル）
+```bash
+# バックエンド
+docker compose exec backend ./gradlew test
 
-- **管理者**: パスワード認証（スクリプトプロパティ `ADMIN_PASSWORD`）。全イベント横断で管理可能
-- **幹事**: イベント作成者、またはメンバー選択時に「幹事」フラグが付いたメンバー。そのイベント内では管理者と同じ操作が可能（UI上は `currentRole = 'admin'` として扱う）
-- **一般ユーザー**: イベントコード（4桁英数字）で参加。試合管理・閲覧が可能、メンバー管理・MVP選出などは不可
-- Webアプリは「全員」に公開し、アプリ内でロールを制御する（GASのセッション管理は使わない）
-- UI出し分けはクライアントサイドの `currentRole` 変数と CSSクラス（`.admin-only` / `.user-only`）で制御
+# フロントエンド
+docker compose exec frontend pnpm test
+```
 
-### イベント作成フロー
+### 2. Single Source of Truth (SSoT)
 
-管理者・幹事ともに同じフォーム（`page-create-event`）・同じサーバー関数（`createEventAsOrganizer`）で作成する。
-参加コードは自動生成（`generateUniqueEventCode_`）、幹事は最初のメンバーとして自動登録される。
+- 同じ情報を2箇所以上に書かない。他のドキュメントから参照する場合はリンクを貼る
+- API 仕様の正は `api/openapi.yaml`
+- DB スキーマの正は Flyway マイグレーション (`backend/src/main/resources/db/migration/`)
+- 技術スタックのバージョンの正は `build.gradle.kts` と `package.json`
 
-1. **管理者（パスワードログイン済み）**: イベント一覧の「イベントをキックオフ！」ボタン → 作成フォーム → 完了画面 → イベント詳細（`currentMemberId` は未設定、一覧に戻れる）
-2. **幹事（未ログイン）**: ログイン画面の「新しくイベントを作る」ボタン → 作成フォーム → 完了画面 → イベント詳細（`currentMemberId` がセットされ、そのイベント内のみ操作可能）
+### 3. Git 運用
 
-## 技術スタック
+- Conventional Commits 形式を使用
+- master への直接 push 禁止。必ず PR 経由
+- 詳細は [docs/git-rules.md](docs/git-rules.md)
+
+### 4. AI エージェントの作業フロー
+
+1. `docs/refactoring/09-progress.md` で次のタスクを確認
+2. 変更対象に応じた AGENTS.md（上記ルーティング）を読む
+3. 設計ドキュメントで仕様を確認してから実装に入る
+
+## 技術スタック（新実装）
 
 | レイヤー | 技術 |
 |---|---|
-| ランタイム | Google Apps Script（V8ランタイム） |
-| バックエンド | GAS サーバーサイド関数（`.gs` ファイル × 8） |
-| フロントエンド | HTML + CSS + Vanilla JS（GASテンプレート `HtmlService`） |
-| データストア | Google スプレッドシート（8シート） |
-| アンケート | Google フォーム（`FormApp` で自動生成） |
-| デプロイ | `@google/clasp` + GitHub Actions（`master` ブランチ push 時に自動デプロイ） |
-| フォント | Fira Sans（本文）/ Fira Code（データ表示） |
-| デザイン | Vibrant & Block-based スタイル、SVGアイコン、スマホファースト |
+| バックエンド | Spring Boot 4 + Kotlin, JDK 21 |
+| フロントエンド | Next.js 16 (App Router) + TypeScript |
+| データベース | PostgreSQL 16 |
+| API 仕様 | OpenAPI 3.1 (コード自動生成) |
+| インフラ | Docker Compose (開発), Fly.io (本番候補) |
+| CI/CD | GitHub Actions |
 
-## ディレクトリ構成
+## ディレクトリ構成（概要）
 
 ```
 .
-├── AGENTS.md                  ← このファイル
-├── README.md                  プロジェクト説明・セットアップ手順
-├── .clasp.json                clasp設定（scriptId, rootDir）※ .gitignore対象
-├── .github/
-│   └── workflows/
-│       └── deploy.yml         GitHub Actions: masterへのpush時にclasp pushで自動デプロイ
-├── .kiro/
-│   ├── steering/              AIエージェント向けステアリングルール
-│   └── skills/                AIエージェント向けスキル定義
+├── AGENTS.md                  ← このファイル（エントリーポイント）
+├── api/
+│   └── openapi.yaml           API 仕様（SSoT）
+├── backend/                   Spring Boot + Kotlin
+├── frontend/                  Next.js + TypeScript
+├── docker/                    Dockerfile 群
+├── docker-compose.yml         開発環境
 ├── docs/
-│   ├── er-diagram.md          ER図（Mermaid記法、テーブル定義・リレーション詳細）
-│   ├── mvp-logic.md           MVP選出ロジック詳細（定量・定性評価、正規化、順位付け）
-│   └── design-system.md       デザインシステム（カラー、タイポグラフィ、コンポーネント、アクセシビリティ）
-└── src/                       GASプロジェクトのソースコード（clasp rootDir）
-    ├── appsscript.json        GASプロジェクト設定（タイムゾーン: Asia/Tokyo, webapp設定）
-    ├── Code.gs                共通処理（スプレッドシート取得、シート初期化、ユーティリティ関数）
-    ├── Auth.gs                認証・ロール管理（管理者パスワード認証、イベントコード認証）
-    ├── Events.gs              イベントCRUD（作成・取得・更新・削除）
-    ├── Gemini.gs              Gemini API連携（プロンプト送信・レスポンス取得）
-    ├── Members.gs             メンバーCRUD（イベントに紐づく、一括登録対応）
-    ├── Mvp.gs                 MVP選出ロジック（Gemini AI総合評価、0〜100点）
-    ├── Rounds.gs              ラウンド・マッチ管理、スコア・得点記録
-    ├── Survey.gs              Googleフォーム自動生成、アンケート回答取得
-    ├── TeamSplit.gs           チーム分けロジック（経験者・未経験者シャッフル均等配分）
-    ├── index.html             メインHTML（SPA構成、タブ切り替え）
-    ├── css.html               スタイルシート（CSS変数ベースのデザインシステム）
-    ├── js.html                クライアントサイドJS・コア（状態管理、ユーティリティ、ページ遷移）
-    ├── js-auth.html           クライアントサイドJS・認証（ログイン・ロール管理、セッション管理）
-    ├── js-events.html         クライアントサイドJS・イベント管理（一覧・詳細表示）
-    ├── js-members.html        クライアントサイドJS・メンバー管理（キュー方式の登録・編集・削除）
-    ├── js-rounds.html         クライアントサイドJS・試合管理（チーム分けUI、ラウンド・マッチ操作、タイマー）
-    └── js-results.html        クライアントサイドJS・結果表示（成績集計、アンケート、MVP選出）
+│   ├── backend/               バックエンド設計・AGENTS
+│   ├── frontend/              フロントエンド設計・AGENTS
+│   ├── legacy/                GAS版仕様（リプレース完了後に削除）
+│   ├── refactoring/           リプレース進捗・実行手順
+│   ├── er-diagram.md          ER図
+│   ├── docker-strategy.md     Docker戦略
+│   └── git-rules.md           Gitルール
+├── src/                       GAS版（Phase 9 で廃止）
+└── .kiro/
+    ├── steering/              AI向けステアリングルール
+    ├── agents/                カスタムサブエージェント定義
+    └── skills/                AIスキル定義
 ```
-
-## アーキテクチャ
-
-### サーバーサイド（GAS）
-
-- `Code.gs` が共通基盤。`getSpreadsheet_()` でスプレッドシートを取得し、`getSheetData_()` でシートデータをオブジェクト配列に変換する
-- プライベート関数は末尾 `_` の命名規則（GASの慣例で、クライアントから直接呼び出せない）
-- 公開関数（`_` なし）は `google.script.run` 経由でクライアントから呼び出される
-- スプレッドシートIDはスクリプトプロパティ `SPREADSHEET_ID` から取得
-
-### クライアントサイド（js.html）
-
-- SPA風の画面遷移（`showPage()` でページ切り替え、`switchTab()` でタブ切り替え）
-- `callServer()` ラッパーでサーバー呼び出しを統一（ローディング表示・エラーハンドリング込み）
-- 状態はグローバル変数で管理（`currentEventId`, `currentMembers`, `cachedRounds`, `currentRole` など）
-- メンバー登録はキュー方式（`memberQueue` に追加 → `bulkAddMembersFromQueue` で一括登録）
-- ロール別UI出し分け: `isAdmin()` 関数でJS内の条件分岐、CSSクラス `body.role-user .admin-only { display: none }` でHTML要素の表示制御
-- ログイン画面（`page-login`）で管理者パスワード or イベントコードを入力し、`setRole_()` でロールを設定
-
-### データモデル（スプレッドシート8シート）
-
-```
-イベント ──┬── メンバー
-           ├── ラウンド（チーム分けの単位） ── マッチ（2チーム対戦） ──┬── マッチメンバー
-           │                                                          └── 得点
-           ├── アンケート回答
-           └── MVP結果
-```
-
-- 全てのデータはイベントIDで紐づく
-- マッチはラウンドIDで紐づく
-- マッチメンバー・得点はマッチIDで紐づく
-- IDは `Utilities.getUuid().substring(0, 8)` で生成（8文字のUUID先頭部分）
-- 各テーブルのカラム定義・リレーション・カスケード削除の詳細は [ER図](docs/er-diagram.md) を参照
-
-## コーディング規約
-
-### GAS（サーバーサイド）
-
-- `var` を使用（GAS V8ランタイムだが、既存コードに合わせる）
-- プライベート関数は `functionName_()` の命名（末尾アンダースコア）
-- 定数は `UPPER_SNAKE_CASE_` + 末尾アンダースコア（例: `SHEET_HEADERS_`）
-- シート名・カラム名は日本語（例: `'イベント'`, `'メンバーID'`）
-- 関数にはJSDoc形式のコメントを付与
-- `Array.prototype.forEach` / `map` / `filter` を使用（for-ofは使わない）
-- エラー時は `{ success: false, message: '...' }` 形式で返す
-
-### フロントエンド（js.html）
-
-- Vanilla JS のみ（フレームワーク・ライブラリ不使用）
-- `google.script.run` でサーバー関数を呼び出し
-- HTML生成は文字列結合（テンプレートリテラルは使わず `+` 演算子で結合）
-- XSS対策として `esc()` 関数でエスケープ
-- SVGアイコンは `svg()` ヘルパー + `IC` オブジェクトで管理
-
-### CSS（css.html）
-
-- CSS変数（`--primary`, `--bg`, `--radius` など）でデザイントークンを管理
-- BEM風ではなく、シンプルなクラス名（`.card`, `.btn-primary`, `.team-a` など）
-- スマホファースト設計（`max-width: 600px` のコンテナ）
-- `@media (prefers-reduced-motion)` でアニメーション配慮
-- カラーパレット・タイポグラフィ・コンポーネント仕様の詳細は [デザインシステム](docs/frontend/design-system.md) を参照
-
-## ビルド・デプロイ
-
-### ローカル開発
-
-```bash
-# claspのインストール（グローバル）
-npm install -g @google/clasp
-
-# GASプロジェクトにpush
-clasp push
-
-# GASプロジェクトからpull
-clasp pull
-```
-
-- ローカルビルドステップは不要（GASが直接 `.gs` / `.html` を実行する）
-- テストフレームワークは未導入
-
-### CI/CD（GitHub Actions）
-
-- `master` ブランチへの push 時、`src/` 配下に変更があれば `clasp push --force` で自動デプロイ
-- シークレット: `CLASPRC_JSON`（clasp認証情報）、`SCRIPT_ID`（GASスクリプトID）
-
-## 主要なビジネスロジック
-
-### チーム分け（TeamSplit.gs）
-
-- 経験者と未経験者をそれぞれFisher-Yatesシャッフルし、ラウンドロビンでNチームに均等配分
-- 既存チーム考慮モード: 既にチームにメンバーがいる場合、未割当メンバーを同じロジックで配分
-- 最低4人以上が必要
-- チーム数は2〜最大（人数÷3）まで設定可能（1チーム最低3人）
-- チーム分けはNチーム対応だが、試合（マッチ）は常に2チーム対戦
-- 3チーム以上の場合、ユーザーが対戦カード（どの2チームが戦うか）を選択して試合を作成する
-
-### MVP選出（Mvp.gs）
-
-Gemini AIによる総合評価で0〜100点の採点を行う。
-詳細は [MVP選出ロジック](docs/mvp-logic.md) を参照。
-
-- 試合データ（得点・勝利・出場数）、メンバー情報（経験・年次・備考・幹事）、アンケートコメントを全てAIに渡す
-- AIが総合的に0〜100点で採点し、MVP/準MVPの順位と評価コメントを一括で返す
-- 得点が多い＝MVPではなく、場の雰囲気への貢献やチームメイトからの評価を重視
-- MVP/準MVP人数は選出時に指定（各1〜5人）
-- ラウンドに出場したメンバーのみが選出対象
-- 全メンバーにレーティング（0.0〜10.0）と評価コメントを付与
-- **MVP選出は「イベント終了」ステータスでのみ実行可能**（何度でも再実行可、ステータスの自動変更は行わない）
-
-### イベントステータス遷移（Events.gs）
-
-イベントは3つのステータスを持ち、管理者の操作で遷移する。
-
-```
-準備中 ──→ 進行中 ⇄ イベント終了
-```
-
-| ステータス | 意味 | 可能な操作 |
-|---|---|---|
-| **準備中** | イベント作成直後 | メンバー登録、アンケート作成 |
-| **進行中** | ラウンド・試合が行われている | ラウンド作成、マッチ操作、メンバー編集 |
-| **イベント終了** | 全ラウンド・全マッチが終了 | MVP選出（何度でも再実行可）、アンケート回答 |
-
-#### 遷移条件
-
-| 遷移 | トリガー | 条件 |
-|---|---|---|
-| 準備中 → 進行中 | 「進行中にする」ボタン（三点メニュー） | メンバー2名以上 |
-| 進行中 → イベント終了 | 「イベント終了」ボタン | 進行中ラウンドなし |
-| イベント終了 → 進行中 | 「進行中に戻す」ボタン | なし |
-
-#### ステータスの階層的整合
-
-イベント・ラウンド・マッチのステータスは階層的に整合を保つ。親が「終了」へ遷移できる条件は、子のステータス1階層だけを確認する。
-
-- **ラウンド終了**: 進行中マッチがなければ終了可
-- **イベント終了**: 進行中ラウンドがなければ終了可（マッチは間接的にラウンド終了で担保される）
-- **マッチ再開**: 所属ラウンドが「終了」なら、ラウンドも自動で「進行中」に戻す（ステータス矛盾を自動解消）
-
-#### 補足
-
-- アンケート回答・MVP選出は「イベント終了」後に継続実施できる（回答受付を自動停止しない）
-- MVPは何度でも再選出可能。再実行時は既存の結果を削除して再作成する
-
-## 変更時の注意事項
-
-- シート名・カラム名を変更する場合は `SHEET_HEADERS_`（Code.gs）と全ファイルの参照箇所を同時に更新すること
-- 公開関数を追加した場合、クライアント側の `google.script.run.関数名()` 呼び出しも追加すること
-- CSSの色やサイズを変更する場合は `:root` のCSS変数を変更すること（ハードコードされた値は避ける）
-- `clasp push` 前に GAS エディタ上で他の人が編集していないか確認すること（`--force` で上書きされる）
-- Google フォーム関連の機能（Survey.gs）はGASの `FormApp` スコープが必要。初回実行時に権限承認が求められる
-- 管理者限定の機能を追加する場合は、HTML要素に `admin-only` クラスを付与するか、JS内で `isAdmin()` で条件分岐すること
-- 一般ユーザーに非表示にする要素は `admin-only` クラス、管理者に非表示にする要素は `user-only` クラスを使用
-- 管理者パスワードはスクリプトプロパティ `ADMIN_PASSWORD` に手動で設定する

@@ -16,7 +16,8 @@
 | リプレース実行手順 | `docs/refactoring/08-execution-guide.md` | Phase ごとの具体的手順 |
 | AI エージェント向けルール（バックエンド） | `docs/backend/AGENTS.md` | |
 | AI エージェント向けルール（フロントエンド） | `docs/frontend/AGENTS.md` | |
-| AI エージェント向けルール（プロジェクト全体） | `AGENTS.md`（ルート） | |
+| AI エージェント向けルール（プロジェクト全体） | `AGENTS.md`（ルート） | ルーティング + 全体ルール |
+| GAS 版の仕様（旧システム） | `docs/legacy/gas-spec.md` | Phase 9 完了後に削除 |
 
 ## 守るべきルール
 
