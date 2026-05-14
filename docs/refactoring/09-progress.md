@@ -17,8 +17,8 @@
 | Phase 2: 認証基盤 | ✅ **完了** | JWT ログイン(管理者パスワード/参加コード)と Cookie セッションが動作 |
 | Phase 3: Event コンテキスト完成 | ✅ **完了** | 詳細取得・ステータス遷移 API、QR+コピー UI、動的認可が動作 |
 | Phase 4: Member コンテキスト | ✅ **完了** | メンバーCRUD、キュー方式一括登録、意気込み編集、幹事自動登録が動作 |
-| Phase 4.5: 既存実装の設計適合チェック | **次はここから** | Phase 1〜4 の実装を最新設計ドキュメントに適合させる |
-| Phase 5: Match Operation (Round + Match 独立集約) | 未着手 | |
+| Phase 4.5: 既存実装の設計適合チェック | ✅ **完了** | Phase 1〜4 の実装を最新設計ドキュメントに適合させた |
+| Phase 5: Match Operation (Round + Match 独立集約) | **次はここから** | |
 | Phase 6: MVP Evaluation | 未着手 | |
 | Phase 7: Survey (Web フォーム自前化) | 未着手 | |
 | Phase 8: 仕上げ・デプロイ | 未着手 | |
@@ -402,50 +402,50 @@ Phase 1〜4 で実装したコードが、最新の設計ドキュメント（`d
 
 #### バックエンド (`docs/backend/design/` が正)
 
-- [ ] **パッケージ構成** (`package-structure.md`): 各コンテキストのディレクトリ構造が定義通りか
+- [x] **パッケージ構成** (`package-structure.md`): 各コンテキストのディレクトリ構造が定義通りか
   - `domain/model/`, `domain/port/`, `domain/service/`, `domain/event/`, `domain/exception/`
   - `application/command/`, `application/query/`, `application/port/`, `application/dto/`
   - `infrastructure/persistence/entity/`, `infrastructure/persistence/repository/`, `infrastructure/persistence/query/`, `infrastructure/persistence/mapper/`
   - `infrastructure/service/`, `infrastructure/adapter/`
   - `presentation/controller/`
-- [ ] **Domain 層のパターン** (`domain-modeling.md`): 
+- [x] **Domain 層のパターン** (`domain-modeling.md`): 
   - 集約ルートが `data class` + `val` で不変か
   - 値オブジェクトが `value class` (単一値) または `data class` (複合値) で `init` バリデーション付きか
   - Domain 層にフレームワーク依存 (`org.springframework.*`, `jakarta.*`) がないか
   - Repository インターフェースが `domain/port/` に配置されているか
-- [ ] **Persistence 層** (`persistence-strategy.md`):
+- [x] **Persistence 層** (`persistence-strategy.md`):
   - JPA Entity が `class` (not `data class`) + `var` フィールドか
   - Mapper が `object` で `toDomain` / `toEntity` / `applyDomain` パターンに従っているか
   - Repository 実装が「既存 Entity 取得 → applyDomain → dirty checking」パターンか
-- [ ] **Presentation 層** (`presentation-layer.md`):
+- [x] **Presentation 層** (`presentation-layer.md`):
   - Controller が `com.salurec.generated.api.*` の生成インターフェースを implements しているか ✅ 確認済み
   - 手書き Request/Response DTO が残っていないか ✅ 確認済み（空ディレクトリ削除済み）
   - 動的認可が Controller 内で `AuthPrincipal.canAccessEvent()` パターンか
-- [ ] **Cross-cutting** (`cross-cutting.md`):
+- [x] **Cross-cutting** (`cross-cutting.md`):
   - 認可が `SecurityConfig` の URL ベースに集約されているか（`@PreAuthorize` が使われていないか）
   - 例外が `DomainException` 階層に従っているか
   - `GlobalExceptionHandler` が統一エラーレスポンスを返しているか
-- [ ] **テスト** (`testing-strategy.md`):
+- [x] **テスト** (`testing-strategy.md`):
   - ArchUnit テストがレイヤー依存・JPA Entity 配置・Command/Query 分離を検証しているか
   - Testcontainers 基盤 (`AbstractIntegrationTest`) が正しく設定されているか
   - Domain 単体テストがフレームワーク依存なしで動くか
 
 #### フロントエンド (`docs/frontend/` が正)
 
-- [ ] **ディレクトリ構成** (`architecture.md`):
+- [x] **ディレクトリ構成** (`architecture.md`):
   - `app/` にビジネスロジックがないか（ルーティング・レイアウトのみ）
   - `features/` が Feature 間で直接依存していないか
   - `shared/` に Feature 固有のコードが混入していないか
-- [ ] **Server/Client 分離** (`architecture.md`):
+- [x] **Server/Client 分離** (`architecture.md`):
   - `"use client"` が必要な箇所にのみ付与されているか
   - サーバー専用 API 関数に `"server-only"` インポートがあるか
   - Client Components がバックエンドに直接通信していないか（Route Handler 経由か）
-- [ ] **API 連携** (`api-integration.md`):
+- [x] **API 連携** (`api-integration.md`):
   - `openapi-fetch` + 自動生成型を使用しているか
   - Route Handler が Cookie の JWT を Authorization ヘッダーに転送しているか
-- [ ] **コンポーネント命名** (`AGENTS.md`):
+- [x] **コンポーネント命名** (`AGENTS.md`):
   - `{Name}Page`, `{Name}Form`, `{Name}Modal`, `{Name}Panel` の命名規約に従っているか
-- [ ] **スタイル** (`design-system.md`):
+- [x] **スタイル** (`design-system.md`):
   - 色のハードコードがないか（CSS 変数のみ使用）
   - 既存クラス (`.card`, `.btn-primary` 等) を使用しているか
 
@@ -456,9 +456,22 @@ Phase 1〜4 で実装したコードが、最新の設計ドキュメント（`d
 - 修正後、全テストがグリーンであることを確認する
 
 ### Phase 4.5 完了条件
-- [ ] 上記チェック項目が全て確認済み（✅ or 修正完了）
-- [ ] 全テストがグリーン (`docker compose exec backend ./gradlew test`)
-- [ ] ArchUnit テストがグリーン
+- [x] 上記チェック項目が全て確認済み（✅ or 修正完了）
+- [x] 全テストがグリーン (`docker compose exec backend ./gradlew test`)
+- [x] ArchUnit テストがグリーン
+
+### Phase 4.5 の Tips・メモ
+
+- **パッケージ移動の主な変更**:
+  - `domain/repository/` → `domain/port/`（Event, Member）
+  - `application/exception/` → `domain/exception/`（Event, Member, Identity）
+  - `application/command/usecase/` → `application/command/` 直下（UseCase フラット化）
+  - `application/command/command/` + `application/command/result/` → `application/dto/`
+  - `identity/domain/service/` → `identity/domain/port/`（AdminPasswordVerifier, AuthTokenIssuer）
+- **Jackson 3 (Spring Boot 4) では `JavaTimeModule` が不要**: テストで `jacksonObjectMapper().registerModule(JavaTimeModule())` を使っていたが、テストでは Map→JSON 変換にしか使っていないため `jacksonObjectMapper()` だけで十分
+- **フロントエンドの Feature 間依存解消**: `EventDetailTabs` が `MembersPanel` を直接 import していたのを、props (ReactNode) で受け取るパターンに変更。App 層で Feature を組み合わせる
+- **`"server-only"` の付け忘れ**: `shared/lib/auth.ts` に付いていなかった。サーバー専用モジュールには必ず付与する
+- **色のハードコード**: `BrandLogo.tsx` と `globals.css` に残っていた。CSS 変数 (`--accent-bg`, `--header-logo-stroke`) を追加して解消
 
 ---
 

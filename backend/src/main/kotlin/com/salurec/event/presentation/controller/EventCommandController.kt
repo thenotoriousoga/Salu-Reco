@@ -1,10 +1,10 @@
 package com.salurec.event.presentation.controller
 
-import com.salurec.event.application.command.command.CreateEventCommand
-import com.salurec.event.application.command.usecase.CreateEventUseCase
-import com.salurec.event.application.command.usecase.FinishEventUseCase
-import com.salurec.event.application.command.usecase.ReopenEventUseCase
-import com.salurec.event.application.command.usecase.StartEventUseCase
+import com.salurec.event.application.dto.CreateEventCommand
+import com.salurec.event.application.command.CreateEventUseCase
+import com.salurec.event.application.command.FinishEventUseCase
+import com.salurec.event.application.command.ReopenEventUseCase
+import com.salurec.event.application.command.StartEventUseCase
 import com.salurec.generated.api.EventCommandApi
 import com.salurec.generated.model.CreateEventRequest
 import com.salurec.generated.model.CreateEventResponse

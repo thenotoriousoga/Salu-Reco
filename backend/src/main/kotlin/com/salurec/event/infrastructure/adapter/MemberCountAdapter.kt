@@ -2,7 +2,7 @@ package com.salurec.event.infrastructure.adapter
 
 import com.salurec.event.application.port.MemberCountPort
 import com.salurec.event.domain.model.EventId
-import com.salurec.member.domain.repository.MemberRepository
+import com.salurec.member.domain.port.MemberRepository
 import org.springframework.context.annotation.Primary
 import org.springframework.stereotype.Component
 

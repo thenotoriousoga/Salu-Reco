@@ -1,7 +1,6 @@
 package com.salurec.event.presentation.controller
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.salurec.shared.AbstractIntegrationTest
 import com.salurec.shared.WithMockAuthPrincipal
@@ -29,7 +28,7 @@ class EventControllerIntegrationTest : AbstractIntegrationTest() {
 
     // Spring Boot 4.0 でモジュール分割された影響で @SpringBootTest の自動構成に
     // ObjectMapper が含まれなくなったため、テスト側で自前構築する。
-    private val objectMapper: ObjectMapper = jacksonObjectMapper().registerModule(JavaTimeModule())
+    private val objectMapper: ObjectMapper = jacksonObjectMapper()
 
     @Test
     fun `イベント作成APIが201を返し、一覧で取得できる`() {

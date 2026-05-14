@@ -2,8 +2,8 @@ package com.salurec.identity.infrastructure.service
 
 import com.salurec.identity.domain.model.AuthPrincipal
 import com.salurec.identity.domain.model.Role
-import com.salurec.identity.domain.service.AuthTokenIssuer
-import com.salurec.identity.domain.service.IssuedToken
+import com.salurec.identity.domain.port.AuthTokenIssuer
+import com.salurec.identity.domain.port.IssuedToken
 import com.salurec.shared.domain.Clock
 import io.jsonwebtoken.JwtException
 import io.jsonwebtoken.Jwts

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Card } from "@/shared/components/ui/Card";
 import { Icon } from "@/shared/icons/ic";
-import { CreateEventForm } from "@/features/event/components/create-event-form";
+import { CreateEventForm } from "@/features/event/components/CreateEventForm";
 
 /**
  * イベント作成ページ。

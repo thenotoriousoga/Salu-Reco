@@ -1,6 +1,6 @@
 package com.salurec.event.presentation.controller
 
-import com.salurec.event.application.exception.EventNotFoundException
+import com.salurec.event.domain.exception.EventNotFoundException
 import com.salurec.event.application.query.service.EventQueryService
 import com.salurec.generated.api.EventQueryApi
 import com.salurec.generated.model.EventDetailResponse

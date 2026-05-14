@@ -1,7 +1,6 @@
 package com.salurec.member.presentation.controller
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.salurec.shared.AbstractIntegrationTest
 import com.salurec.shared.WithMockAuthPrincipal
@@ -28,7 +27,7 @@ class MemberControllerIntegrationTest : AbstractIntegrationTest() {
     lateinit var mockMvc: MockMvc
 
     private val objectMapper: ObjectMapper =
-        jacksonObjectMapper().registerModule(JavaTimeModule())
+        jacksonObjectMapper()
 
     private fun createEvent(name: String = "メンバーテスト大会"): String {
         val body = mapOf("name" to name, "date" to "2026-06-01")

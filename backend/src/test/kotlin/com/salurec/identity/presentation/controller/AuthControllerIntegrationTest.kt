@@ -1,13 +1,12 @@
 package com.salurec.identity.presentation.controller
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.salurec.event.domain.model.Event
 import com.salurec.event.domain.model.EventId
 import com.salurec.event.domain.model.EventName
 import com.salurec.event.domain.model.JoinCode
-import com.salurec.event.domain.repository.EventRepository
+import com.salurec.event.domain.port.EventRepository
 import com.salurec.shared.AbstractIntegrationTest
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -35,7 +34,7 @@ class AuthControllerIntegrationTest : AbstractIntegrationTest() {
     lateinit var eventRepository: EventRepository
 
     private val objectMapper: ObjectMapper =
-        jacksonObjectMapper().registerModule(JavaTimeModule())
+        jacksonObjectMapper()
 
     @Test
     fun `未認証で api events を叩くと 401 を返す`() {

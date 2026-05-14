@@ -5,11 +5,11 @@ import com.salurec.generated.model.LoginAsAdminRequest
 import com.salurec.generated.model.LoginResponse
 import com.salurec.generated.model.LoginWithJoinCodeRequest
 import com.salurec.generated.model.MeResponse
-import com.salurec.identity.application.command.command.LoginAsAdminCommand
-import com.salurec.identity.application.command.command.LoginWithJoinCodeCommand
-import com.salurec.identity.application.command.usecase.LoginAsAdminUseCase
-import com.salurec.identity.application.command.usecase.LoginWithJoinCodeUseCase
-import com.salurec.identity.application.exception.InvalidCredentialsException
+import com.salurec.identity.application.dto.LoginAsAdminCommand
+import com.salurec.identity.application.dto.LoginWithJoinCodeCommand
+import com.salurec.identity.application.command.LoginAsAdminUseCase
+import com.salurec.identity.application.command.LoginWithJoinCodeUseCase
+import com.salurec.identity.domain.exception.InvalidCredentialsException
 import com.salurec.identity.domain.model.AuthPrincipal
 import com.salurec.shared.web.ApiErrorResponse
 import org.springframework.http.HttpStatus

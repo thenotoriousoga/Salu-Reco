@@ -7,7 +7,7 @@ import com.salurec.member.domain.model.Member
 import com.salurec.member.domain.model.MemberId
 import com.salurec.member.domain.model.MemberName
 import com.salurec.member.domain.model.SoccerExperience
-import com.salurec.member.domain.repository.MemberRepository
+import com.salurec.member.domain.port.MemberRepository
 import com.salurec.shared.domain.DomainEventPublisher
 import com.salurec.shared.domain.IdGenerator
 import org.springframework.stereotype.Component

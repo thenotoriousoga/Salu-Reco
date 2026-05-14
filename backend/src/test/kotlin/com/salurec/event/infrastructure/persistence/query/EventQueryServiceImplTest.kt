@@ -5,7 +5,7 @@ import com.salurec.event.domain.model.Event
 import com.salurec.event.domain.model.EventId
 import com.salurec.event.domain.model.EventName
 import com.salurec.event.domain.model.JoinCode
-import com.salurec.event.domain.repository.EventRepository
+import com.salurec.event.domain.port.EventRepository
 import com.salurec.shared.AbstractIntegrationTest
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
