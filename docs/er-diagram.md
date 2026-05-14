@@ -1,149 +1,358 @@
 # Salu-Rec ER図
 
-## 概要
-
-本システムは Google スプレッドシート上の8シートでデータを管理しています。
-全てのデータはイベント単位で管理され、イベントを横断した集計は行いません。
-
 ## ER図（Mermaid）
 
+### イベント・メンバー・試合
+
 ```mermaid
+---
+title: イベント・メンバー・試合
+---
 erDiagram
-    イベント {
-        string イベントID PK "UUID先頭8文字"
-        date 日付
-        string 名称
-        string ステータス "準備中 / 進行中 / イベント終了"
-        string フォームURL "Googleフォームの公開URL"
-        string フォームID "GoogleフォームのID"
-        string コード "参加用コード（管理者が設定）"
+    events {
+        uuid id PK
+        text name
+        date event_date
+        text status "Preparing / InProgress / Finished"
+        varchar join_code UK
+        timestamptz created_at
+        timestamptz updated_at
     }
 
-    メンバー {
-        string メンバーID PK "UUID先頭8文字"
-        string イベントID FK "イベント.イベントID"
-        string 名前
-        number 年次 "1〜"
-        string サッカー経験 "あり / なし"
-        string 幹事 "はい / いいえ"
-        string 備考 "自由入力テキスト"
+    members {
+        uuid id PK
+        uuid event_id FK
+        text name
+        int seniority_year
+        text soccer_experience "Experienced / Inexperienced"
+        boolean is_organizer
+        text note
+        text enthusiasm
+        timestamptz created_at
+        timestamptz updated_at
     }
 
-    ラウンド {
-        string ラウンドID PK "UUID先頭8文字"
-        string イベントID FK "イベント.イベントID"
-        number ラウンド番号 "1〜（イベント内連番）"
-        string チーム分けJSON "JSON: names[], teams[][]"
-        string ステータス "進行中 / 終了"
+    rounds {
+        uuid id PK
+        uuid event_id FK
+        int round_number
+        text status "InProgress / Finished"
+        jsonb team_assignment
+        timestamptz created_at
+        timestamptz updated_at
     }
 
-    マッチ {
-        string マッチID PK "UUID先頭8文字"
-        string ラウンドID FK "ラウンド.ラウンドID"
-        number マッチ番号 "1〜（ラウンド内連番）"
-        string チームA名
-        string チームB名
-        string ステータス "進行中 / 終了"
+    matches {
+        uuid id PK
+        uuid round_id FK
+        int match_number
+        text team_a_name
+        text team_b_name
+        text status "InProgress / Finished"
+        timestamptz created_at
+        timestamptz updated_at
     }
 
-    マッチメンバー {
-        string マッチID FK "マッチ.マッチID"
-        string メンバーID FK "メンバー.メンバーID"
-        string チーム "A / B"
-        string 助っ人 "はい / いいえ（別チームからの参戦）"
+    match_participants {
+        uuid match_id PK
+        uuid member_id PK
+        text team "A / B"
+        boolean is_substitute
     }
 
-    得点 {
-        string 得点ID PK "UUID先頭8文字"
-        string マッチID FK "マッチ.マッチID"
-        string チーム "A / B（得点が入ったチーム）"
-        string メンバーID FK "メンバー.メンバーID（オウンゴール・不明の場合は空）"
-        string 種別 "通常 / オウンゴール / 不明"
+    goals {
+        uuid id PK
+        uuid match_id FK
+        text team "A / B"
+        uuid scorer_member_id "NULL可"
+        text type "Normal / OwnGoal / Unknown"
+        timestamptz created_at
     }
 
-    アンケート回答 {
-        string イベントID FK "イベント.イベントID"
-        string 回答者名
-        string 対象メンバーID FK "メンバー.メンバーID"
-        string 対象メンバー名
-        string コメント
-    }
-
-    MVP結果 {
-        string イベントID FK "イベント.イベントID"
-        string メンバーID FK "メンバー.メンバーID"
-        string 名前
-        string 順位 "MVP / 準MVP / 空文字"
-        string 称号 "MVP・準MVPのみ（例: ゴールハンター）"
-        string 理由
-        number 総合スコア "0〜100点（Gemini AI総合評価）"
-        number レーティング "0.0〜10.0（Sofascore風10段階評価）"
-        string 評価コメント "本人へのメッセージカード風コメント"
-    }
-
-    イベント ||--o{ メンバー : "has"
-    イベント ||--o{ ラウンド : "has"
-    イベント ||--o{ アンケート回答 : "has"
-    イベント ||--o{ MVP結果 : "has"
-    ラウンド ||--o{ マッチ : "has"
-    マッチ ||--o{ マッチメンバー : "has"
-    マッチ ||--o{ 得点 : "has"
-    メンバー ||--o{ マッチメンバー : "assigned"
-    メンバー ||--o{ 得点 : "scored"
-    メンバー ||--o{ アンケート回答 : "evaluated"
-    メンバー ||--o{ MVP結果 : "ranked"
+    events ||--o{ members : ""
+    events ||--o{ rounds : ""
+    rounds ||--o{ matches : ""
+    matches ||--o{ match_participants : ""
+    matches ||--o{ goals : ""
+    members ||--o{ match_participants : ""
+    members ||--o{ goals : ""
 ```
 
-## テーブル一覧
+### MVP評価・アンケート
 
-| # | シート名 | 説明 | PK |
-|---|----------|------|----|
-| 1 | イベント | フットサルイベント（日程・名称・設定） | イベントID |
-| 2 | メンバー | イベントに参加するメンバー | メンバーID |
-| 3 | ラウンド | チーム分けの単位（Nチーム） | ラウンドID |
-| 4 | マッチ | ラウンド内の2チーム対戦 | マッチID |
-| 5 | マッチメンバー | マッチに出場するメンバーとチーム割当 | (マッチID, メンバーID) |
-| 6 | 得点 | マッチ内の個人得点記録（1得点=1行） | 得点ID |
-| 7 | アンケート回答 | Googleフォーム経由のMVP評価コメント | (イベントID, 回答者名, 対象メンバーID) |
-| 8 | MVP結果 | MVP選出の最終結果 | (イベントID, メンバーID) |
+```mermaid
+---
+title: MVP評価・アンケート
+---
+erDiagram
+    events {
+        uuid id PK
+        text name
+        date event_date
+        text status "Preparing / InProgress / Finished"
+        varchar join_code UK
+        timestamptz created_at
+        timestamptz updated_at
+    }
 
-## リレーション詳細
+    members {
+        uuid id PK
+        uuid event_id FK
+        text name
+        int seniority_year
+        text soccer_experience "Experienced / Inexperienced"
+        boolean is_organizer
+        text note
+        text enthusiasm
+        timestamptz created_at
+        timestamptz updated_at
+    }
 
-| 親テーブル | 子テーブル | 外部キー | 関係 | 備考 |
-|-----------|-----------|---------|------|------|
-| イベント | メンバー | イベントID | 1:N | イベント削除時にカスケード削除 |
-| イベント | ラウンド | イベントID | 1:N | イベント削除時にカスケード削除 |
-| イベント | アンケート回答 | イベントID | 1:N | イベント削除時にカスケード削除 |
-| イベント | MVP結果 | イベントID | 1:N | MVP再選出時に既存結果を削除して再作成 |
-| ラウンド | マッチ | ラウンドID | 1:N | ラウンド削除時にカスケード削除 |
-| マッチ | マッチメンバー | マッチID | 1:N | マッチ削除時にカスケード削除 |
-| マッチ | 得点 | マッチID | 1:N | マッチ削除時にカスケード削除 |
-| メンバー | マッチメンバー | メンバーID | 1:N | メンバーのチーム割当 |
-| メンバー | 得点 | メンバーID | 1:N | 個人得点記録 |
-| メンバー | アンケート回答 | 対象メンバーID | 1:N | 評価対象としての紐づけ |
-| メンバー | MVP結果 | メンバーID | 1:N | MVP評価結果 |
+    mvp_evaluations {
+        uuid id PK
+        uuid event_id UK
+        int mvp_count
+        int runner_up_count
+        timestamptz executed_at
+        timestamptz created_at
+    }
+
+    mvp_player_ratings {
+        uuid evaluation_id PK
+        uuid member_id PK
+        text member_name_snapshot
+        text rank "MVP / RunnerUp / None"
+        text title
+        text reason
+        int total_score "0〜100"
+        numeric rating "0.0〜10.0"
+        text comment
+    }
+
+    surveys {
+        uuid id PK
+        uuid event_id UK
+        text status "Open / Closed"
+        timestamptz opened_at
+        timestamptz closed_at "NULL可"
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    survey_responses {
+        uuid id PK
+        uuid survey_id FK
+        uuid respondent_member_id "NULL可"
+        text respondent_name
+        timestamptz submitted_at
+    }
+
+    survey_comments {
+        uuid response_id PK
+        uuid target_member_id PK
+        text target_member_name_snapshot
+        text text
+    }
+
+    events ||--o{ members : ""
+    events ||--o| mvp_evaluations : ""
+    events ||--o| surveys : ""
+    mvp_evaluations ||--o{ mvp_player_ratings : ""
+    members ||--o{ mvp_player_ratings : ""
+    surveys ||--o{ survey_responses : ""
+    members ||--o{ survey_responses : ""
+    survey_responses ||--o{ survey_comments : ""
+    members ||--o{ survey_comments : ""
+```
+
+---
 
 ## データの階層構造
 
 ```
-イベント
-├── メンバー
-├── ラウンド（チーム分けの単位）
-│   └── マッチ（2チーム対戦）
-│       ├── マッチメンバー（出場メンバー × チーム割当）
-│       └── 得点（個人得点記録）
-├── アンケート回答（Googleフォーム経由）
-└── MVP結果（Gemini AI総合評価、0〜100点）
+events
+├── members
+├── rounds
+│   └── matches
+│       ├── match_participants
+│       └── goals
+├── mvp_evaluations（1イベントに最大1件）
+│   └── mvp_player_ratings
+└── surveys（1イベントに最大1件）
+    └── survey_responses
+        └── survey_comments
 ```
 
-## 補足
+---
 
-- IDは全て `Utilities.getUuid().substring(0, 8)` で生成（8文字のUUID先頭部分）
-- マッチメンバーは明示的なPKカラムを持たず、複合キーで一意性を担保
-- マッチメンバーの `助っ人` 列は、その試合の所属チームではない別チームのメンバーが参戦した場合に `はい` となる
-- 得点は1得点=1行で記録。スコアは得点テーブルから集計して算出
-- 得点の種別: 通常（メンバーが得点）、オウンゴール（相手チームの誰かが入れた）、不明（誰が入れたかわからない）
-- アンケート回答の取得時は既存データを全削除してから再取得する（冪等性を確保）
-- MVP結果も再選出時に既存データを全削除してから再作成する
-- MVP選出ロジックの詳細（定量・定性評価の計算方法、正規化、順位付け）は [MVP選出ロジック](mvp-logic.md) を参照
-- スプレッドシート上にはRDBのような外部キー制約はないため、削除時はアプリケーション側でカスケード削除を実装
+## テーブル定義
+
+### events
+
+| カラム | 型 | 制約 | 説明 |
+|---|---|---|---|
+| id | UUID | PK | |
+| name | TEXT | NOT NULL, 1〜100文字 | イベント名 |
+| event_date | DATE | NOT NULL | 開催日 |
+| status | TEXT | NOT NULL | Preparing / InProgress / Finished |
+| join_code | VARCHAR(5) | NOT NULL, UNIQUE | 参加コード |
+| created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+| updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+
+### members
+
+| カラム | 型 | 制約 | 説明 |
+|---|---|---|---|
+| id | UUID | PK | |
+| event_id | UUID | NOT NULL, FK → events(id) CASCADE | 所属イベント |
+| name | TEXT | NOT NULL, 1〜50文字 | メンバー名 |
+| seniority_year | INT | NOT NULL, >= 1 | 年次 |
+| soccer_experience | TEXT | NOT NULL | Experienced / Inexperienced |
+| is_organizer | BOOLEAN | NOT NULL, DEFAULT FALSE | 幹事フラグ |
+| note | TEXT | NOT NULL, DEFAULT '' | 備考 |
+| enthusiasm | TEXT | NOT NULL, DEFAULT '', <= 50文字 | 意気込み |
+| created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+| updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+
+### rounds
+
+| カラム | 型 | 制約 | 説明 |
+|---|---|---|---|
+| id | UUID | PK | |
+| event_id | UUID | NOT NULL, FK → events(id) CASCADE | 所属イベント |
+| round_number | INT | NOT NULL, UNIQUE(event_id, round_number) | イベント内連番 |
+| status | TEXT | NOT NULL | InProgress / Finished |
+| team_assignment | JSONB | NOT NULL | チーム分け情報 |
+| created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+| updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+
+### matches
+
+| カラム | 型 | 制約 | 説明 |
+|---|---|---|---|
+| id | UUID | PK | |
+| round_id | UUID | NOT NULL, FK → rounds(id) CASCADE | 所属ラウンド |
+| match_number | INT | NOT NULL, UNIQUE(round_id, match_number) | ラウンド内連番 |
+| team_a_name | TEXT | NOT NULL, 1〜10文字 | チームA名 |
+| team_b_name | TEXT | NOT NULL, 1〜10文字 | チームB名 |
+| status | TEXT | NOT NULL | InProgress / Finished |
+| created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+| updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+
+### match_participants
+
+| カラム | 型 | 制約 | 説明 |
+|---|---|---|---|
+| match_id | UUID | PK, FK → matches(id) CASCADE | 所属マッチ |
+| member_id | UUID | PK, FK → members(id) | メンバー |
+| team | TEXT | NOT NULL | A / B |
+| is_substitute | BOOLEAN | NOT NULL, DEFAULT FALSE | 助っ人フラグ |
+
+### goals
+
+| カラム | 型 | 制約 | 説明 |
+|---|---|---|---|
+| id | UUID | PK | |
+| match_id | UUID | NOT NULL, FK → matches(id) CASCADE | 所属マッチ |
+| team | TEXT | NOT NULL | A / B（得点チーム） |
+| scorer_member_id | UUID | NULL可, FK → members(id) | 得点者 |
+| type | TEXT | NOT NULL | Normal / OwnGoal / Unknown |
+| created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+
+**CHECK**: Normal → scorer_member_id 必須 / OwnGoal, Unknown → scorer_member_id NULL
+
+### mvp_evaluations
+
+| カラム | 型 | 制約 | 説明 |
+|---|---|---|---|
+| id | UUID | PK | |
+| event_id | UUID | NOT NULL, UNIQUE, FK → events(id) | 1イベントに1件 |
+| mvp_count | INT | NOT NULL, 1〜5 | MVP人数 |
+| runner_up_count | INT | NOT NULL, 1〜5 | 準MVP人数 |
+| executed_at | TIMESTAMPTZ | NOT NULL | 選出実行日時 |
+| created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+
+### mvp_player_ratings
+
+| カラム | 型 | 制約 | 説明 |
+|---|---|---|---|
+| evaluation_id | UUID | PK, FK → mvp_evaluations(id) CASCADE | 所属評価 |
+| member_id | UUID | PK, FK → members(id) | メンバー |
+| member_name_snapshot | TEXT | NOT NULL | 選出時点の名前 |
+| rank | TEXT | NOT NULL | MVP / RunnerUp / None |
+| title | TEXT | NOT NULL, DEFAULT '' | 称号 |
+| reason | TEXT | NOT NULL, DEFAULT '' | 選出理由 |
+| total_score | INT | NOT NULL, 0〜100 | AI総合評価スコア |
+| rating | NUMERIC(3,1) | NOT NULL, 0.0〜10.0 | 10段階評価 |
+| comment | TEXT | NOT NULL, DEFAULT '' | 本人へのメッセージ |
+
+### surveys
+
+| カラム | 型 | 制約 | 説明 |
+|---|---|---|---|
+| id | UUID | PK | |
+| event_id | UUID | NOT NULL, UNIQUE, FK → events(id) | 1イベントに1件 |
+| status | TEXT | NOT NULL | Open / Closed |
+| opened_at | TIMESTAMPTZ | NOT NULL | 受付開始日時 |
+| closed_at | TIMESTAMPTZ | NULL可 | 締切日時 |
+| created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+| updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+
+### survey_responses
+
+| カラム | 型 | 制約 | 説明 |
+|---|---|---|---|
+| id | UUID | PK | |
+| survey_id | UUID | NOT NULL, FK → surveys(id) CASCADE | 所属アンケート |
+| respondent_member_id | UUID | NULL可, FK → members(id), UNIQUE(survey_id, respondent_member_id) | 回答者（匿名時NULL） |
+| respondent_name | TEXT | NOT NULL | 回答者名 |
+| submitted_at | TIMESTAMPTZ | NOT NULL | 回答日時 |
+
+### survey_comments
+
+| カラム | 型 | 制約 | 説明 |
+|---|---|---|---|
+| response_id | UUID | PK, FK → survey_responses(id) CASCADE | 所属回答 |
+| target_member_id | UUID | PK, FK → members(id) | 評価対象メンバー |
+| target_member_name_snapshot | TEXT | NOT NULL | 対象メンバー名（スナップショット） |
+| text | TEXT | NOT NULL, DEFAULT '' | コメント本文 |
+
+---
+
+## リレーション
+
+| 親テーブル | 子テーブル | 外部キー | 関係 | 削除時 |
+|---|---|---|---|---|
+| events | members | event_id | 1:N | CASCADE |
+| events | rounds | event_id | 1:N | CASCADE |
+| events | mvp_evaluations | event_id | 1:1 | — |
+| events | surveys | event_id | 1:1 | — |
+| rounds | matches | round_id | 1:N | CASCADE |
+| matches | match_participants | match_id | 1:N | CASCADE |
+| matches | goals | match_id | 1:N | CASCADE |
+| members | match_participants | member_id | 1:N | — |
+| members | goals | scorer_member_id | 1:N | — |
+| mvp_evaluations | mvp_player_ratings | evaluation_id | 1:N | CASCADE |
+| members | mvp_player_ratings | member_id | 1:N | — |
+| surveys | survey_responses | survey_id | 1:N | CASCADE |
+| members | survey_responses | respondent_member_id | 1:N | — |
+| survey_responses | survey_comments | response_id | 1:N | CASCADE |
+| members | survey_comments | target_member_id | 1:N | — |
+
+---
+
+## インデックス
+
+| テーブル | インデックス名 | カラム |
+|---|---|---|
+| events | idx_events_join_code | join_code |
+| events | idx_events_status | status |
+| members | idx_members_event_id | event_id |
+| rounds | idx_rounds_event_id | event_id |
+| matches | idx_matches_round_id | round_id |
+| matches | idx_matches_status | status |
+| match_participants | idx_match_participants_member_id | member_id |
+| goals | idx_goals_match_id | match_id |
+| mvp_player_ratings | idx_mvp_player_ratings_evaluation_id | evaluation_id |
+| survey_responses | idx_survey_responses_survey_id | survey_id |
+| survey_comments | idx_survey_comments_target_member_id | target_member_id |

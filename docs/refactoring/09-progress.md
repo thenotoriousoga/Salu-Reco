@@ -17,7 +17,8 @@
 | Phase 2: 認証基盤 | ✅ **完了** | JWT ログイン(管理者パスワード/参加コード)と Cookie セッションが動作 |
 | Phase 3: Event コンテキスト完成 | ✅ **完了** | 詳細取得・ステータス遷移 API、QR+コピー UI、動的認可が動作 |
 | Phase 4: Member コンテキスト | ✅ **完了** | メンバーCRUD、キュー方式一括登録、意気込み編集、幹事自動登録が動作 |
-| Phase 5: Match Operation (Round + Match 独立集約) | **次はここから** | |
+| Phase 4.5: 既存実装の設計適合チェック | **次はここから** | Phase 1〜4 の実装を最新設計ドキュメントに適合させる |
+| Phase 5: Match Operation (Round + Match 独立集約) | 未着手 | |
 | Phase 6: MVP Evaluation | 未着手 | |
 | Phase 7: Survey (Web フォーム自前化) | 未着手 | |
 | Phase 8: 仕上げ・デプロイ | 未着手 | |
@@ -25,18 +26,17 @@
 
 ### ドキュメント整備状況
 
-- [x] 00-overview.md
-- [x] 01-ubiquitous-language.md
-- [x] 02-context-map.md
-- [x] 03-aggregates.md
-- [x] 04-rdb-schema.md
-- [x] 05-backend-architecture.md
-- [x] 06-frontend-architecture.md
+- [x] 00-overview.md → 削除済み（SSoT: 設計情報は各設計書に集約）
+- [x] 01-ubiquitous-language.md → `docs/backend/design/ubiquitous-language.md`
+- [x] 02-context-map.md → `docs/backend/design/context-map.md`
+- [x] 03-aggregates.md → `docs/backend/design/aggregates-overview.md`
+- [x] 04-rdb-schema.md → 削除済み（SSoT: Flyway SQL + `docs/er-diagram.md`）
+- [x] 05-backend-architecture.md → `docs/backend/design/backend-architecture.md`
+- [x] 06-frontend-architecture.md → 削除済み（SSoT: `docs/frontend/architecture.md`）
 - [x] 07-migration-plan.md
 - [x] 08-execution-guide.md
 - [x] 09-progress.md (このファイル)
-- [x] 10-decisions.md
-- [x] 11-docker-environment.md
+- [x] 11-docker-environment.md → 削除済み（SSoT: `docs/docker-strategy.md`）
 
 ---
 
@@ -153,7 +153,7 @@
 - [x] `EventCommandController` の API テスト
 
 ### 1-8. OpenAPI 連携
-- [x] `/v3/api-docs` が返ることを確認
+- [x] `api/openapi.yaml` から `openapi-generator` でコード生成されることを確認
 - [x] frontend で openapi-typescript を導入
 - [x] `pnpm gen:api` で `schema.ts` が生成される
 
@@ -192,7 +192,7 @@
 ## Phase 1.5: デザインシステム移植 ✅ 完了
 
 **目的**: GAS 版 (`src/css.html` + `src/index.html`) の見た目を完全に再現できる基盤を、各機能実装に入る前に用意する。
-**方針**: Tailwind で作り直すのではなく、既存の CSS 変数と独自クラスをそのまま Next.js に移植する(ADR-014)。
+**方針**: Tailwind で作り直すのではなく、既存の CSS 変数と独自クラスをそのまま Next.js に移植する。
 Phase 2 以降はこの基盤に乗せて画面を作る。
 
 ### 1.5-1. 設計方針
@@ -392,7 +392,77 @@ Phase 2 以降はこの基盤に乗せて画面を作る。
 
 ---
 
-## Phase 5: Match Operation (Round + Match 独立集約) ← 次はここから
+## Phase 4.5: 既存実装の設計適合チェック ← **次はここから**
+
+Phase 1〜4 で実装したコードが、最新の設計ドキュメント（`docs/backend/design/`, `docs/frontend/`）のルールに適合しているか確認し、乖離があれば修正する。
+
+**目的**: Phase 5 以降を正しいパターンで進めるために、既存コードを設計書の規約に揃える。
+
+### チェック項目
+
+#### バックエンド (`docs/backend/design/` が正)
+
+- [ ] **パッケージ構成** (`package-structure.md`): 各コンテキストのディレクトリ構造が定義通りか
+  - `domain/model/`, `domain/port/`, `domain/service/`, `domain/event/`, `domain/exception/`
+  - `application/command/`, `application/query/`, `application/port/`, `application/dto/`
+  - `infrastructure/persistence/entity/`, `infrastructure/persistence/repository/`, `infrastructure/persistence/query/`, `infrastructure/persistence/mapper/`
+  - `infrastructure/service/`, `infrastructure/adapter/`
+  - `presentation/controller/`
+- [ ] **Domain 層のパターン** (`domain-modeling.md`): 
+  - 集約ルートが `data class` + `val` で不変か
+  - 値オブジェクトが `value class` (単一値) または `data class` (複合値) で `init` バリデーション付きか
+  - Domain 層にフレームワーク依存 (`org.springframework.*`, `jakarta.*`) がないか
+  - Repository インターフェースが `domain/port/` に配置されているか
+- [ ] **Persistence 層** (`persistence-strategy.md`):
+  - JPA Entity が `class` (not `data class`) + `var` フィールドか
+  - Mapper が `object` で `toDomain` / `toEntity` / `applyDomain` パターンに従っているか
+  - Repository 実装が「既存 Entity 取得 → applyDomain → dirty checking」パターンか
+- [ ] **Presentation 層** (`presentation-layer.md`):
+  - Controller が `com.salurec.generated.api.*` の生成インターフェースを implements しているか ✅ 確認済み
+  - 手書き Request/Response DTO が残っていないか ✅ 確認済み（空ディレクトリ削除済み）
+  - 動的認可が Controller 内で `AuthPrincipal.canAccessEvent()` パターンか
+- [ ] **Cross-cutting** (`cross-cutting.md`):
+  - 認可が `SecurityConfig` の URL ベースに集約されているか（`@PreAuthorize` が使われていないか）
+  - 例外が `DomainException` 階層に従っているか
+  - `GlobalExceptionHandler` が統一エラーレスポンスを返しているか
+- [ ] **テスト** (`testing-strategy.md`):
+  - ArchUnit テストがレイヤー依存・JPA Entity 配置・Command/Query 分離を検証しているか
+  - Testcontainers 基盤 (`AbstractIntegrationTest`) が正しく設定されているか
+  - Domain 単体テストがフレームワーク依存なしで動くか
+
+#### フロントエンド (`docs/frontend/` が正)
+
+- [ ] **ディレクトリ構成** (`architecture.md`):
+  - `app/` にビジネスロジックがないか（ルーティング・レイアウトのみ）
+  - `features/` が Feature 間で直接依存していないか
+  - `shared/` に Feature 固有のコードが混入していないか
+- [ ] **Server/Client 分離** (`architecture.md`):
+  - `"use client"` が必要な箇所にのみ付与されているか
+  - サーバー専用 API 関数に `"server-only"` インポートがあるか
+  - Client Components がバックエンドに直接通信していないか（Route Handler 経由か）
+- [ ] **API 連携** (`api-integration.md`):
+  - `openapi-fetch` + 自動生成型を使用しているか
+  - Route Handler が Cookie の JWT を Authorization ヘッダーに転送しているか
+- [ ] **コンポーネント命名** (`AGENTS.md`):
+  - `{Name}Page`, `{Name}Form`, `{Name}Modal`, `{Name}Panel` の命名規約に従っているか
+- [ ] **スタイル** (`design-system.md`):
+  - 色のハードコードがないか（CSS 変数のみ使用）
+  - 既存クラス (`.card`, `.btn-primary` 等) を使用しているか
+
+### 修正方針
+
+- 乖離が見つかった場合、設計ドキュメントを正として実装を修正する
+- 設計ドキュメント側が実装の実態と合っていない場合（実装の方が正しい場合）は、設計ドキュメントを更新する
+- 修正後、全テストがグリーンであることを確認する
+
+### Phase 4.5 完了条件
+- [ ] 上記チェック項目が全て確認済み（✅ or 修正完了）
+- [ ] 全テストがグリーン (`docker compose exec backend ./gradlew test`)
+- [ ] ArchUnit テストがグリーン
+
+---
+
+## Phase 5: Match Operation (Round + Match 独立集約)
 
 ### 概要タスク
 - [ ] Flyway V3: rounds, matches, match_participants, goals
@@ -401,15 +471,22 @@ Phase 2 以降はこの基盤に乗せて画面を作る。
 - [ ] Match 集約 (独立)
 - [ ] TeamSplitService
 - [ ] 集約またぎ整合性: `FinishRoundUseCase`, `ReopenMatchUseCase`
+- [ ] `StubRoundStatusAdapter` → 実実装 `RoundStatusAdapter` に差し替え
+- [ ] SecurityConfig に Round / Match エンドポイント追加
 - [ ] チーム分け UI
 - [ ] 対戦カード選択 UI (3チーム以上)
 - [ ] 得点記録 UI
 - [ ] タイマー UI
+- [ ] テスト: Round/Match Domain 単体 + UseCase 単体 + 結合テスト + ArchUnit 更新
+- [ ] Frontend: Route Handlers + 型生成
 
 ### Phase 5 完了条件
 - [ ] 2〜Nチームのチーム分けが動く
 - [ ] マッチ作成・得点記録・終了・再開が動く
 - [ ] Round 終了時の整合性チェックが効く
+- [ ] Event 終了時に進行中 Round があればエラーになる（Stub 差し替え済み）
+- [ ] ArchUnit テスト + 全テストがグリーン
+- [ ] フロントエンドからチーム分け → 試合 → 得点記録の一連フローが動く
 
 ---
 

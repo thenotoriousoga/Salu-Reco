@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "gen:api": "openapi-typescript http://backend:8080/v3/api-docs -o shared/api/schema.ts"
+    "gen:api": "openapi-typescript /api/openapi.yaml -o shared/api/schema.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

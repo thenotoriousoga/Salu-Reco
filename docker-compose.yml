@@ -24,6 +24,7 @@ services:
       target: dev
     volumes:
       - ./backend:/app
+      - ./api:/api
       - gradle-cache:/root/.gradle
       # Testcontainers から兄弟コンテナを起動できるように Docker ソケットを共有する
       - /var/run/docker.sock:/var/run/docker.sock
@@ -58,11 +59,12 @@ services:
       target: dev
     volumes:
       - ./frontend:/app
+      - ./api:/api
       - frontend-node-modules:/app/node_modules
       # pnpm のコンテンツアドレスストア。プロジェクトや node_modules とは別ボリュームで永続化する
       - pnpm-store:/pnpm-store
     working_dir: /app
-    command: sh -c "pnpm install && pnpm dev"
+    command: sh -c "pnpm install --ignore-scripts && pnpm dev"
     ports:
       - "3000:3000"
     environment:

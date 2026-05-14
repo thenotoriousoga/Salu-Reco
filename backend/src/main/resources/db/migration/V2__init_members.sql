@@ -1,5 +1,5 @@
 -- Phase 4: Member コンテキストの初期スキーマ
--- 参照: docs/refactoring/04-rdb-schema.md
+-- 参照: docs/er-diagram.md
 
 CREATE TABLE members (
     id                UUID        PRIMARY KEY,

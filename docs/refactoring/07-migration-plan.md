@@ -52,13 +52,13 @@
 | 共通例外ハンドラ | `GlobalExceptionHandler` |
 | ArchUnit テスト | レイヤー依存ルール検証 |
 | Testcontainers セットアップ | Event Repository / QueryService の結合テスト |
-| OpenAPI スキーマ確認 | `/v3/api-docs` が動く |
+| OpenAPI スキーマ確認 | `api/openapi.yaml` から `openapi-generator` でコード生成が動く |
 | frontend: 型生成スクリプト | `pnpm gen:api` |
 | frontend: イベント一覧ページ | `/events` で表示 |
 | frontend: イベント作成フォーム | `/events/new` で作成 |
 
 **このフェーズで確立する原則を後のフェーズに適用する**:
-- オニオン × CQRS のレイヤー構成テンプレート
+- Clean Architecture + DDD + Hexagonal × CQRS のレイヤー構成テンプレート
 - Domain ⇄ JPA Entity の Mapper 書き方
 - ArchUnit テストの書き方
 - OpenAPI 生成 → TypeScript 型生成フロー
@@ -74,7 +74,7 @@
 | JWT 発行 (jjwt) | `JwtTokenProvider.kt` |
 | AuthController | `POST /api/auth/login-admin`, `POST /api/auth/login-with-code` |
 | JWT Filter | `JwtAuthenticationFilter.kt` |
-| 既存 Event API に `@PreAuthorize` 付与 | |
+| 既存 Event API の認可を `SecurityConfig` で URL ベースに定義 | |
 | frontend: ログイン画面 | `/login` (管理者パスワード or イベントコード) |
 | frontend: Cookie管理 | Route Handler で `Set-Cookie: salurec_token; HttpOnly; Secure; SameSite=Lax` |
 | frontend: ルートガード | `(admin)/layout.tsx` |
@@ -187,7 +187,7 @@ AS IS → TO BE 化によって Phase 7 が +1日、AS IS 未実装機能の吸�
 - [ ] テスト (単体 + 結合 + N+1 検出) がグリーンか
 - [ ] OpenAPI スキーマが生成されているか
 - [ ] frontend の型生成 (`pnpm gen:api`) が通るか
-- [ ] 新規エンドポイントに `@PreAuthorize` があるか
+- [ ] 新規エンドポイントの認可が `SecurityConfig` に定義されているか
 - [ ] エラー形式が共通フォーマットに準拠しているか
 - [ ] ユビキタス言語辞書に用語が追加されているか (新規導入時)
 

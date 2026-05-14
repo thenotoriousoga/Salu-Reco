@@ -1,0 +1,1127 @@
+openapi: 3.0.3
+info:
+  title: Salu-Rec API
+  description: フットサル試合管理・MVP選出アプリ API
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+    description: ローカル開発
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: auth
+    description: 認証
+  - name: event-command
+    description: イベント管理（書き込み）
+  - name: event-query
+    description: イベント管理（読み取り）
+  - name: member-command
+    description: メンバー管理（書き込み）
+  - name: member-query
+    description: メンバー管理（読み取り）
+  - name: round-command
+    description: ラウンド管理（書き込み）
+  - name: round-query
+    description: ラウンド管理（読み取り）
+  - name: match-command
+    description: マッチ管理（書き込み）
+  - name: match-query
+    description: マッチ管理（読み取り）
+
+paths:
+  # ─── Auth ───────────────────────────────────────────────
+  /api/auth/login-admin:
+    post:
+      operationId: loginAdmin
+      tags: [auth]
+      summary: 管理者パスワードでログイン
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginAsAdminRequest"
+      responses:
+        "200":
+          description: ログイン成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          description: 認証失敗
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /api/auth/login-with-code:
+    post:
+      operationId: loginWithCode
+      tags: [auth]
+      summary: 参加コードでログイン
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginWithJoinCodeRequest"
+      responses:
+        "200":
+          description: ログイン成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          description: 認証失敗
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /api/auth/me:
+    get:
+      operationId: me
+      tags: [auth]
+      summary: 現在のログイン情報を取得
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeResponse"
+
+  # ─── Event Command ─────────────────────────────────────
+  /api/events:
+    post:
+      operationId: createEvent
+      tags: [event-command]
+      summary: イベント作成
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEventRequest"
+      responses:
+        "201":
+          description: 作成成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateEventResponse"
+        "400":
+          description: バリデーションエラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+    get:
+      operationId: listEvents
+      tags: [event-query]
+      summary: イベント一覧取得
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventListResponse"
+
+  /api/events/{eventId}:
+    get:
+      operationId: getEventDetail
+      tags: [event-query]
+      summary: イベント詳細取得
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventDetailResponse"
+        "403":
+          description: アクセス権限なし
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: イベントが見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /api/events/{eventId}/start:
+    post:
+      operationId: startEvent
+      tags: [event-command]
+      summary: イベントを進行中にする
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "204":
+          description: 成功
+        "400":
+          description: 遷移条件を満たさない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /api/events/{eventId}/finish:
+    post:
+      operationId: finishEvent
+      tags: [event-command]
+      summary: イベントを終了する
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "204":
+          description: 成功
+        "400":
+          description: 遷移条件を満たさない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /api/events/{eventId}/reopen:
+    post:
+      operationId: reopenEvent
+      tags: [event-command]
+      summary: イベントを進行中に戻す
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "204":
+          description: 成功
+        "400":
+          description: 遷移条件を満たさない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  # ─── Member Command ────────────────────────────────────
+  /api/events/{eventId}/members:
+    post:
+      operationId: registerMembers
+      tags: [member-command]
+      summary: メンバー一括登録
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BulkRegisterMembersRequest"
+      responses:
+        "201":
+          description: 登録成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BulkRegisterMembersResponse"
+        "400":
+          description: バリデーションエラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+    get:
+      operationId: listMembers
+      tags: [member-query]
+      summary: メンバー一覧取得
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberListResponse"
+        "403":
+          description: アクセス権限なし
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /api/events/{eventId}/members/{memberId}:
+    put:
+      operationId: updateMember
+      tags: [member-command]
+      summary: メンバー情報更新
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+        - $ref: "#/components/parameters/MemberId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMemberRequest"
+      responses:
+        "204":
+          description: 更新成功
+        "400":
+          description: バリデーションエラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+    delete:
+      operationId: deleteMember
+      tags: [member-command]
+      summary: メンバー削除
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+        - $ref: "#/components/parameters/MemberId"
+      responses:
+        "204":
+          description: 削除成功
+
+  /api/events/{eventId}/members/{memberId}/enthusiasm:
+    put:
+      operationId: updateEnthusiasm
+      tags: [member-command]
+      summary: 意気込み更新
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+        - $ref: "#/components/parameters/MemberId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateEnthusiasmRequest"
+      responses:
+        "204":
+          description: 更新成功
+        "400":
+          description: バリデーションエラー
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  # ─── Round Command ─────────────────────────────────────
+  /api/events/{eventId}/rounds:
+    post:
+      operationId: createRound
+      tags: [round-command]
+      summary: ラウンド作成（チーム分け実行）
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRoundRequest"
+      responses:
+        "201":
+          description: 作成成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateRoundResponse"
+        "400":
+          description: バリデーションエラー（メンバー不足、イベント未進行中など）
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+    get:
+      operationId: listRounds
+      tags: [round-query]
+      summary: ラウンド一覧取得
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoundListResponse"
+
+  /api/events/{eventId}/rounds/{roundId}:
+    get:
+      operationId: getRoundDetail
+      tags: [round-query]
+      summary: ラウンド詳細取得
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+        - $ref: "#/components/parameters/RoundId"
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoundDetailResponse"
+        "404":
+          description: ラウンドが見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /api/events/{eventId}/rounds/{roundId}/finish:
+    post:
+      operationId: finishRound
+      tags: [round-command]
+      summary: ラウンドを終了する
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+        - $ref: "#/components/parameters/RoundId"
+      responses:
+        "204":
+          description: 成功
+        "400":
+          description: 遷移条件を満たさない（進行中マッチあり等）
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /api/events/{eventId}/rounds/{roundId}/reopen:
+    post:
+      operationId: reopenRound
+      tags: [round-command]
+      summary: ラウンドを再開する
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+        - $ref: "#/components/parameters/RoundId"
+      responses:
+        "204":
+          description: 成功
+        "400":
+          description: 遷移条件を満たさない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  # ─── Match Command ─────────────────────────────────────
+  /api/events/{eventId}/rounds/{roundId}/matches:
+    post:
+      operationId: createMatch
+      tags: [match-command]
+      summary: マッチ作成
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+        - $ref: "#/components/parameters/RoundId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMatchRequest"
+      responses:
+        "201":
+          description: 作成成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateMatchResponse"
+        "400":
+          description: バリデーションエラー（ラウンド未進行中等）
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+    get:
+      operationId: listMatches
+      tags: [match-query]
+      summary: マッチ一覧取得
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+        - $ref: "#/components/parameters/RoundId"
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MatchListResponse"
+
+  /api/events/{eventId}/rounds/{roundId}/matches/{matchId}:
+    get:
+      operationId: getMatchDetail
+      tags: [match-query]
+      summary: マッチ詳細取得
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+        - $ref: "#/components/parameters/RoundId"
+        - $ref: "#/components/parameters/MatchId"
+      responses:
+        "200":
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MatchDetailResponse"
+        "404":
+          description: マッチが見つからない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /api/events/{eventId}/rounds/{roundId}/matches/{matchId}/goals:
+    post:
+      operationId: recordGoal
+      tags: [match-command]
+      summary: 得点記録
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+        - $ref: "#/components/parameters/RoundId"
+        - $ref: "#/components/parameters/MatchId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecordGoalRequest"
+      responses:
+        "201":
+          description: 記録成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecordGoalResponse"
+        "400":
+          description: バリデーションエラー（マッチ未進行中等）
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /api/events/{eventId}/rounds/{roundId}/matches/{matchId}/goals/{goalId}:
+    delete:
+      operationId: removeGoal
+      tags: [match-command]
+      summary: 得点取り消し
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+        - $ref: "#/components/parameters/RoundId"
+        - $ref: "#/components/parameters/MatchId"
+        - $ref: "#/components/parameters/GoalId"
+      responses:
+        "204":
+          description: 削除成功
+        "400":
+          description: マッチ未進行中
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /api/events/{eventId}/rounds/{roundId}/matches/{matchId}/substitutes:
+    post:
+      operationId: addSubstitute
+      tags: [match-command]
+      summary: 助っ人追加
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+        - $ref: "#/components/parameters/RoundId"
+        - $ref: "#/components/parameters/MatchId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddSubstituteRequest"
+      responses:
+        "204":
+          description: 追加成功
+        "400":
+          description: バリデーションエラー（既に出場中等）
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /api/events/{eventId}/rounds/{roundId}/matches/{matchId}/finish:
+    post:
+      operationId: finishMatch
+      tags: [match-command]
+      summary: マッチを終了する
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+        - $ref: "#/components/parameters/RoundId"
+        - $ref: "#/components/parameters/MatchId"
+      responses:
+        "204":
+          description: 成功
+        "400":
+          description: 遷移条件を満たさない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+  /api/events/{eventId}/rounds/{roundId}/matches/{matchId}/reopen:
+    post:
+      operationId: reopenMatch
+      tags: [match-command]
+      summary: マッチを再開する（必要に応じてラウンドも再開）
+      parameters:
+        - $ref: "#/components/parameters/EventId"
+        - $ref: "#/components/parameters/RoundId"
+        - $ref: "#/components/parameters/MatchId"
+      responses:
+        "204":
+          description: 成功
+        "400":
+          description: 遷移条件を満たさない
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    EventId:
+      name: eventId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: イベントID
+    MemberId:
+      name: memberId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: メンバーID
+    RoundId:
+      name: roundId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: ラウンドID
+    MatchId:
+      name: matchId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: マッチID
+    GoalId:
+      name: goalId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: ゴールID
+
+  schemas:
+    # ─── Common ──────────────────────────────────────────
+    ApiErrorResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          example: VALIDATION_ERROR
+        message:
+          type: string
+          example: バリデーションエラーが発生しました
+
+    # ─── Auth ────────────────────────────────────────────
+    LoginAsAdminRequest:
+      type: object
+      required: [password]
+      properties:
+        password:
+          type: string
+          minLength: 1
+
+    LoginWithJoinCodeRequest:
+      type: object
+      required: [joinCode]
+      properties:
+        joinCode:
+          type: string
+          minLength: 1
+
+    LoginResponse:
+      type: object
+      required: [token, role, expiresAtEpochSeconds]
+      properties:
+        token:
+          type: string
+        role:
+          type: string
+          enum: [ADMIN, USER]
+        eventId:
+          type: string
+          nullable: true
+        expiresAtEpochSeconds:
+          type: integer
+          format: int64
+
+    MeResponse:
+      type: object
+      required: [authenticated]
+      properties:
+        authenticated:
+          type: boolean
+        role:
+          type: string
+          nullable: true
+          enum: [ADMIN, USER]
+        eventId:
+          type: string
+          nullable: true
+
+    # ─── Event ───────────────────────────────────────────
+    CreateEventRequest:
+      type: object
+      required: [name, date]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        date:
+          type: string
+          format: date
+        organizerName:
+          type: string
+          maxLength: 50
+          nullable: true
+
+    CreateEventResponse:
+      type: object
+      required: [eventId, joinCode]
+      properties:
+        eventId:
+          type: string
+        joinCode:
+          type: string
+        organizerMemberId:
+          type: string
+          nullable: true
+
+    EventListResponse:
+      type: object
+      required: [events]
+      properties:
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/EventListItemResponse"
+
+    EventListItemResponse:
+      type: object
+      required: [id, name, date, status, joinCode]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        date:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [Preparing, InProgress, Finished]
+        joinCode:
+          type: string
+
+    EventDetailResponse:
+      type: object
+      required: [id, name, date, status, joinCode]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        date:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [Preparing, InProgress, Finished]
+        joinCode:
+          type: string
+
+    # ─── Member ──────────────────────────────────────────
+    BulkRegisterMembersRequest:
+      type: object
+      required: [members]
+      properties:
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/MemberInputRequest"
+
+    MemberInputRequest:
+      type: object
+      required: [name, seniorityYear, soccerExperience]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 50
+        seniorityYear:
+          type: integer
+          minimum: 1
+        soccerExperience:
+          type: string
+          enum: [Experienced, Inexperienced]
+        isOrganizer:
+          type: boolean
+          default: false
+        note:
+          type: string
+          maxLength: 500
+          default: ""
+
+    BulkRegisterMembersResponse:
+      type: object
+      required: [memberIds]
+      properties:
+        memberIds:
+          type: array
+          items:
+            type: string
+
+    UpdateMemberRequest:
+      type: object
+      required: [name, seniorityYear, soccerExperience]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 50
+        seniorityYear:
+          type: integer
+          minimum: 1
+        soccerExperience:
+          type: string
+          enum: [Experienced, Inexperienced]
+        isOrganizer:
+          type: boolean
+          default: false
+        note:
+          type: string
+          maxLength: 500
+          default: ""
+        enthusiasm:
+          type: string
+          maxLength: 50
+          nullable: true
+
+    UpdateEnthusiasmRequest:
+      type: object
+      required: [enthusiasm]
+      properties:
+        enthusiasm:
+          type: string
+          maxLength: 50
+
+    MemberResponse:
+      type: object
+      required: [id, eventId, name, seniorityYear, soccerExperience, isOrganizer, note, enthusiasm]
+      properties:
+        id:
+          type: string
+        eventId:
+          type: string
+        name:
+          type: string
+        seniorityYear:
+          type: integer
+        soccerExperience:
+          type: string
+          enum: [Experienced, Inexperienced]
+        isOrganizer:
+          type: boolean
+        note:
+          type: string
+        enthusiasm:
+          type: string
+
+    MemberListResponse:
+      type: object
+      required: [members]
+      properties:
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/MemberResponse"
+
+    # ─── Round ───────────────────────────────────────────
+    CreateRoundRequest:
+      type: object
+      required: [teamCount, memberIds]
+      properties:
+        teamCount:
+          type: integer
+          minimum: 2
+          description: チーム数（2〜人数÷3）
+        memberIds:
+          type: array
+          items:
+            type: string
+          minItems: 4
+          description: チーム分け対象メンバーID一覧
+
+    CreateRoundResponse:
+      type: object
+      required: [roundId, roundNumber, teamAssignment]
+      properties:
+        roundId:
+          type: string
+        roundNumber:
+          type: integer
+        teamAssignment:
+          $ref: "#/components/schemas/TeamAssignment"
+
+    TeamAssignment:
+      type: object
+      required: [teams]
+      properties:
+        teams:
+          type: array
+          items:
+            $ref: "#/components/schemas/TeamResponse"
+
+    TeamResponse:
+      type: object
+      required: [name, memberIds]
+      properties:
+        name:
+          type: string
+        memberIds:
+          type: array
+          items:
+            type: string
+
+    RoundListResponse:
+      type: object
+      required: [rounds]
+      properties:
+        rounds:
+          type: array
+          items:
+            $ref: "#/components/schemas/RoundListItemResponse"
+
+    RoundListItemResponse:
+      type: object
+      required: [id, roundNumber, status, teamCount, matchCount]
+      properties:
+        id:
+          type: string
+        roundNumber:
+          type: integer
+        status:
+          type: string
+          enum: [InProgress, Finished]
+        teamCount:
+          type: integer
+        matchCount:
+          type: integer
+
+    RoundDetailResponse:
+      type: object
+      required: [id, eventId, roundNumber, status, teamAssignment]
+      properties:
+        id:
+          type: string
+        eventId:
+          type: string
+        roundNumber:
+          type: integer
+        status:
+          type: string
+          enum: [InProgress, Finished]
+        teamAssignment:
+          $ref: "#/components/schemas/TeamAssignment"
+
+    # ─── Match ───────────────────────────────────────────
+    CreateMatchRequest:
+      type: object
+      required: [teamAName, teamBName, participants]
+      properties:
+        teamAName:
+          type: string
+          minLength: 1
+          maxLength: 10
+        teamBName:
+          type: string
+          minLength: 1
+          maxLength: 10
+        participants:
+          type: array
+          items:
+            $ref: "#/components/schemas/MatchParticipantInput"
+
+    MatchParticipantInput:
+      type: object
+      required: [memberId, team]
+      properties:
+        memberId:
+          type: string
+        team:
+          type: string
+          enum: [A, B]
+
+    CreateMatchResponse:
+      type: object
+      required: [matchId, matchNumber]
+      properties:
+        matchId:
+          type: string
+        matchNumber:
+          type: integer
+
+    MatchListResponse:
+      type: object
+      required: [matches]
+      properties:
+        matches:
+          type: array
+          items:
+            $ref: "#/components/schemas/MatchListItemResponse"
+
+    MatchListItemResponse:
+      type: object
+      required: [id, matchNumber, teamAName, teamBName, status, scoreA, scoreB]
+      properties:
+        id:
+          type: string
+        matchNumber:
+          type: integer
+        teamAName:
+          type: string
+        teamBName:
+          type: string
+        status:
+          type: string
+          enum: [InProgress, Finished]
+        scoreA:
+          type: integer
+        scoreB:
+          type: integer
+
+    MatchDetailResponse:
+      type: object
+      required: [id, roundId, matchNumber, teamAName, teamBName, status, scoreA, scoreB, participants, goals]
+      properties:
+        id:
+          type: string
+        roundId:
+          type: string
+        matchNumber:
+          type: integer
+        teamAName:
+          type: string
+        teamBName:
+          type: string
+        status:
+          type: string
+          enum: [InProgress, Finished]
+        scoreA:
+          type: integer
+        scoreB:
+          type: integer
+        participants:
+          type: array
+          items:
+            $ref: "#/components/schemas/MatchParticipantResponse"
+        goals:
+          type: array
+          items:
+            $ref: "#/components/schemas/GoalResponse"
+
+    MatchParticipantResponse:
+      type: object
+      required: [memberId, memberName, team, isSubstitute]
+      properties:
+        memberId:
+          type: string
+        memberName:
+          type: string
+        team:
+          type: string
+          enum: [A, B]
+        isSubstitute:
+          type: boolean
+
+    GoalResponse:
+      type: object
+      required: [id, team, type]
+      properties:
+        id:
+          type: string
+        team:
+          type: string
+          enum: [A, B]
+        scorerMemberId:
+          type: string
+          nullable: true
+        scorerName:
+          type: string
+          nullable: true
+        type:
+          type: string
+          enum: [Normal, OwnGoal, Unknown]
+
+    RecordGoalRequest:
+      type: object
+      required: [team, type]
+      properties:
+        team:
+          type: string
+          enum: [A, B]
+        scorerMemberId:
+          type: string
+          nullable: true
+          description: Normal の場合は必須、OwnGoal/Unknown の場合は null
+        type:
+          type: string
+          enum: [Normal, OwnGoal, Unknown]
+
+    RecordGoalResponse:
+      type: object
+      required: [goalId]
+      properties:
+        goalId:
+          type: string
+
+    AddSubstituteRequest:
+      type: object
+      required: [memberId, team]
+      properties:
+        memberId:
+          type: string
+        team:
+          type: string
+          enum: [A, B]

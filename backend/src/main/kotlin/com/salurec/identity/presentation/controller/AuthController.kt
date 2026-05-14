@@ -1,73 +1,75 @@
 package com.salurec.identity.presentation.controller
 
+import com.salurec.generated.api.AuthApi
+import com.salurec.generated.model.LoginAsAdminRequest
+import com.salurec.generated.model.LoginResponse
+import com.salurec.generated.model.LoginWithJoinCodeRequest
+import com.salurec.generated.model.MeResponse
 import com.salurec.identity.application.command.command.LoginAsAdminCommand
 import com.salurec.identity.application.command.command.LoginWithJoinCodeCommand
 import com.salurec.identity.application.command.usecase.LoginAsAdminUseCase
 import com.salurec.identity.application.command.usecase.LoginWithJoinCodeUseCase
 import com.salurec.identity.application.exception.InvalidCredentialsException
 import com.salurec.identity.domain.model.AuthPrincipal
-import com.salurec.identity.presentation.dto.LoginAsAdminRequest
-import com.salurec.identity.presentation.dto.LoginResponse
-import com.salurec.identity.presentation.dto.LoginWithJoinCodeRequest
-import com.salurec.identity.presentation.dto.MeResponse
 import com.salurec.shared.web.ApiErrorResponse
-import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.ExceptionHandler
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
 /**
  * 認証エンドポイント。
+ * 生成された AuthApi インターフェースを実装する。
  * トークンはレスポンスボディで返し、Cookie 化はフロント(Next.js Route Handler)で行う。
  */
 @RestController
-@RequestMapping("/api/auth")
 class AuthController(
     private val loginAsAdminUseCase: LoginAsAdminUseCase,
     private val loginWithJoinCodeUseCase: LoginWithJoinCodeUseCase,
-) {
+) : AuthApi {
 
-    @PostMapping("/login-admin")
-    fun loginAdmin(@Valid @RequestBody request: LoginAsAdminRequest): LoginResponse {
-        val result = loginAsAdminUseCase.execute(LoginAsAdminCommand(password = request.password))
-        return LoginResponse(
-            token = result.token,
-            role = result.role.name,
-            eventId = result.eventId,
-            expiresAtEpochSeconds = result.expiresAtEpochSeconds,
+    override fun loginAdmin(loginAsAdminRequest: LoginAsAdminRequest): ResponseEntity<LoginResponse> {
+        val result = loginAsAdminUseCase.execute(LoginAsAdminCommand(password = loginAsAdminRequest.password))
+        return ResponseEntity.ok(
+            LoginResponse(
+                token = result.token,
+                role = LoginResponse.Role.valueOf(result.role.name),
+                eventId = result.eventId,
+                expiresAtEpochSeconds = result.expiresAtEpochSeconds,
+            ),
         )
     }
 
-    @PostMapping("/login-with-code")
-    fun loginWithCode(@Valid @RequestBody request: LoginWithJoinCodeRequest): LoginResponse {
+    override fun loginWithCode(loginWithJoinCodeRequest: LoginWithJoinCodeRequest): ResponseEntity<LoginResponse> {
         val result = loginWithJoinCodeUseCase.execute(
-            LoginWithJoinCodeCommand(joinCode = request.joinCode),
+            LoginWithJoinCodeCommand(joinCode = loginWithJoinCodeRequest.joinCode),
         )
-        return LoginResponse(
-            token = result.token,
-            role = result.role.name,
-            eventId = result.eventId,
-            expiresAtEpochSeconds = result.expiresAtEpochSeconds,
+        return ResponseEntity.ok(
+            LoginResponse(
+                token = result.token,
+                role = LoginResponse.Role.valueOf(result.role.name),
+                eventId = result.eventId,
+                expiresAtEpochSeconds = result.expiresAtEpochSeconds,
+            ),
         )
     }
 
-    @GetMapping("/me")
-    fun me(@AuthenticationPrincipal principal: AuthPrincipal?): MeResponse =
-        if (principal == null) {
-            MeResponse(authenticated = false, role = null, eventId = null)
+    override fun me(): ResponseEntity<MeResponse> {
+        val context = org.springframework.security.core.context.SecurityContextHolder.getContext()
+        val principal = context.authentication?.principal as? AuthPrincipal
+        return if (principal == null) {
+            ResponseEntity.ok(MeResponse(authenticated = false, role = null, eventId = null))
         } else {
-            MeResponse(
-                authenticated = true,
-                role = principal.role.name,
-                eventId = principal.eventId,
+            ResponseEntity.ok(
+                MeResponse(
+                    authenticated = true,
+                    role = MeResponse.Role.valueOf(principal.role.name),
+                    eventId = principal.eventId,
+                ),
             )
         }
+    }
 
     @ExceptionHandler(InvalidCredentialsException::class)
     fun handleInvalidCredentials(ex: InvalidCredentialsException): ResponseEntity<ApiErrorResponse> =

@@ -7,13 +7,24 @@
 - 新実装は `backend/` と `frontend/` にあり、Docker Compose で動きます
 - 既存 GAS 版 (`src/`) は Phase 9 (最終フェーズ) まで維持します
 - 作業を再開するときは [docs/refactoring/09-progress.md](docs/refactoring/09-progress.md) で進捗を確認してください
-- 設計方針・決定理由は [docs/refactoring/README.md](docs/refactoring/README.md) に集約されています
 
 本 AGENTS.md は **GAS 版の仕様を記述**した既存ドキュメントです。リプレース作業中は以下として扱います。
 
 - GAS 版への変更: このドキュメントを参照
-- 新実装への変更: `docs/refactoring/` を参照
+- 新実装への変更: 下記の設計ドキュメントを参照
 - 両方を参照すべきケース: まず新実装の設計書を読み、不明点を本ドキュメントで補完
+
+### 新実装のドキュメント
+
+| 対象 | 場所 |
+|---|---|
+| バックエンド設計 | [docs/backend/design/](docs/backend/design/README.md) |
+| バックエンド AGENTS | [docs/backend/AGENTS.md](docs/backend/AGENTS.md) |
+| フロントエンド設計 | [docs/frontend/](docs/frontend/README.md) |
+| フロントエンド AGENTS | [docs/frontend/AGENTS.md](docs/frontend/AGENTS.md) |
+| API 仕様 | [api/openapi.yaml](api/openapi.yaml) |
+| Docker 環境 | [docs/docker-strategy.md](docs/docker-strategy.md) |
+| リプレース進捗 | [docs/refactoring/09-progress.md](docs/refactoring/09-progress.md) |
 
 ---
 
@@ -149,7 +160,7 @@
 - BEM風ではなく、シンプルなクラス名（`.card`, `.btn-primary`, `.team-a` など）
 - スマホファースト設計（`max-width: 600px` のコンテナ）
 - `@media (prefers-reduced-motion)` でアニメーション配慮
-- カラーパレット・タイポグラフィ・コンポーネント仕様の詳細は [デザインシステム](docs/design-system.md) を参照
+- カラーパレット・タイポグラフィ・コンポーネント仕様の詳細は [デザインシステム](docs/frontend/design-system.md) を参照
 
 ## ビルド・デプロイ
 

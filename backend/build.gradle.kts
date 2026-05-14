@@ -4,6 +4,7 @@ plugins {
     kotlin("plugin.jpa") version "2.3.21"
     id("org.springframework.boot") version "4.0.6"
     id("io.spring.dependency-management") version "1.1.7"
+    id("org.openapi.generator") version "7.12.0"
 }
 
 group = "com.salurec"
@@ -41,7 +42,8 @@ dependencies {
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")
 
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0")
+    implementation("jakarta.validation:jakarta.validation-api")
+    implementation("io.swagger.core.v3:swagger-annotations:2.2.28")
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     // Spring Boot 4.0 でモジュール分割されたため、MockMvc 用の companion スターターを追加する
@@ -86,4 +88,51 @@ tasks.withType<Test> {
 
     // JVM 起動オーバーヘッドを下げる
     jvmArgs("-XX:+UseParallelGC", "-XX:TieredStopAtLevel=1", "-noverify")
+}
+
+// ─── OpenAPI Generator ─────────────────────────────────────────────────────
+val openApiSpec = "/api/openapi.yaml"
+val generatedSourceDir = layout.buildDirectory.dir("generated/openapi")
+
+openApiGenerate {
+    generatorName.set("kotlin-spring")
+    inputSpec.set(openApiSpec)
+    outputDir.set(generatedSourceDir.map { it.asFile.absolutePath })
+    apiPackage.set("com.salurec.generated.api")
+    modelPackage.set("com.salurec.generated.model")
+    configOptions.set(
+        mapOf(
+            "interfaceOnly" to "true",
+            "useSpringBoot3" to "true",
+            "useTags" to "true",
+            "documentationProvider" to "none",
+            "serializationLibrary" to "jackson",
+            "enumPropertyNaming" to "original",
+            "dateLibrary" to "java8-localdatetime",
+            "reactive" to "false",
+            "skipDefaultInterface" to "false",
+        ),
+    )
+    // 生成対象を API インターフェースとモデルのみに限定
+    globalProperties.set(
+        mapOf(
+            "apis" to "",
+            "models" to "",
+            "supportingFiles" to "",
+        ),
+    )
+}
+
+// 生成コードをメインソースセットに追加
+sourceSets {
+    main {
+        kotlin {
+            srcDir(generatedSourceDir.map { it.dir("src/main/kotlin") })
+        }
+    }
+}
+
+// コンパイル前に OpenAPI コード生成を実行
+tasks.named("compileKotlin") {
+    dependsOn("openApiGenerate")
 }

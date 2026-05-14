@@ -4,55 +4,7 @@
  */
 
 export interface paths {
-    "/api/events/{eventId}/members/{memberId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put: operations["update"];
-        post?: never;
-        delete: operations["delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/events/{eventId}/members/{memberId}/enthusiasm": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put: operations["updateEnthusiasmApi"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/events": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["list"];
-        put?: never;
-        post: operations["create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/events/{id}/start": {
+    "/api/auth/login-admin": {
         parameters: {
             query?: never;
             header?: never;
@@ -61,55 +13,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["start"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/events/{id}/reopen": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["reopen"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/events/{id}/finish": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["finish"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/events/{eventId}/members": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["list_1"];
-        put?: never;
-        post: operations["registerBulk"];
+        /** 管理者パスワードでログイン */
+        post: operations["loginAdmin"];
         delete?: never;
         options?: never;
         head?: never;
@@ -125,39 +30,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** 参加コードでログイン */
         post: operations["loginWithCode"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/auth/login-admin": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["loginAdmin"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/events/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["detail"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -171,8 +45,148 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** 現在のログイン情報を取得 */
         get: operations["me"];
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** イベント一覧取得 */
+        get: operations["listEvents"];
+        put?: never;
+        /** イベント作成 */
+        post: operations["createEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** イベント詳細取得 */
+        get: operations["getEventDetail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** イベントを進行中にする */
+        post: operations["startEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** イベントを終了する */
+        post: operations["finishEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** イベントを進行中に戻す */
+        post: operations["reopenEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** メンバー一覧取得 */
+        get: operations["listMembers"];
+        put?: never;
+        /** メンバー一括登録 */
+        post: operations["registerMembers"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}/members/{memberId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** メンバー情報更新 */
+        put: operations["updateMember"];
+        post?: never;
+        /** メンバー削除 */
+        delete: operations["deleteMember"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}/members/{memberId}/enthusiasm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** 意気込み更新 */
+        put: operations["updateEnthusiasm"];
         post?: never;
         delete?: never;
         options?: never;
@@ -184,204 +198,123 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        UpdateMemberRequest: {
-            name: string;
-            /** Format: int32 */
-            seniorityYear: number;
-            /** @enum {string} */
-            soccerExperience: "Experienced" | "Inexperienced";
-            isOrganizer?: boolean;
-            note?: string;
-            enthusiasm?: string;
+        ApiErrorResponse: {
+            /** @example VALIDATION_ERROR */
+            code: string;
+            /** @example バリデーションエラーが発生しました */
+            message: string;
         };
-        Unit: Record<string, never>;
-        UpdateEnthusiasmRequest: {
-            enthusiasm: string;
-        };
-        CreateEventRequest: {
-            name: string;
-            /** Format: date */
-            date: string;
-            organizerName?: string;
-        };
-        CreateEventResponse: {
-            eventId: string;
-            joinCode: string;
-            organizerMemberId?: string;
-        };
-        BulkRegisterMembersRequest: {
-            members: components["schemas"]["MemberInputRequest"][];
-        };
-        MemberInputRequest: {
-            name: string;
-            /** Format: int32 */
-            seniorityYear: number;
-            /** @enum {string} */
-            soccerExperience: "Experienced" | "Inexperienced";
-            isOrganizer?: boolean;
-            note?: string;
-        };
-        BulkRegisterMembersResponse: {
-            memberIds: string[];
+        LoginAsAdminRequest: {
+            password: string;
         };
         LoginWithJoinCodeRequest: {
             joinCode: string;
         };
         LoginResponse: {
             token: string;
-            role: string;
-            eventId?: string;
+            /** @enum {string} */
+            role: "ADMIN" | "USER";
+            eventId?: string | null;
             /** Format: int64 */
             expiresAtEpochSeconds: number;
         };
-        LoginAsAdminRequest: {
-            password: string;
+        MeResponse: {
+            authenticated: boolean;
+            /** @enum {string|null} */
+            role?: "ADMIN" | "USER" | null;
+            eventId?: string | null;
+        };
+        CreateEventRequest: {
+            name: string;
+            /** Format: date */
+            date: string;
+            organizerName?: string | null;
+        };
+        CreateEventResponse: {
+            eventId: string;
+            joinCode: string;
+            organizerMemberId?: string | null;
+        };
+        EventListResponse: {
+            events: components["schemas"]["EventListItemResponse"][];
         };
         EventListItemResponse: {
             id: string;
             name: string;
             /** Format: date */
             date: string;
-            status: string;
+            /** @enum {string} */
+            status: "Preparing" | "InProgress" | "Finished";
             joinCode: string;
-        };
-        EventListResponse: {
-            events: components["schemas"]["EventListItemResponse"][];
         };
         EventDetailResponse: {
             id: string;
             name: string;
             /** Format: date */
             date: string;
-            status: string;
+            /** @enum {string} */
+            status: "Preparing" | "InProgress" | "Finished";
             joinCode: string;
         };
-        MemberListResponse: {
-            members: components["schemas"]["MemberResponse"][];
+        BulkRegisterMembersRequest: {
+            members: components["schemas"]["MemberInputRequest"][];
+        };
+        MemberInputRequest: {
+            name: string;
+            seniorityYear: number;
+            /** @enum {string} */
+            soccerExperience: "Experienced" | "Inexperienced";
+            /** @default false */
+            isOrganizer: boolean;
+            /** @default  */
+            note: string;
+        };
+        BulkRegisterMembersResponse: {
+            memberIds: string[];
+        };
+        UpdateMemberRequest: {
+            name: string;
+            seniorityYear: number;
+            /** @enum {string} */
+            soccerExperience: "Experienced" | "Inexperienced";
+            /** @default false */
+            isOrganizer: boolean;
+            /** @default  */
+            note: string;
+            enthusiasm?: string | null;
+        };
+        UpdateEnthusiasmRequest: {
+            enthusiasm: string;
         };
         MemberResponse: {
             id: string;
             eventId: string;
             name: string;
-            /** Format: int32 */
             seniorityYear: number;
-            soccerExperience: string;
+            /** @enum {string} */
+            soccerExperience: "Experienced" | "Inexperienced";
             isOrganizer: boolean;
             note: string;
             enthusiasm: string;
         };
-        MeResponse: {
-            authenticated: boolean;
-            role?: string;
-            eventId?: string;
+        MemberListResponse: {
+            members: components["schemas"]["MemberResponse"][];
         };
     };
     responses: never;
-    parameters: never;
+    parameters: {
+        /** @description イベントID */
+        EventId: string;
+        /** @description メンバーID */
+        MemberId: string;
+    };
     requestBodies: never;
     headers: never;
     pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                eventId: string;
-                memberId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateMemberRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["Unit"];
-                };
-            };
-        };
-    };
-    delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                eventId: string;
-                memberId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["Unit"];
-                };
-            };
-        };
-    };
-    updateEnthusiasmApi: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                eventId: string;
-                memberId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateEnthusiasmRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["Unit"];
-                };
-            };
-        };
-    };
-    list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["EventListResponse"];
-                };
-            };
-        };
-    };
-    create: {
+    loginAdmin: {
         parameters: {
             query?: never;
             header?: never;
@@ -390,131 +323,26 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreateEventRequest"];
+                "application/json": components["schemas"]["LoginAsAdminRequest"];
             };
         };
         responses: {
-            /** @description OK */
+            /** @description ログイン成功 */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["CreateEventResponse"];
+                    "application/json": components["schemas"]["LoginResponse"];
                 };
             };
-        };
-    };
-    start: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
+            /** @description 認証失敗 */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["Unit"];
-                };
-            };
-        };
-    };
-    reopen: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["Unit"];
-                };
-            };
-        };
-    };
-    finish: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["Unit"];
-                };
-            };
-        };
-    };
-    list_1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                eventId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["MemberListResponse"];
-                };
-            };
-        };
-    };
-    registerBulk: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                eventId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BulkRegisterMembersRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["BulkRegisterMembersResponse"];
+                    "application/json": components["schemas"]["ApiErrorResponse"];
                 };
             };
         };
@@ -532,59 +360,22 @@ export interface operations {
             };
         };
         responses: {
-            /** @description OK */
+            /** @description ログイン成功 */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["LoginResponse"];
+                    "application/json": components["schemas"]["LoginResponse"];
                 };
             };
-        };
-    };
-    loginAdmin: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LoginAsAdminRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
+            /** @description 認証失敗 */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["LoginResponse"];
-                };
-            };
-        };
-    };
-    detail: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["EventDetailResponse"];
+                    "application/json": components["schemas"]["ApiErrorResponse"];
                 };
             };
         };
@@ -598,13 +389,360 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
+            /** @description 成功 */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["MeResponse"];
+                    "application/json": components["schemas"]["MeResponse"];
+                };
+            };
+        };
+    };
+    listEvents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventListResponse"];
+                };
+            };
+        };
+    };
+    createEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateEventRequest"];
+            };
+        };
+        responses: {
+            /** @description 作成成功 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateEventResponse"];
+                };
+            };
+            /** @description バリデーションエラー */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    getEventDetail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description イベントID */
+                eventId: components["parameters"]["EventId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventDetailResponse"];
+                };
+            };
+            /** @description アクセス権限なし */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+            /** @description イベントが見つからない */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    startEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description イベントID */
+                eventId: components["parameters"]["EventId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 遷移条件を満たさない */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    finishEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description イベントID */
+                eventId: components["parameters"]["EventId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 遷移条件を満たさない */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    reopenEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description イベントID */
+                eventId: components["parameters"]["EventId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 遷移条件を満たさない */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    listMembers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description イベントID */
+                eventId: components["parameters"]["EventId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberListResponse"];
+                };
+            };
+            /** @description アクセス権限なし */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    registerMembers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description イベントID */
+                eventId: components["parameters"]["EventId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkRegisterMembersRequest"];
+            };
+        };
+        responses: {
+            /** @description 登録成功 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkRegisterMembersResponse"];
+                };
+            };
+            /** @description バリデーションエラー */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    updateMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description イベントID */
+                eventId: components["parameters"]["EventId"];
+                /** @description メンバーID */
+                memberId: components["parameters"]["MemberId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateMemberRequest"];
+            };
+        };
+        responses: {
+            /** @description 更新成功 */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description バリデーションエラー */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    deleteMember: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description イベントID */
+                eventId: components["parameters"]["EventId"];
+                /** @description メンバーID */
+                memberId: components["parameters"]["MemberId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 削除成功 */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateEnthusiasm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description イベントID */
+                eventId: components["parameters"]["EventId"];
+                /** @description メンバーID */
+                memberId: components["parameters"]["MemberId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateEnthusiasmRequest"];
+            };
+        };
+        responses: {
+            /** @description 更新成功 */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description バリデーションエラー */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
                 };
             };
         };

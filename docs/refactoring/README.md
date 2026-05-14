@@ -1,46 +1,42 @@
-# Salu-Rec リプレース設計ドキュメント
+# Salu-Rec リプレース — 進捗管理
 
-GAS + スプレッドシート版の Salu-Rec を、
-**Next.js (TypeScript) + Spring Boot (Kotlin) + PostgreSQL** に DDD で再構築するためのドキュメント群です。
+GAS 版から Next.js + Spring Boot + PostgreSQL への全面リプレースの **進捗管理と実行手順** を管理するディレクトリです。
+
+> **このディレクトリの役割**: 進捗管理と実行手順のみ。設計情報は持たない（SSoT ルール）。
 
 ## 再開時の読み方
 
-**チャットコンテキストが消えても続きから再開できるよう設計しています。**
-
-1. まず **[09-progress.md](09-progress.md)** を開いて現在地を確認
+1. **[09-progress.md](09-progress.md)** を開いて現在地を確認
 2. 次にやるタスクの詳細は **[08-execution-guide.md](08-execution-guide.md)** を参照
-3. 設計判断の背景は **[10-decisions.md](10-decisions.md)** を参照
+3. 設計の詳細は正のソースを参照:
 
-## 目次
+| 情報 | 正のソース |
+|---|---|
+| バックエンド設計 | [docs/backend/design/](../backend/design/README.md) |
+| フロントエンド設計 | [docs/frontend/](../frontend/README.md) |
+| API 仕様 | [api/openapi.yaml](../../api/openapi.yaml) |
+| DB スキーマ | [Flyway マイグレーション](../../backend/src/main/resources/db/migration/) + [ER 図](../er-diagram.md) |
+| Docker 環境 | [docs/docker-strategy.md](../docker-strategy.md) |
 
-| # | ドキュメント | 内容 |
-|---|---|---|
-| 00 | [overview](00-overview.md) | リプレース全体像・技術スタック・ディレクトリ構成 |
-| 01 | [ubiquitous-language](01-ubiquitous-language.md) | ユビキタス言語辞書 |
-| 02 | [context-map](02-context-map.md) | 境界づけられたコンテキストとマップ |
-| 03 | [aggregates](03-aggregates.md) | 集約設計 (エンティティ、値オブジェクト、不変条件) |
-| 04 | [rdb-schema](04-rdb-schema.md) | PostgreSQL スキーマ設計 |
-| 05 | [backend-architecture](05-backend-architecture.md) | Spring Boot + Kotlin + JPA、オニオン × CQRS |
-| 06 | [frontend-architecture](06-frontend-architecture.md) | Next.js ディレクトリ構成とデータフェッチ戦略 |
-| 07 | [migration-plan](07-migration-plan.md) | 段階的マイグレーション計画 (Phase 0〜9) |
-| 08 | [execution-guide](08-execution-guide.md) | **実行手順書 (コマンドとファイル例)** |
-| 09 | [progress](09-progress.md) | **進捗チェックリスト** ← 再開時は最初にここ |
-| 10 | [decisions](10-decisions.md) | 設計決定記録 (ADR) |
-| 11 | [docker-environment](11-docker-environment.md) | Docker 環境構成 (開発・本番) |
+## このディレクトリのファイル
 
-## 重要な方針 (ハイライト)
-
-- **ホスト OS に開発ツールを入れない**: Docker 以外は不要 (ADR-010)
-- **OS 非依存**: ユーザーがホストで叩くのは `docker` と `docker compose` のみ
-- **オニオン × CQRS**: Command/Query を物理的にパッケージ分離 (ADR-001)
-- **Persistence Model パターン**: Domain と JPA Entity を完全分離 (ADR-002)
-- **UUID v7**: 時系列順ID、B-Tree 断片化抑制 (ADR-003)
-- **Match / SurveyResponse は独立集約** (ADR-004, ADR-006)
-- **Survey は Web フォーム自前化** (ADR-005)
-- **最新LTS**: Kotlin 2.3.21 / JDK 21 / Spring Boot 4.0.6 / Node.js 24 LTS (ADR-009)
+| ファイル | 内容 |
+|---|---|
+| [07-migration-plan.md](07-migration-plan.md) | 段階的マイグレーション計画 (Phase 0〜9) |
+| [08-execution-guide.md](08-execution-guide.md) | **実行手順書** (Phase ごとの具体的コマンドとファイル例) |
+| [09-progress.md](09-progress.md) | **進捗チェックリスト** ← 再開時は最初にここ |
 
 ## 現状
 
-- [x] ドキュメント整備完了
-- [ ] Phase 0 (プロジェクト基盤整備) ← 次はここ
-- [ ] Phase 1 〜 9
+- [x] Phase 0: プロジェクト基盤整備
+- [x] Phase 1: ウォーキングスケルトン (Event)
+- [x] Phase 1.5: デザインシステム移植
+- [x] Phase 2: 認証基盤
+- [x] Phase 3: Event コンテキスト完成
+- [x] Phase 4: Member コンテキスト
+- [ ] Phase 4.5: 既存実装の設計適合チェック ← **次はここ**
+- [ ] Phase 5: Match Operation
+- [ ] Phase 6: MVP Evaluation
+- [ ] Phase 7: Survey
+- [ ] Phase 8: 仕上げ・デプロイ
+- [ ] Phase 9: 旧システム停止
