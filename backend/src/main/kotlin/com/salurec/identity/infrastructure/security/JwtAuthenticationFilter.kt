@@ -1,6 +1,6 @@
 package com.salurec.identity.infrastructure.security
 
-import com.salurec.identity.domain.service.AuthTokenIssuer
+import com.salurec.identity.domain.port.AuthTokenIssuer
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse

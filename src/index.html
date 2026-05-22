@@ -275,46 +275,14 @@
               <svg class="section-icon" style="width:18px;height:18px;" viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               新しいラウンドを作成
             </h3>
-            <div class="step-indicator" id="round-steps">
-              <span class="step active" id="step-select">① メンバー選択</span>
-              <span class="step" id="step-split">② チーム分け</span>
-              <span class="step" id="step-start">③ 試合開始</span>
-            </div>
 
-            <!-- ステップ1: メンバー選択 -->
-            <div id="split-step1">
-              <div class="step-actions" style="margin-bottom:8px;">
-                <button class="btn btn-sm btn-secondary" onclick="selectAllP()">全選択</button>
-                <button class="btn btn-sm btn-secondary" onclick="deselectAllP()">全解除</button>
-              </div>
-              <div id="p-checkboxes">読み込み中...</div>
-              <div class="team-name-inputs" style="margin-top:12px;">
-                <div class="input-group">
-                  <label for="r-team-count">チーム数</label>
-                  <select id="r-team-count" class="input" onchange="updateTeamNameInputs()">
-                    <option value="2">2チーム</option>
-                  </select>
-                </div>
-                <div id="team-name-fields">
-                  <div class="input-group">
-                    <label for="r-team-0">チームA</label>
-                    <input type="text" id="r-team-0" value="チームA" class="input">
-                  </div>
-                  <div class="input-group">
-                    <label for="r-team-1">チームB</label>
-                    <input type="text" id="r-team-1" value="チームB" class="input">
-                  </div>
-                </div>
-              </div>
-              <button class="btn btn-primary btn-large" onclick="goToSplitBoard()">
-                <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
-                チーム分けへ進む
-              </button>
-            </div>
-
-            <!-- ステップ2: ドラッグ&ドロップ チーム分けボード -->
-            <div id="split-step2" style="display:none;">
+            <!-- チーム分けボード（最初から表示） -->
+            <div id="split-board-section">
               <div class="split-board-actions">
+                <button class="btn btn-sm btn-primary" onclick="addTeamToBoard()">
+                  <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  チームを追加
+                </button>
                 <button class="btn btn-sm btn-accent" onclick="doAutoAssign()">
                   <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
                   AI自動配置
@@ -323,12 +291,9 @@
                   <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
                   リセット
                 </button>
-                <button class="btn btn-sm btn-secondary" onclick="backToStep1()">
-                  <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-                  戻る
-                </button>
               </div>
               <div id="split-board"></div>
+              <p class="split-hint">未割当のメンバーは不参加扱いになります</p>
               <button class="btn btn-primary btn-large" id="btn-create-round" onclick="doCreateRound()" style="display:none;margin-top:12px;">
                 <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                 この布陣で試合開始！

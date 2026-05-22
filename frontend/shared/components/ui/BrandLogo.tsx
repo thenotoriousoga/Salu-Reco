@@ -1,6 +1,9 @@
 /**
  * SALU-REC ブランドロゴ(ヘッダー用・ログイン用)と付属マイクアイコン。
  * 元: src/index.html のヘッダー・ログイン画面 SVG。
+ *
+ * SVG 内の色は CSS 変数を参照する。stopColor は CSS 変数非対応ブラウザがあるため
+ * style 属性経由で指定する。
  */
 
 type BrandLogoProps = {
@@ -10,17 +13,17 @@ type BrandLogoProps = {
 };
 
 export function BrandLogo({ className, gradient = false }: BrandLogoProps) {
-  const strokeColor = gradient ? "url(#salu-logo-grad)" : "rgba(255,255,255,0.7)";
-  const fillColor = gradient ? "url(#salu-logo-grad)" : "#FBBF24";
+  const strokeColor = gradient ? "url(#salu-logo-grad)" : "var(--header-logo-stroke)";
+  const fillColor = gradient ? "url(#salu-logo-grad)" : "var(--accent)";
 
   return (
     <svg className={className} viewBox="-2500 -2500 5000 5000" aria-hidden="true">
       {gradient ? (
         <defs>
           <linearGradient id="salu-logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#FBBF24" />
-            <stop offset="50%" stopColor="#D97706" />
-            <stop offset="100%" stopColor="#B45309" />
+            <stop offset="0%" style={{ stopColor: "var(--accent)" }} />
+            <stop offset="50%" style={{ stopColor: "var(--accent-dark)" }} />
+            <stop offset="100%" style={{ stopColor: "var(--accent-dark)" }} />
           </linearGradient>
         </defs>
       ) : null}
@@ -53,19 +56,19 @@ export function BrandMic({ className, gradient = false }: BrandMicProps) {
       <svg className={className} viewBox="0 0 24 32" aria-hidden="true">
         <defs>
           <linearGradient id="salu-mic-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#FBBF24" />
-            <stop offset="100%" stopColor="#D97706" />
+            <stop offset="0%" style={{ stopColor: "var(--accent)" }} />
+            <stop offset="100%" style={{ stopColor: "var(--accent-dark)" }} />
           </linearGradient>
         </defs>
         <rect x="6" y="1" width="12" height="16" rx="6" fill="url(#salu-mic-grad)" />
         <path
           d="M4 13 a8 8 0 0 0 16 0"
           fill="none"
-          stroke="#D97706"
+          stroke="var(--accent-dark)"
           strokeWidth="2.8"
           strokeLinecap="round"
         />
-        <line x1="12" y1="21" x2="12" y2="26" stroke="#D97706" strokeWidth="2.8" />
+        <line x1="12" y1="21" x2="12" y2="26" stroke="var(--accent-dark)" strokeWidth="2.8" />
         <rect x="6" y="26" width="12" height="3.5" rx="0.5" fill="url(#salu-mic-grad)" />
       </svg>
     );
@@ -73,16 +76,16 @@ export function BrandMic({ className, gradient = false }: BrandMicProps) {
 
   return (
     <svg className={className} viewBox="0 0 24 32" aria-hidden="true">
-      <rect x="6" y="1" width="12" height="16" rx="6" fill="#FBBF24" />
+      <rect x="6" y="1" width="12" height="16" rx="6" fill="var(--accent)" />
       <path
         d="M4 13 a8 8 0 0 0 16 0"
         fill="none"
-        stroke="#FBBF24"
+        stroke="var(--accent)"
         strokeWidth="2.8"
         strokeLinecap="round"
       />
-      <line x1="12" y1="21" x2="12" y2="26" stroke="#FBBF24" strokeWidth="2.8" />
-      <rect x="6" y="26" width="12" height="3.5" rx="0.5" fill="#FBBF24" />
+      <line x1="12" y1="21" x2="12" y2="26" stroke="var(--accent)" strokeWidth="2.8" />
+      <rect x="6" y="26" width="12" height="3.5" rx="0.5" fill="var(--accent)" />
     </svg>
   );
 }

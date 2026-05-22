@@ -1,7 +1,7 @@
 package com.salurec.event.infrastructure.service
 
 import com.salurec.event.domain.model.JoinCode
-import com.salurec.event.domain.repository.EventRepository
+import com.salurec.event.domain.port.EventRepository
 import com.salurec.event.domain.service.JoinCodeGenerator
 import org.springframework.stereotype.Component
 import java.security.SecureRandom

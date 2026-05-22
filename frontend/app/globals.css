@@ -48,6 +48,8 @@
   --success: #059669;
   --success-bg: #D1FAE5;
   --danger: #DC2626;
+  --accent-bg: #FFFBEB;
+  --header-logo-stroke: rgba(255, 255, 255, 0.7);
   --shadow-sm: 0 1px 3px rgba(127, 29, 29, 0.08);
   --shadow-md: 0 4px 12px rgba(127, 29, 29, 0.1);
   --shadow-lg: 0 8px 24px rgba(127, 29, 29, 0.12);
@@ -305,7 +307,7 @@ body {
   letter-spacing: 0.02em;
 }
 
-.badge-organizer { background: #FFFBEB; color: var(--accent-dark); }
+.badge-organizer { background: var(--accent-bg); color: var(--accent-dark); }
 .badge-years { background: var(--bg-surface); color: var(--text-secondary); }
 .badge-exp { background: var(--success-bg); color: var(--success); }
 .badge-noexp { background: var(--border-light); color: var(--text-muted); }

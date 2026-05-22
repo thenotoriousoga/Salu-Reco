@@ -1,26 +1,16 @@
 import "server-only";
 import { createServerApiClient } from "@/shared/api/client";
+import type { components } from "@/shared/api/schema";
 
 /**
  * Member コンテキストの API クライアント(サーバーサイド専用)。
  */
 
-export type MemberInput = {
-  name: string;
-  seniorityYear: number;
-  soccerExperience: "Experienced" | "Inexperienced";
-  isOrganizer?: boolean;
-  note?: string;
-};
+/** OpenAPI スキーマから導出したメンバー登録リクエスト型 */
+export type MemberInput = components["schemas"]["MemberInputRequest"];
 
-export type MemberUpdate = {
-  name: string;
-  seniorityYear: number;
-  soccerExperience: "Experienced" | "Inexperienced";
-  isOrganizer: boolean;
-  note: string;
-  enthusiasm?: string;
-};
+/** OpenAPI スキーマから導出したメンバー更新リクエスト型 */
+export type MemberUpdate = components["schemas"]["UpdateMemberRequest"];
 
 export async function listMembers(eventId: string) {
   const api = await createServerApiClient();
@@ -102,7 +92,7 @@ export async function deleteMember(eventId: string, memberId: string) {
     "/api/events/{eventId}/members/{memberId}",
     { params: { path: { eventId, memberId } } },
   );
-  if (error) {
+  if (error || !response.ok) {
     throw new Error(
       `メンバー削除に失敗しました (status=${response.status})`,
     );

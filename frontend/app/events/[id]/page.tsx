@@ -8,6 +8,7 @@ import { getEventDetail } from "@/features/event/api/event-api";
 import { EventStatusControls } from "@/features/event/components/EventStatusControls";
 import { EventDetailTabs } from "@/features/event/components/EventDetailTabs";
 import { JoinCodeBlock } from "@/features/event/components/JoinCodeBlock";
+import { MembersPanel } from "@/features/member/components/MembersPanel";
 
 type EventStatus = "Preparing" | "InProgress" | "Finished";
 
@@ -84,7 +85,10 @@ export default async function EventDetailPage({
         <JoinCodeBlock joinCode={event.joinCode} />
       </Card>
 
-      <EventDetailTabs eventId={event.id} />
+      <EventDetailTabs
+        eventId={event.id}
+        membersPanel={<MembersPanel eventId={event.id} />}
+      />
     </>
   );
 }

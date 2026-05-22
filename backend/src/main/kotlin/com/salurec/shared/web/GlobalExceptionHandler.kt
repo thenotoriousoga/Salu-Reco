@@ -1,7 +1,7 @@
 package com.salurec.shared.web
 
-import com.salurec.event.application.exception.EventNotFoundException
-import com.salurec.member.application.exception.MemberNotFoundException
+import com.salurec.event.domain.exception.EventNotFoundException
+import com.salurec.member.domain.exception.MemberNotFoundException
 import com.salurec.shared.domain.DomainException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity

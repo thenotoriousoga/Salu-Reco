@@ -3,62 +3,6 @@
 // チーム分け → ラウンド作成
 // ===================================
 
-function renderParticipantCB(members) {
-  var c = document.getElementById('p-checkboxes');
-  if (!members || members.length === 0) {
-    c.innerHTML = '<div class="empty-state">' +
-      '<svg aria-hidden="true" style="width:48px;height:48px;stroke:var(--border);fill:none;stroke-width:1.5;" viewBox="0 0 24 24">' +
-      '<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/>' +
-      '<line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>' +
-      '<p>先にメンバーを登録してください</p></div>';
-    return;
-  }
-  c.innerHTML = '<div class="checkbox-grid">' + members.map(function(m) {
-    return '<div class="checkbox-item"><input type="checkbox" id="pcb-' + m['メンバーID'] + '" value="' + m['メンバーID'] + '" checked onchange="updateTeamCountOptions()">' +
-      '<label for="pcb-' + m['メンバーID'] + '">' + esc(m['名前']) + '</label></div>';
-  }).join('') + '</div>';
-  updateTeamCountOptions();
-}
-
-function selectAllP() { document.querySelectorAll('#p-checkboxes input[type="checkbox"]').forEach(function(cb) { cb.checked = true; }); updateTeamCountOptions(); }
-function deselectAllP() { document.querySelectorAll('#p-checkboxes input[type="checkbox"]').forEach(function(cb) { cb.checked = false; }); updateTeamCountOptions(); }
-function getSelectedIds() { return Array.from(document.querySelectorAll('#p-checkboxes input:checked')).map(function(cb) { return cb.value; }); }
-
-function updateTeamCountOptions() {
-  var ids = getSelectedIds();
-  var maxT = Math.max(2, Math.floor(ids.length / 3));
-  var sel = document.getElementById('r-team-count');
-  var cur = Number(sel.value) || 2;
-  sel.innerHTML = '';
-  for (var i = 2; i <= maxT; i++) { var opt = document.createElement('option'); opt.value = i; opt.textContent = i + 'チーム'; if (i === cur) opt.selected = true; sel.appendChild(opt); }
-  if (cur > maxT) sel.value = maxT;
-  updateTeamNameInputs();
-}
-
-function updateTeamNameInputs() {
-  var count = Number(document.getElementById('r-team-count').value) || 2;
-  var labels = ['A', 'B', 'C', 'D', 'E'];
-  var c = document.getElementById('team-name-fields');
-  c.innerHTML = '';
-  for (var i = 0; i < count; i++) {
-    var label = labels[i] || String.fromCharCode(65 + i);
-    c.innerHTML += '<div class="input-group"><label for="r-team-' + i + '">チーム' + label + '</label>' +
-      '<input type="text" id="r-team-' + i + '" value="チーム' + label + '" class="input"></div>';
-  }
-}
-
-function getTeamCount() { return Number(document.getElementById('r-team-count').value) || 2; }
-
-function getTeamNames() {
-  var count = getTeamCount();
-  var names = [];
-  for (var i = 0; i < count; i++) {
-    var el = document.getElementById('r-team-' + i);
-    names.push(el ? el.value : ('チーム' + String.fromCharCode(65 + i)));
-  }
-  return names;
-}
-
 // ===================================
 // ドラッグ&ドロップ チーム分けボード
 // ===================================
@@ -67,25 +11,64 @@ var boardState = { pool: [], teams: [] };
 var boardNames = [];
 var dragMemberId = null;
 
-function goToSplitBoard() {
-  var ids = getSelectedIds();
-  if (ids.length < 4) { showToast('4人以上選択してください', true); return; }
-  var tc = getTeamCount();
-  boardNames = getTeamNames();
-  boardState.pool = ids.slice();
-  boardState.teams = [];
-  for (var i = 0; i < tc; i++) { boardState.teams.push([]); }
-  document.getElementById('split-step1').style.display = 'none';
-  document.getElementById('split-step2').style.display = 'block';
-  updateStepIndicator(2);
+/**
+ * チーム分けボードを初期化する（タブ表示時に呼ばれる）
+ * 全メンバーを未割当プールに入れ、チーム2つで開始
+ */
+function initSplitBoard() {
+  if (!currentMembers || currentMembers.length === 0) {
+    var c = document.getElementById('split-board');
+    if (c) {
+      c.innerHTML = '<div class="empty-state">' +
+        '<svg aria-hidden="true" style="width:48px;height:48px;stroke:var(--border);fill:none;stroke-width:1.5;" viewBox="0 0 24 24">' +
+        '<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/>' +
+        '<line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>' +
+        '<p>先にメンバーを登録してください</p></div>';
+    }
+    return;
+  }
+  boardState.pool = currentMembers.map(function(m) { return m['メンバーID']; });
+  boardState.teams = [[], []];
+  boardNames = ['チームA', 'チームB'];
   renderSplitBoard();
+  checkBoardComplete();
 }
 
-function backToStep1() {
-  document.getElementById('split-step2').style.display = 'none';
-  document.getElementById('split-step1').style.display = 'block';
-  document.getElementById('btn-create-round').style.display = 'none';
-  updateStepIndicator(1);
+/**
+ * チームを追加する（最大5チーム）
+ */
+function addTeamToBoard() {
+  if (boardState.teams.length >= 5) {
+    showToast('チームは最大5つまでです', true);
+    return;
+  }
+  var labels = ['A', 'B', 'C', 'D', 'E'];
+  var newIdx = boardState.teams.length;
+  var label = labels[newIdx] || String.fromCharCode(65 + newIdx);
+  boardState.teams.push([]);
+  boardNames.push('チーム' + label);
+  renderSplitBoard();
+  checkBoardComplete();
+  showToast('チーム' + label + 'を追加しました');
+}
+
+/**
+ * チームを削除する（メンバーは未割当に戻る）
+ * @param {number} idx - 削除するチームのインデックス
+ */
+function removeTeamFromBoard(idx) {
+  if (boardState.teams.length <= 2) {
+    showToast('チームは最低2つ必要です', true);
+    return;
+  }
+  // チームのメンバーを未割当に戻す
+  var removed = boardState.teams[idx] || [];
+  boardState.pool = boardState.pool.concat(removed);
+  boardState.teams.splice(idx, 1);
+  boardNames.splice(idx, 1);
+  renderSplitBoard();
+  checkBoardComplete();
+  showToast('チームを削除しました');
 }
 
 function resetSplitBoard() {
@@ -94,7 +77,6 @@ function resetSplitBoard() {
   boardState.pool = allIds;
   boardState.teams = boardState.teams.map(function() { return []; });
   document.getElementById('btn-create-round').style.display = 'none';
-  updateStepIndicator(2);
   renderSplitBoard();
   showToast('チーム分けをリセット！');
 }
@@ -102,6 +84,7 @@ function resetSplitBoard() {
 function doAutoAssign() {
   var unassigned = boardState.pool.slice();
   if (unassigned.length === 0) { showToast('全員配置済みです', true); return; }
+  if (boardState.teams.length < 2) { showToast('先にチームを追加してください', true); return; }
   var hasExisting = boardState.teams.some(function(t) { return t.length > 0; });
   var args = hasExisting
     ? [currentEventId, unassigned, boardState.teams.length, boardState.teams]
@@ -142,16 +125,25 @@ function renderSplitBoard() {
   var c = document.getElementById('split-board');
   var mm = buildMemberMapFromCurrent_();
   var h = '<div class="split-pool" id="drop-pool" ondragover="onZoneDragOver(event)" ondrop="onZoneDrop(event, -1)">' +
-    '<div class="split-pool-label">未割当 <span class="split-team-count">' + boardState.pool.length + '人</span></div>' +
+    '<div class="split-pool-label">未割当（不参加） <span class="split-team-count">' + boardState.pool.length + '人</span></div>' +
     '<div class="split-pool-members" id="pool-members">' +
     boardState.pool.map(function(id) { return chipHtml(id, mm); }).join('') +
     '</div></div>';
   boardState.teams.forEach(function(team, idx) {
     var cls = TEAM_CLASSES_[idx] || 'a';
     var name = boardNames[idx] || ('チーム' + String.fromCharCode(65 + idx));
+    var canRemove = boardState.teams.length > 2;
+    var removeBtn = canRemove
+      ? '<button class="split-team-remove" onclick="removeTeamFromBoard(' + idx + ')" aria-label="チームを削除" title="チームを削除">×</button>'
+      : '';
     h += '<div class="split-drop-zone team-' + cls + '-zone" id="drop-team-' + idx + '" ' +
       'ondragover="onZoneDragOver(event)" ondrop="onZoneDrop(event, ' + idx + ')">' +
-      '<div class="split-pool-label">' + esc(name) + ' <span class="split-team-count">' + team.length + '人</span></div>' +
+      '<div class="split-pool-label">' +
+      '<input type="text" class="split-team-name-input team-' + cls + '-badge" value="' + esc(name) + '" ' +
+      'onchange="onTeamNameChange(' + idx + ', this.value)" aria-label="チーム名">' +
+      '<span class="split-team-count">' + team.length + '人</span>' +
+      removeBtn +
+      '</div>' +
       '<div class="split-pool-members">' +
       team.map(function(id) { return chipHtml(id, mm); }).join('') +
       '</div></div>';
@@ -159,17 +151,24 @@ function renderSplitBoard() {
   c.innerHTML = h;
 }
 
+/**
+ * チーム名変更ハンドラ
+ * @param {number} idx - チームインデックス
+ * @param {string} newName - 新しいチーム名
+ */
+function onTeamNameChange(idx, newName) {
+  boardNames[idx] = newName.trim() || ('チーム' + String.fromCharCode(65 + idx));
+}
+
 function checkBoardComplete() {
-  var allAssigned = boardState.pool.length === 0;
-  var allTeamsHave = boardState.teams.every(function(t) { return t.length > 0; });
+  // 条件: 2チーム以上あり、各チームに1人以上いる
+  var allTeamsHave = boardState.teams.length >= 2 && boardState.teams.every(function(t) { return t.length > 0; });
   var btn = document.getElementById('btn-create-round');
-  if (allAssigned && allTeamsHave) {
+  if (allTeamsHave) {
     btn.style.display = 'flex';
     btn.innerHTML = svg('<polygon points="5 3 19 12 5 21 5 3"/>', 18) + ' この布陣で試合開始！';
-    updateStepIndicator(3);
   } else {
     btn.style.display = 'none';
-    updateStepIndicator(2);
   }
 }
 
@@ -279,17 +278,14 @@ function teamMemberHtml(id, memberMap) {
 function doCreateRound() {
   previewTeams = boardState.teams;
   previewNames = boardNames;
-  if (previewTeams.length === 0 || previewTeams.some(function(t) { return t.length === 0; })) {
-    showToast('まだ空のチームがあります！', true); return;
+  if (previewTeams.length < 2 || previewTeams.some(function(t) { return t.length === 0; })) {
+    showToast('各チームに1人以上配置してください', true); return;
   }
-  if (boardState.pool.length > 0) { showToast('まだベンチにいるメンバーがいます！', true); return; }
   callServer('createRound', [currentEventId, previewNames, previewTeams], function(r) {
     if (r.success) {
       showToast(r.message);
       previewTeams = []; previewNames = [];
       boardState = { pool: [], teams: [] };
-      document.getElementById('split-step2').style.display = 'none';
-      document.getElementById('split-step1').style.display = 'block';
       openEvent(currentEventId, 'tab-rounds');
     } else { showToast(r.message, true); }
   });

@@ -1,19 +1,25 @@
 "use client";
 
-import { useState } from "react";
-import { MembersPanel } from "@/features/member/components/MembersPanel";
+import { type ReactNode, useState } from "react";
 
 type Tab = "members" | "matches" | "results";
 
 type Props = {
   eventId: string;
+  membersPanel: ReactNode;
+  matchesPanel?: ReactNode;
+  resultsPanel?: ReactNode;
 };
 
 /**
  * イベント詳細のタブバー。元: src/index.html の #event-detail-view 内 .tab-bar。
- * matches / results は Phase 5/6 で中身を入れる(現時点はプレースホルダ)。
+ * 各タブのコンテンツは App 層から props で受け取る（Feature 間の直接依存を避ける）。
  */
-export function EventDetailTabs({ eventId }: Props) {
+export function EventDetailTabs({
+  membersPanel,
+  matchesPanel,
+  resultsPanel,
+}: Props) {
   const [active, setActive] = useState<Tab>("members");
 
   return (
@@ -45,17 +51,21 @@ export function EventDetailTabs({ eventId }: Props) {
         </button>
       </div>
 
-      {active === "members" ? <MembersPanel eventId={eventId} /> : null}
-      {active === "matches" ? (
-        <div className="empty-state">
-          <p>試合機能は Phase 5 で実装予定です</p>
-        </div>
-      ) : null}
-      {active === "results" ? (
-        <div className="empty-state">
-          <p>結果・MVP 機能は Phase 6 で実装予定です</p>
-        </div>
-      ) : null}
+      {active === "members" ? membersPanel : null}
+      {active === "matches"
+        ? (matchesPanel ?? (
+            <div className="empty-state">
+              <p>試合機能は Phase 5 で実装予定です</p>
+            </div>
+          ))
+        : null}
+      {active === "results"
+        ? (resultsPanel ?? (
+            <div className="empty-state">
+              <p>結果・MVP 機能は Phase 6 で実装予定です</p>
+            </div>
+          ))
+        : null}
     </>
   );
 }

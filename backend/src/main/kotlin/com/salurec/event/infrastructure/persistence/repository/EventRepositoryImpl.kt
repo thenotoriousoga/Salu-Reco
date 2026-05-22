@@ -3,7 +3,7 @@ package com.salurec.event.infrastructure.persistence.repository
 import com.salurec.event.domain.model.Event
 import com.salurec.event.domain.model.EventId
 import com.salurec.event.domain.model.JoinCode
-import com.salurec.event.domain.repository.EventRepository
+import com.salurec.event.domain.port.EventRepository
 import com.salurec.event.infrastructure.persistence.mapper.EventEntityMapper
 import org.springframework.stereotype.Repository
 import java.util.UUID

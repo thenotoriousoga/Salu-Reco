@@ -1,6 +1,6 @@
 package com.salurec.identity.infrastructure.service
 
-import com.salurec.identity.domain.service.AdminPasswordVerifier
+import com.salurec.identity.domain.port.AdminPasswordVerifier
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import java.security.MessageDigest
