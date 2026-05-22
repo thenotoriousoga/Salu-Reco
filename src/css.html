@@ -1641,6 +1641,35 @@ body {
   gap: 6px;
   margin-bottom: 12px;
   flex-wrap: wrap;
+  align-items: center;
+}
+
+/* リセットボタン（アイコンのみ、右寄せ） */
+.split-reset-btn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: var(--radius-xs);
+  color: var(--text-muted);
+  transition: color var(--transition), background var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.split-reset-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.split-reset-btn:hover {
+  color: var(--text);
+  background: var(--bg-surface);
 }
 
 .split-pool {

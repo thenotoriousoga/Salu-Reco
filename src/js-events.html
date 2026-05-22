@@ -96,23 +96,19 @@ function renderEventDetail(d, activeTab) {
 
   // 各セクションを描画
   renderMemberList(d.members, d.surveyVoters);
-  initSplitBoard();
   renderRoundsList(d.rounds);
   renderPostMatch(ev, d.rounds, cachedMvpData);
-
-  // チーム分けボードリセット
-  document.getElementById('split-step1').style.display = 'block';
-  document.getElementById('split-step2').style.display = 'none';
-  document.getElementById('split-board').innerHTML = '';
-  document.getElementById('btn-create-round').style.display = 'none';
-  boardState = { pool: [], teams: [] };
-  boardNames = [];
 
   // ラウンド作成セクションの表示制御
   // 進行中ラウンドがある、またはイベント終了の場合は非表示
   var hasOngoing = (d.rounds || []).some(function(r) { return r.status !== '終了'; });
   var canCreateRound = currentEventStatus === '進行中' && !hasOngoing;
   document.getElementById('round-create-section').style.display = canCreateRound ? '' : 'none';
+
+  // ラウンド作成可能な場合のみボードを初期化
+  if (canCreateRound) {
+    initSplitBoard();
+  }
 
   switchTab(activeTab || 'tab-members');
 }
