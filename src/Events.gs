@@ -293,7 +293,7 @@ function endEvent(eventId) {
     return { success: false, message: 'ラウンドがありません' };
   }
   if (rounds.some(function(r) { return r['ステータス'] !== '終了'; })) {
-    return { success: false, message: '進行中のラウンドがあります。先にラウンドを終了してください' };
+    return { success: false, message: 'イベントを終了するには先にラウンドを終了してください' };
   }
 
   updateEventStatus(eventId, 'イベント終了');

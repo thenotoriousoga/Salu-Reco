@@ -204,7 +204,7 @@ function getStatusMenuItems_(status) {
       label: 'イベント終了',
       action: 'doEndEvent()',
       disabled: !canEnd,
-      tooltip: canEnd ? '' : '進行中のラウンドがあります。先にラウンドを終了してください'
+      tooltip: canEnd ? '' : 'イベントを終了するには先にラウンドを終了してください'
     }];
   }
   if (status === 'イベント終了') {

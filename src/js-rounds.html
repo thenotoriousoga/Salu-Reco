@@ -304,8 +304,23 @@ function renderTeamBoxHtml(team, idx, names, mm) {
 
 function renderRoundTeamsHtml(sd, mm) {
   if (!sd.teams || sd.teams.length === 0) return '';
-  return '<div class="teams-preview" style="margin:0 0 8px 0;">' +
-    sd.teams.map(function(team, idx) { return renderTeamBoxHtml(team, idx, sd.names, mm); }).join('') + '</div>';
+  var h = '<div class="teams-preview" style="margin:0 0 8px 0;">' +
+    sd.teams.map(function(team, idx) { return renderTeamBoxHtml(team, idx, sd.names, mm); }).join('');
+
+  // 未参加者を表示
+  var assignedIds = {};
+  sd.teams.forEach(function(team) {
+    team.forEach(function(id) { assignedIds[id] = true; });
+  });
+  var absentees = (currentMembers || []).filter(function(m) { return !assignedIds[m['メンバーID']]; });
+  if (absentees.length > 0) {
+    h += '<div class="team-box team-absent"><h4>不参加</h4>' +
+      absentees.map(function(m) { return '<div class="team-member team-member-absent">' + esc(m['名前'] || '?') + '</div>'; }).join('') +
+      '</div>';
+  }
+
+  h += '</div>';
+  return h;
 }
 
 function renderRoundsList(rounds) {
