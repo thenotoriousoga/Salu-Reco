@@ -96,7 +96,7 @@ function renderEventDetail(d, activeTab) {
 
   // 各セクションを描画
   renderMemberList(d.members, d.surveyVoters);
-  renderParticipantCB(d.members);
+  initSplitBoard();
   renderRoundsList(d.rounds);
   renderPostMatch(ev, d.rounds, cachedMvpData);
 
@@ -114,7 +114,6 @@ function renderEventDetail(d, activeTab) {
   var canCreateRound = currentEventStatus === '進行中' && !hasOngoing;
   document.getElementById('round-create-section').style.display = canCreateRound ? '' : 'none';
 
-  updateTeamCountOptions();
   switchTab(activeTab || 'tab-members');
 }
 

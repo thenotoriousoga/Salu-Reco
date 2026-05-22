@@ -222,19 +222,6 @@ function showConfirm(title, message, onConfirm, confirmLabel) {
 // ===================================
 
 /**
- * ステップインジケーターを更新する
- * @param {number} activeStep - アクティブなステップ（1, 2, 3）
- */
-function updateStepIndicator(activeStep) {
-  var steps = document.querySelectorAll('#round-steps .step');
-  steps.forEach(function(step, idx) {
-    step.classList.remove('active', 'done');
-    if (idx + 1 < activeStep) step.classList.add('done');
-    else if (idx + 1 === activeStep) step.classList.add('active');
-  });
-}
-
-/**
  * ステータスバッジのHTMLを生成
  * @param {string} status - ステータス文字列
  * @return {string} バッジHTML
