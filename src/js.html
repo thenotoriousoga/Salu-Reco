@@ -107,7 +107,7 @@ function showLoading(msg, sub) {
     var quote = parts[0] || '';
     var author = parts[1] || '';
     var msgHtml = '<p class="loading-sub">' + esc(quote) + '</p>';
-    if (author) msgHtml += '<p class="loading-author">― ' + esc(author) + '</p>';
+    if (author) msgHtml += '<p class="loading-author">- ' + esc(author) + '</p>';
     content.innerHTML = '<div class="spinner"></div>' + msgHtml;
   }
   el.style.display = 'flex';
