@@ -90,6 +90,33 @@ function doLoginAdmin() {
   }, 'ログインに失敗しました');
 }
 
+/**
+ * URLパラメータの参加コードで自動ログインする
+ * @param {string} code - 参加コード
+ */
+function autoLoginWithCode_(code) {
+  if (!code) { showPage('login', true); return; }
+  showLoading('イベントに参加中...');
+  google.script.run
+    .withSuccessHandler(function(r) {
+      hideLoading();
+      if (r.success) {
+        setRole_('user');
+        currentEventId = r.eventId;
+        showMemberSelect_(r.members || []);
+      } else {
+        showToast(r.message, true);
+        showPage('login', true);
+      }
+    })
+    .withFailureHandler(function() {
+      hideLoading();
+      showToast('ログインに失敗しました', true);
+      showPage('login', true);
+    })
+    .loginWithCode(code);
+}
+
 /** イベントコードでログイン → メンバー選択画面を表示 */
 function doLoginWithCode() {
   var code = document.getElementById('login-code').value;

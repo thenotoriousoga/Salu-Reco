@@ -440,12 +440,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // 初回読み込み: セッション復元またはログイン画面を表示
   var session = loadSession_();
-  if (session) {
-    setRole_(session.role);
-    currentMemberId = session.memberId || null;
-    // URLパラメータを確認し、eventがあればそちらを優先
-    google.script.url.getLocation(function(location) {
-      var params = (location && location.parameter) ? location.parameter : {};
+  google.script.url.getLocation(function(location) {
+    var params = (location && location.parameter) ? location.parameter : {};
+
+    // URLに参加コード(?code=XXXX)があれば常にそちらを優先
+    if (params.code) {
+      autoLoginWithCode_(params.code);
+      return;
+    }
+
+    if (session) {
+      setRole_(session.role);
+      currentMemberId = session.memberId || null;
       var route = parseParams_(params);
       if (route.eventId) {
         document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
@@ -461,9 +467,9 @@ document.addEventListener('DOMContentLoaded', function() {
       } else {
         showPage('login', true);
       }
-    });
-  } else {
-    showPage('login', true);
-  }
+    } else {
+      showPage('login', true);
+    }
+  });
 });
 </script>
