@@ -19,13 +19,22 @@ function shuffle_(arr) {
 }
 
 /**
- * メンバーIDの配列をNチームに均等配分する（ラウンドロビン）
+ * メンバーIDの配列をNチームに均等配分する
+ * 各メンバーを「現在の人数が最も少ないチーム」に割り当てることで、
+ * 経験者・未経験者を別々に配分しても全体の人数が均等になる。
+ * 同数のチームが複数ある場合はインデックスが小さい方を優先する。
  * @param {string[]} ids - メンバーIDの配列
  * @param {string[][]} teams - 配置先のチーム配列（破壊的に追加）
  */
 function distributeToTeams_(ids, teams) {
-  ids.forEach(function(id, i) {
-    teams[i % teams.length].push(id);
+  ids.forEach(function(id) {
+    var minIdx = 0;
+    for (var t = 1; t < teams.length; t++) {
+      if (teams[t].length < teams[minIdx].length) {
+        minIdx = t;
+      }
+    }
+    teams[minIdx].push(id);
   });
 }
 
