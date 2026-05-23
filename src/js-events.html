@@ -71,12 +71,12 @@ function renderEventDetail(d, activeTab) {
   var ev = d.event;
   currentEventStatus = ev['ステータス'] || '準備中';
 
-  // タイトル（管理者の場合は日付の横に参加コードを小さく表示）
+  // タイトル（日付の横に参加コードを表示、タップでイベントURLをコピー）
   var titleH = '<svg class="section-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>' +
     '<line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> ' +
     esc(ev['名称'] || '') + ' <span class="event-date" style="margin-left:8px;">' + esc(String(ev['日付'] || '')) + '</span>';
-  if (isAdmin() && ev['コード']) {
-    titleH += '<span class="event-code-inline">' + esc(ev['コード']) + '</span>';
+  if (ev['コード']) {
+    titleH += '<span class="event-code-inline" onclick="copyEventUrl(\'' + esc(ev['コード']) + '\')" title="タップで招待URLをコピー" style="cursor:pointer;">' + esc(ev['コード']) + '</span>';
   }
   document.getElementById('ev-detail-title').innerHTML = titleH;
 
@@ -329,5 +329,46 @@ function recreateSurvey() {
   showConfirm('アンケート再作成', 'メンバーを追加した場合は再作成が必要です。既存の回答は引き継がれません。再作成しますか？', function() {
     doCreateSurvey_();
   }, '再作成');
+}
+
+// ===================================
+// イベントURL共有
+// ===================================
+
+/** アプリURLのキャッシュ */
+var cachedAppUrl_ = null;
+
+/**
+ * イベント招待URLをクリップボードにコピーする
+ * @param {string} code - イベント参加コード
+ */
+function copyEventUrl(code) {
+  if (cachedAppUrl_) {
+    doCopyEventUrl_(cachedAppUrl_, code);
+  } else {
+    google.script.run
+      .withSuccessHandler(function(url) {
+        cachedAppUrl_ = url;
+        doCopyEventUrl_(url, code);
+      })
+      .withFailureHandler(function() {
+        // フォールバック: コードだけコピー
+        copyToClipboard_(code).then(function() {
+          showToast('参加コードをコピーしました 📋');
+        });
+      })
+      .getAppUrl();
+  }
+}
+
+function doCopyEventUrl_(baseUrl, code) {
+  var url = baseUrl + '?code=' + encodeURIComponent(code);
+  copyToClipboard_(url).then(function(ok) {
+    if (ok) {
+      showToast('招待URLをコピーしました 📋');
+    } else {
+      showToast('コピーに失敗しました', true);
+    }
+  });
 }
 </script>

@@ -111,6 +111,14 @@ function doGet() {
 }
 
 /**
+ * WebアプリのベースURLを返す
+ * @return {string} アプリURL
+ */
+function getAppUrl() {
+  return ScriptApp.getService().getUrl() || '';
+}
+
+/**
  * HTMLファイルをインクルードする
  * @param {string} filename - ファイル名
  * @return {string} HTMLコンテンツ
