@@ -103,7 +103,12 @@ function showLoading(msg, sub) {
       (sub ? '<p class="loading-sub">' + esc(sub) + '</p>' : '');
   } else {
     var randomMsg = LOADING_MESSAGES_[Math.floor(Math.random() * LOADING_MESSAGES_.length)];
-    content.innerHTML = '<div class="spinner"></div><p class="loading-sub">' + esc(randomMsg) + '</p>';
+    var parts = randomMsg.split(' ― ');
+    var quote = parts[0] || '';
+    var author = parts[1] || '';
+    var msgHtml = '<p class="loading-sub">' + esc(quote) + '</p>';
+    if (author) msgHtml += '<p class="loading-author">― ' + esc(author) + '</p>';
+    content.innerHTML = '<div class="spinner"></div>' + msgHtml;
   }
   el.style.display = 'flex';
 }
