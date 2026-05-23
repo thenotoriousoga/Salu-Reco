@@ -106,11 +106,14 @@ function memberItemHtml_(m, isQueue, hasAnswered, canEdit) {
     '<span class="member-icons">' + icons + '</span>' +
     '<span style="margin-left:auto;display:flex;gap:4px;">' + spiritBtn + editBtn + '</span>' +
     '</div>';
-  // 備考・意気込みは折りたたみ（タップで表示）
-  if (subLine || spirit) {
+  // 意気込みは常に表示
+  if (spirit) {
+    html += '<div class="member-sub" style="color:var(--primary);font-style:italic;">🔥 ' + esc(spirit) + '</div>';
+  }
+  // 備考は折りたたみ（タップで表示）
+  if (subLine) {
     html += '<div class="member-detail" style="display:none;">';
-    if (subLine) html += '<div class="member-sub">' + subLine + '</div>';
-    if (spirit) html += '<div class="member-sub" style="color:var(--primary);font-style:italic;">🔥 ' + esc(spirit) + '</div>';
+    html += '<div class="member-sub">' + subLine + '</div>';
     html += '</div>';
   }
   html += '</div>';
