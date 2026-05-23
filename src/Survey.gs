@@ -33,7 +33,13 @@ function createSurveyForm(eventId) {
     '各メンバーへのコメントを自由に記入してください。\n' +
     '（MVPが誰かは記載しないでください。AIが総合的に判断します）'
   );
-  form.setConfirmationMessage('回答ありがとうございました！');
+  var appUrl = ScriptApp.getService().getUrl() || '';
+  var confirmMsg = '回答ありがとうございました！';
+  if (appUrl) {
+    var eventUrl = appUrl + '?code=' + encodeURIComponent(event['コード'] || '');
+    confirmMsg += '\n\nイベントに戻る:\n' + eventUrl;
+  }
+  form.setConfirmationMessage(confirmMsg);
 
   // 回答者名（プルダウン）
   var voterItem = form.addListItem();
