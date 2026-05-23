@@ -51,8 +51,14 @@ function getEventDetail(eventId) {
     surveyVoters = getSurveyVoters(eventId);
   }
 
+  // クライアントに幹事パスワードを渡さない
+  var safeEvent = {};
+  Object.keys(event).forEach(function(k) {
+    if (k !== '幹事パスワード') safeEvent[k] = event[k];
+  });
+
   return {
-    event: event,
+    event: safeEvent,
     members: members,
     rounds: rounds,
     mvpResults: mvpResults,
@@ -72,13 +78,15 @@ function getEventDetail(eventId) {
  * @param {string} date - 日付（yyyy-MM-dd 形式）
  * @param {string} organizerName - 幹事の名前
  * @param {string} [email] - 送信先メールアドレス（任意）
+ * @param {string} [password] - 幹事パスワード
  * @return {Object} 結果オブジェクト
  *   { success, eventId, code, organizerMemberId, emailSent, message }
  */
-function createEventAsOrganizer(name, date, organizerName, email) {
+function createEventAsOrganizer(name, date, organizerName, email, password) {
   var trimmedName = (name || '').trim();
   var trimmedOrganizer = (organizerName || '').trim();
   var trimmedEmail = (email || '').trim();
+  var trimmedPassword = (password || '').trim();
 
   if (!trimmedName) {
     return { success: false, message: 'イベント名を入力してください' };
@@ -88,6 +96,9 @@ function createEventAsOrganizer(name, date, organizerName, email) {
   }
   if (!date) {
     return { success: false, message: '日付を選択してください' };
+  }
+  if (!trimmedPassword) {
+    return { success: false, message: '幹事パスワードを設定してください' };
   }
   if (trimmedEmail && !isValidEmail_(trimmedEmail)) {
     return { success: false, message: 'メールアドレスの形式が正しくありません' };
@@ -103,7 +114,7 @@ function createEventAsOrganizer(name, date, organizerName, email) {
   var memberSheet = ensureSheet_(ss, 'メンバー');
 
   var eventId = generateId_();
-  eventSheet.appendRow([eventId, date, trimmedName, '準備中', '', '', code]);
+  eventSheet.appendRow([eventId, date, trimmedName, '準備中', '', '', code, trimmedPassword]);
 
   // 幹事を最初のメンバーとして登録
   var memberId = generateId_();

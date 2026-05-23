@@ -127,6 +127,10 @@
           <label for="create-ev-email" data-info="入力すると参加コードをメールでお送りします">メール</label>
           <input type="email" id="create-ev-email" placeholder="例: taro@example.com（任意）" class="input" maxlength="254" autocomplete="email" inputmode="email">
         </div>
+        <div class="input-group">
+          <label for="create-ev-password" data-info="幹事がログインする際に使うパスワードです">幹事パスワード</label>
+          <input type="password" id="create-ev-password" placeholder="幹事用パスワード" class="input" maxlength="30">
+        </div>
         <button class="btn btn-primary btn-large" onclick="doCreateEventAsOrganizer()">
           <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
           作成してはじめる

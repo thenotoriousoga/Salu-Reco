@@ -52,3 +52,28 @@ function loginWithCode(code) {
     members: getEventMembers(found['イベントID'])
   };
 }
+
+/**
+ * 幹事パスワードで認証する（イベント単位）
+ * @param {string} eventId - イベントID
+ * @param {string} password - 入力されたパスワード
+ * @return {Object} 結果オブジェクト { success, message }
+ */
+function loginAsOrganizer(eventId, password) {
+  if (!eventId || !password) {
+    return { success: false, message: 'パスワードを入力してください' };
+  }
+  var events = getSheetData_('イベント');
+  var event = events.find(function(e) { return String(e['イベントID']) === String(eventId); });
+  if (!event) {
+    return { success: false, message: 'イベントが見つかりません' };
+  }
+  var stored = String(event['幹事パスワード'] || '').trim();
+  if (!stored) {
+    return { success: false, message: 'このイベントにはパスワードが設定されていません' };
+  }
+  if (String(password).trim() === stored) {
+    return { success: true };
+  }
+  return { success: false, message: 'パスワードが正しくありません' };
+}

@@ -155,29 +155,83 @@ function showMemberSelect_(members) {
 
 /**
  * メンバーを選択してイベント詳細に遷移する
- * 幹事の場合は管理者権限を付与する
+ * 幹事の場合はパスワード入力を求める
  * @param {string} memberId - 選択したメンバーID
  */
 function selectMyMember(memberId) {
-  currentMemberId = memberId;
-
-  // 幹事チェック: メンバー選択画面表示時のデータから判定
-  var memberList = document.querySelectorAll('#member-select-list .event-item');
-  var isOrganizer = false;
-  var members = currentMembers || [];
-  // openEvent前なのでcurrentMembersはまだ空の可能性がある
-  // loginWithCodeの戻り値で渡されたメンバー一覧をdata属性から取得
+  // 幹事チェック
   var el = document.querySelector('#member-select-list [data-organizer="' + memberId + '"]');
-  if (el) isOrganizer = true;
-
-  if (isOrganizer) {
-    setRole_('admin');
+  if (el) {
+    // 幹事 → パスワード入力モーダルを表示
+    showOrganizerPasswordPrompt_(memberId);
+  } else {
+    // 一般メンバー → そのまま遷移
+    currentMemberId = memberId;
+    saveSession_();
+    document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+    document.getElementById('page-events').classList.add('active');
+    openEvent(currentEventId);
   }
+}
 
-  saveSession_();
-  document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
-  document.getElementById('page-events').classList.add('active');
-  openEvent(currentEventId);
+/**
+ * 幹事パスワード入力モーダルを表示する
+ * @param {string} memberId - 幹事のメンバーID
+ */
+function showOrganizerPasswordPrompt_(memberId) {
+  var container = document.getElementById('modal-container');
+  container.innerHTML = '<div class="modal-overlay" id="modal-overlay">' +
+    '<div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="org-pw-title">' +
+    '<h3 id="org-pw-title">幹事パスワード</h3>' +
+    '<p style="font-size:0.85rem;color:var(--text-muted);">幹事としてログインするにはパスワードを入力してください</p>' +
+    '<div class="input-group" style="margin:12px 0;">' +
+    '<input type="password" id="org-pw-input" placeholder="パスワード" class="input" maxlength="30">' +
+    '</div>' +
+    '<div class="modal-actions">' +
+    '<button class="btn btn-secondary" onclick="closeOrgPasswordModal_()">キャンセル</button>' +
+    '<button class="btn btn-primary" onclick="submitOrgPassword_(\'' + memberId + '\')">ログイン</button>' +
+    '</div></div></div>';
+  document.getElementById('modal-overlay').onclick = function(e) {
+    if (e.target === this) closeOrgPasswordModal_();
+  };
+  setTimeout(function() {
+    var input = document.getElementById('org-pw-input');
+    if (input) {
+      input.focus();
+      input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); submitOrgPassword_(memberId); }
+      });
+    }
+  }, 50);
+}
+
+function closeOrgPasswordModal_() {
+  document.getElementById('modal-container').innerHTML = '';
+}
+
+/**
+ * 幹事パスワードを送信して認証する
+ * @param {string} memberId - 幹事のメンバーID
+ */
+function submitOrgPassword_(memberId) {
+  var input = document.getElementById('org-pw-input');
+  var password = input ? input.value.trim() : '';
+  if (!password) { showToast('パスワードを入力してください', true); return; }
+
+  callServer('loginAsOrganizer', [currentEventId, password], function(r) {
+    if (r.success) {
+      closeOrgPasswordModal_();
+      currentMemberId = memberId;
+      setRole_('admin');
+      saveSession_();
+      document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+      document.getElementById('page-events').classList.add('active');
+      openEvent(currentEventId);
+    } else {
+      showToast(r.message, true);
+    }
+  }, '認証に失敗しました');
+}
 }
 
 /** 管理者ログインフォームの表示切り替え */
@@ -240,17 +294,20 @@ function doCreateEventAsOrganizer() {
   var organizer = document.getElementById('create-ev-organizer').value.trim();
   var emailEl = document.getElementById('create-ev-email');
   var email = emailEl ? emailEl.value.trim() : '';
+  var passwordEl = document.getElementById('create-ev-password');
+  var password = passwordEl ? passwordEl.value.trim() : '';
 
   if (!name) { showToast('イベント名を入力してください', true); return; }
   if (!date) { showToast('日付を選んでください', true); return; }
   if (!organizer) { showToast('幹事の名前を入力してください', true); return; }
+  if (!password) { showToast('幹事パスワードを設定してください', true); return; }
   // メアドは任意。入力された場合のみ簡易バリデーション
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     showToast('メールアドレスの形式が正しくありません', true);
     return;
   }
 
-  callServer('createEventAsOrganizer', [name, date, organizer, email], function(r) {
+  callServer('createEventAsOrganizer', [name, date, organizer, email, password], function(r) {
     if (!r.success) {
       showToast(r.message, true);
       return;
@@ -319,6 +376,8 @@ function enterCreatedEvent() {
   document.getElementById('create-ev-organizer').value = '';
   var emailEl = document.getElementById('create-ev-email');
   if (emailEl) emailEl.value = '';
+  var pwEl = document.getElementById('create-ev-password');
+  if (pwEl) pwEl.value = '';
 
   document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
   document.getElementById('page-events').classList.add('active');
