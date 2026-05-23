@@ -196,7 +196,7 @@ var editingMemberId = null;
  * @param {string} memberId - メンバーID
  */
 function openMemberEdit(memberId) {
-  var member = currentMembers.find(function(m) { return m['メンバーID'] === memberId; });
+  var member = currentMembers.find(function(m) { return String(m['メンバーID']) === String(memberId); });
   if (!member) { showToast('メンバーが見つかりません', true); return; }
 
   editingMemberId = memberId;

@@ -46,7 +46,7 @@ function bulkAddMembersFromQueue(eventId, memberDataList) {
   }
 
   var ss = getSpreadsheet_();
-  appendRows_(ss.getSheetByName('メンバー'), rows);
+  appendRows_(ensureSheet_(ss, 'メンバー'), rows);
 
   return { success: true, message: rows.length + '人を登録しました' };
 }

@@ -124,11 +124,11 @@ function include(filename) {
 // ===================================
 
 /**
- * 8文字のUUIDを生成する
- * @return {string} UUID先頭8文字
+ * IDを生成する（英字プレフィックス付きで数値化を防止）
+ * @return {string} 'x' + UUID先頭7文字
  */
 function generateId_() {
-  return Utilities.getUuid().substring(0, 8);
+  return 'x' + Utilities.getUuid().substring(0, 7);
 }
 
 /** @type {string|null} タイムゾーンキャッシュ */
@@ -167,14 +167,21 @@ function sheetToObjects_(sheet) {
   var tz = getTimeZone_();
   var result = [];
 
+  // IDカラム（末尾が'ID'）のインデックスを特定
+  var idCols = {};
+  for (var k = 0; k < headers.length; k++) {
+    if (String(headers[k]).slice(-2) === 'ID') idCols[k] = true;
+  }
+
   for (var i = 1; i < allData.length; i++) {
     var row = allData[i];
     var obj = {};
     for (var j = 0; j < headers.length; j++) {
       var val = row[j];
-      // Dateオブジェクトはクライアントにシリアライズできないため文字列に変換
       if (val instanceof Date) {
         val = Utilities.formatDate(val, tz, 'yyyy/MM/dd');
+      } else if (idCols[j] && val !== '' && val !== null && val !== undefined) {
+        val = String(val);
       }
       obj[headers[j]] = val;
     }
@@ -240,7 +247,7 @@ function deleteRowsByMatch_(sheetName, colIndex, value) {
 function findRowIndex_(sheet, colIndex, value) {
   var data = sheet.getDataRange().getValues();
   for (var i = 1; i < data.length; i++) {
-    if (data[i][colIndex] === value) return i + 1;
+    if (String(data[i][colIndex]) === String(value)) return i + 1;
   }
   return -1;
 }
