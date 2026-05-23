@@ -144,10 +144,10 @@ function showMemberSelect_(members) {
     return;
   }
   c.innerHTML = members.map(function(m) {
-    var orgAttr = m['幹事'] === 'はい' ? ' data-organizer="' + m['メンバーID'] + '"' : '';
+    var orgAttr = String(m['幹事'] || '').trim() === 'はい' ? ' data-organizer="' + m['メンバーID'] + '"' : '';
     return '<div class="event-item"' + orgAttr + ' onclick="selectMyMember(\'' + m['メンバーID'] + '\')">' +
       '<div class="event-info"><div class="event-name">' + esc(m['名前']) +
-      (m['幹事'] === 'はい' ? ' <span style="font-size:0.8rem;">👔</span>' : '') +
+      (String(m['幹事'] || '').trim() === 'はい' ? ' <span style="font-size:0.8rem;">👔</span>' : '') +
       '</div></div></div>';
   }).join('');
   showPage('member-select');
@@ -159,7 +159,7 @@ function showMemberSelect_(members) {
  * @param {string} memberId - 選択したメンバーID
  */
 function selectMyMember(memberId) {
-  // 幹事チェック
+  // 幹事チェック（DOM属性 + メンバーデータの両方で判定）
   var el = document.querySelector('#member-select-list [data-organizer="' + memberId + '"]');
   if (el) {
     // 幹事 → パスワード入力モーダルを表示
@@ -231,7 +231,6 @@ function submitOrgPassword_(memberId) {
       showToast(r.message, true);
     }
   }, '認証に失敗しました');
-}
 }
 
 /** 管理者ログインフォームの表示切り替え */

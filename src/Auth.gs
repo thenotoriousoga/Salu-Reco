@@ -72,8 +72,8 @@ function loginAsOrganizer(eventId, password) {
   if (!stored) {
     return { success: false, message: 'このイベントにはパスワードが設定されていません' };
   }
-  if (String(password).trim() === stored) {
-    return { success: true };
+  if (String(password).trim() !== stored) {
+    return { success: false, message: 'パスワードが正しくありません' };
   }
-  return { success: false, message: 'パスワードが正しくありません' };
+  return { success: true };
 }
