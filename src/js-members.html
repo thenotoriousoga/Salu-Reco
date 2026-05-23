@@ -77,7 +77,7 @@ function memberItemHtml_(m, isQueue, hasAnswered, canEdit) {
   // 編集ボタン（管理者のみ）
   var editBtn = '';
   if (canEdit && id) {
-    editBtn = '<button class="btn btn-sm btn-secondary member-edit-btn" onclick="openMemberEdit(\'' + id + '\')" title="編集">' +
+    editBtn = '<button class="btn btn-sm btn-secondary member-edit-btn" onclick="event.stopPropagation();openMemberEdit(\'' + id + '\')" title="編集">' +
       '<svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true" style="width:14px;height:14px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' +
       '</button>';
   }
@@ -91,26 +91,27 @@ function memberItemHtml_(m, isQueue, hasAnswered, canEdit) {
   // 3行目: 意気込み
   var spirit = isQueue ? '' : (m['意気込み'] || '');
 
-  // クリックで編集（管理者のみ）
-  var clickAttr = (canEdit && id) ? ' onclick="openMemberEdit(\'' + id + '\')" style="cursor:pointer;"' : '';
+  // クリックで詳細を展開/閉じる（管理者は長押しで編集）
+  var toggleAttr = (id && !isQueue) ? ' onclick="toggleMemberDetail(this, event, \'' + id + '\',' + (canEdit ? 'true' : 'false') + ')" style="cursor:pointer;"' : '';
 
   // 意気込み編集ボタン（自分のメンバーの場合）
   var spiritBtn = '';
   if (!isQueue && id && currentMemberId === id) {
-    spiritBtn = '<button class="btn btn-sm btn-secondary" onclick="openSpiritEdit(\'' + id + '\')" style="padding:4px 8px;font-size:0.75rem;">✏️ 意気込み</button>';
+    spiritBtn = '<button class="btn btn-sm btn-secondary" onclick="event.stopPropagation();openSpiritEdit(\'' + id + '\')" style="padding:4px 8px;font-size:0.75rem;">✏️ 意気込み</button>';
   }
 
-  var html = '<div class="member-item-v2">' +
+  var html = '<div class="member-item-v2"' + toggleAttr + '>' +
     '<div class="member-main">' +
-    '<span class="member-name-v2"' + clickAttr + '>' + nameWithYears + '</span>' +
+    '<span class="member-name-v2">' + nameWithYears + '</span>' +
     '<span class="member-icons">' + icons + '</span>' +
     '<span style="margin-left:auto;display:flex;gap:4px;">' + spiritBtn + editBtn + '</span>' +
     '</div>';
-  if (subLine) {
-    html += '<div class="member-sub">' + subLine + '</div>';
-  }
-  if (spirit) {
-    html += '<div class="member-sub" style="color:var(--primary);font-style:italic;">🔥 ' + esc(spirit) + '</div>';
+  // 備考・意気込みは折りたたみ（タップで表示）
+  if (subLine || spirit) {
+    html += '<div class="member-detail" style="display:none;">';
+    if (subLine) html += '<div class="member-sub">' + subLine + '</div>';
+    if (spirit) html += '<div class="member-sub" style="color:var(--primary);font-style:italic;">🔥 ' + esc(spirit) + '</div>';
+    html += '</div>';
   }
   html += '</div>';
   return html;
@@ -190,6 +191,23 @@ function deleteMember(memberId) {
 // メンバー編集
 // ===================================
 var editingMemberId = null;
+
+/**
+ * メンバーアイテムの詳細（備考・意気込み）を展開/閉じる
+ * 管理者の場合は編集ボタンがあるのでタップは展開のみ
+ * @param {HTMLElement} el - メンバーアイテム要素
+ * @param {Event} e - クリックイベント
+ * @param {string} memberId - メンバーID
+ * @param {boolean} canEdit - 編集可能か
+ */
+function toggleMemberDetail(el, e, memberId, canEdit) {
+  // 編集ボタンやリンクのクリックは無視
+  if (e.target.closest('button') || e.target.closest('a')) return;
+  var detail = el.querySelector('.member-detail');
+  if (detail) {
+    detail.style.display = detail.style.display === 'none' ? '' : 'none';
+  }
+}
 
 /**
  * メンバー編集モーダルを開く
