@@ -338,6 +338,39 @@ function reopenMatch(matchId) {
   return { success: true, message: '試合を再開しました。スコアを編集できます' };
 }
 
+/**
+ * 終了した試合のスコアを直接修正する（試合を再開せずに）
+ * @param {string} matchId - マッチID
+ * @param {number} scoreA - チームAの新スコア
+ * @param {number} scoreB - チームBの新スコア
+ * @return {Object} 結果オブジェクト { success, message }
+ */
+function correctMatchScore(matchId, scoreA, scoreB) {
+  var ss = getSpreadsheet_();
+  var matchSheet = ss.getSheetByName('マッチ');
+  var matchRow = findRowIndex_(matchSheet, 0, matchId);
+  if (matchRow === -1) return { success: false, message: '試合が見つかりません' };
+
+  var data = getMultipleSheetData_(['マッチ', 'ラウンド', 'イベント']);
+  var matchData = data['マッチ'].find(function(m) { return m['マッチID'] === matchId; });
+  if (!matchData) return { success: false, message: '試合が見つかりません' };
+
+  var roundData = data['ラウンド'].find(function(r) { return r['ラウンドID'] === matchData['ラウンドID']; });
+  if (!roundData) return { success: false, message: 'ラウンドが見つかりません' };
+
+  var event = data['イベント'].find(function(e) { return e['イベントID'] === roundData['イベントID']; });
+  var eventStatus = event ? event['ステータス'] : '';
+  if (eventStatus === 'イベント終了') {
+    return { success: false, message: 'イベント終了後は編集できません' };
+  }
+
+  // スコアを更新（スコアA: 7列目, スコアB: 8列目）
+  matchSheet.getRange(matchRow, 7).setValue(Number(scoreA) || 0);
+  matchSheet.getRange(matchRow, 8).setValue(Number(scoreB) || 0);
+
+  return { success: true, message: 'スコアを修正しました' };
+}
+
 // ===================================
 // 助っ人（別チームからの参戦）
 // ===================================

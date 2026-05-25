@@ -400,12 +400,13 @@ function renderRoundsList(rounds) {
         var scoreSummary = '<div class="match-header-score">' +
           esc(m.teamAName) + ' ' + m.scoreA + '-' + m.scoreB + ' ' + esc(m.teamBName) + '</div>';
         var editMenuH = '';
-        if (!ongoing && canEditMatch) {
+        if (!ongoing && isAdmin()) {
           editMenuH = '<div class="status-menu-wrap" onclick="event.stopPropagation()">' +
             '<button class="status-menu-btn" onclick="toggleMatchMenu(event, \'' + m.id + '\')" aria-label="試合結果の操作">' +
             svg(IC.more, 16) + '</button>' +
             '<div class="status-menu" id="match-menu-' + m.id + '">' +
-            '<button class="status-menu-item" onclick="reopenMatch(\'' + m.id + '\')">結果を編集</button>' +
+            '<button class="status-menu-item" onclick="showScoreCorrect(\'' + m.id + '\',' + m.scoreA + ',' + m.scoreB + ')">スコア修正</button>' +
+            (canEditMatch ? '<button class="status-menu-item" onclick="reopenMatch(\'' + m.id + '\')">試合を再開</button>' : '') +
             '</div></div>';
         }
         return '<div class="round-card round-card-collapsed match-card-ended' + stripeClass + '" style="margin-left:0;" onclick="toggleMatchBody(this)">' +
@@ -1248,6 +1249,62 @@ function reopenMatch(matchId) {
     showToast(r.message, !r.success);
     if (r.success) openEvent(currentEventId, 'tab-rounds');
   }, '試合の再開に失敗しました');
+}
+
+/**
+ * スコア修正モーダルを表示する
+ * @param {string} matchId - マッチID
+ * @param {number} scoreA - 現在のスコアA
+ * @param {number} scoreB - 現在のスコアB
+ */
+function showScoreCorrect(matchId, scoreA, scoreB) {
+  closeAllMatchMenus_();
+  // マッチデータからチーム名を取得
+  var match = null;
+  (cachedRounds || []).forEach(function(r) {
+    (r.matches || []).forEach(function(m) {
+      if (m.id === matchId) match = m;
+    });
+  });
+  var nameA = match ? match.teamAName : 'チームA';
+  var nameB = match ? match.teamBName : 'チームB';
+
+  var html = '<div class="modal-overlay" id="score-correct-modal" onclick="if(event.target===this)closeScoreCorrect()">' +
+    '<div class="modal-box" style="max-width:320px;">' +
+    '<h3 style="margin-bottom:16px;">スコア修正</h3>' +
+    '<div style="display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:20px;">' +
+    '<div style="text-align:center;flex:1;"><label style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:6px;">' + esc(nameA) + '</label>' +
+    '<input type="number" id="correct-score-a" value="' + scoreA + '" min="0" max="99" class="input" style="text-align:center;font-size:1.5rem;font-weight:700;padding:8px;"></div>' +
+    '<span style="font-weight:700;color:var(--text-muted);font-size:1.2rem;">-</span>' +
+    '<div style="text-align:center;flex:1;"><label style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:6px;">' + esc(nameB) + '</label>' +
+    '<input type="number" id="correct-score-b" value="' + scoreB + '" min="0" max="99" class="input" style="text-align:center;font-size:1.5rem;font-weight:700;padding:8px;"></div>' +
+    '</div>' +
+    '<div class="modal-actions">' +
+    '<button class="btn btn-secondary" onclick="closeScoreCorrect()">キャンセル</button>' +
+    '<button class="btn btn-primary" onclick="doCorrectScore(\'' + matchId + '\')">保存</button>' +
+    '</div></div></div>';
+
+  var container = document.getElementById('modal-container');
+  container.innerHTML = html;
+}
+
+function closeScoreCorrect() {
+  document.getElementById('modal-container').innerHTML = '';
+}
+
+/**
+ * スコア修正を実行する
+ * @param {string} matchId - マッチID
+ */
+function doCorrectScore(matchId) {
+  var scoreA = parseInt(document.getElementById('correct-score-a').value) || 0;
+  var scoreB = parseInt(document.getElementById('correct-score-b').value) || 0;
+  if (scoreA < 0 || scoreB < 0) { showToast('スコアは0以上で入力してください', true); return; }
+  closeScoreCorrect();
+  callServer('correctMatchScore', [matchId, scoreA, scoreB], function(r) {
+    showToast(r.message, !r.success);
+    if (r.success) openEvent(currentEventId, 'tab-rounds');
+  }, 'スコア修正に失敗しました');
 }
 
 /** 試合結果の三点メニューの開閉 */
