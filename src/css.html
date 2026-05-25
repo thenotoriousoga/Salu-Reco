@@ -2548,15 +2548,61 @@ body:not(.role-user):not(.role-admin) .user-only { display: none !important; }
   border-top: 1px solid var(--border-light);
 }
 
+.round-ranking-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
 .round-ranking-title {
   font-family: 'Fira Sans', sans-serif;
   font-size: 0.85rem;
   font-weight: 700;
   color: var(--text);
-  margin-bottom: 10px;
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.round-ranking-tabs {
+  display: flex;
+  background: var(--border-light);
+  border-radius: 6px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.round-ranking-tab {
+  padding: 5px 12px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  font-family: 'Fira Sans', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+
+.round-ranking-tab:hover {
+  color: var(--text-secondary);
+}
+
+.round-ranking-tab.active {
+  background: var(--bg-card);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+
+.round-ranking-panel {
+  display: none;
+}
+
+.round-ranking-panel.active {
+  display: block;
 }
 
 .round-ranking-live {
@@ -2625,6 +2671,10 @@ body:not(.role-user):not(.role-admin) .user-only { display: none !important; }
   white-space: nowrap;
 }
 
+.round-ranking-table-team td:nth-child(2) {
+  max-width: 100px;
+}
+
 .round-ranking-table tr:last-child td {
   border-bottom: none;
 }
@@ -2662,4 +2712,18 @@ body:not(.role-user):not(.role-admin) .user-only { display: none !important; }
 .round-ranking-diff-neg {
   color: #EF4444 !important;
 }
+
+.round-ranking-team-badge {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.round-ranking-team-badge.team-a-badge { background: var(--team-a-bg); color: var(--team-a); border: 1px solid var(--team-a-border); }
+.round-ranking-team-badge.team-b-badge { background: var(--team-b-bg); color: var(--team-b); border: 1px solid var(--team-b-border); }
+.round-ranking-team-badge.team-c-badge { background: var(--team-c-bg); color: var(--team-c); border: 1px solid var(--team-c-border); }
+.round-ranking-team-badge.team-d-badge { background: var(--team-d-bg); color: var(--team-d); border: 1px solid var(--team-d-border); }
+.round-ranking-team-badge.team-e-badge { background: var(--team-e-bg); color: var(--team-e); border: 1px solid var(--team-e-border); }
 </style>
