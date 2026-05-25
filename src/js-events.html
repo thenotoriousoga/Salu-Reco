@@ -75,7 +75,7 @@ function renderEventDetail(d, activeTab) {
   if (navEl) navEl.style.display = (isAdmin() && !currentMemberId) ? '' : 'none';
 
   var ev = d.event;
-  currentEventStatus = ev['ステータス'] || '準備中';
+  currentEventStatus = (ev['ステータス'] || '準備中').trim();
 
   // タイトル（日付の横に参加コードを表示、タップでイベントURLをコピー）
   var titleH = '<svg class="section-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>' +
@@ -110,7 +110,7 @@ function renderEventDetail(d, activeTab) {
   var hasOngoing = (d.rounds || []).some(function(r) { return r.status !== '終了'; });
   var canCreateRound = currentEventStatus === '進行中' && !hasOngoing;
   var roundCreateEl = document.getElementById('round-create-section');
-  roundCreateEl.style.cssText = canCreateRound ? '' : 'display:none!important';
+  roundCreateEl.style.display = canCreateRound ? '' : 'none';
   if (canCreateRound) {
     initSplitBoard();
   }
