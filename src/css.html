@@ -3715,5 +3715,207 @@ body:not(.role-user):not(.role-admin) .user-only { display: none !important; }
   .match-dominant-badge { animation: none; }
   .goal-particle { animation: none; display: none; }
   .scoreboard-live-dot { animation: none; }
+  .ev-hero-bg { animation: none; }
+}
+
+/* ===================================
+   イベント詳細ヒーローカード
+   =================================== */
+.ev-hero-card {
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-lg);
+}
+
+.ev-hero-bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 40%, #7C3AED 100%);
+  z-index: 0;
+}
+
+.ev-hero-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 80%, rgba(251, 191, 36, 0.15) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 20%, rgba(124, 58, 237, 0.2) 0%, transparent 50%);
+  z-index: 1;
+}
+
+.ev-hero-bg::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -30%;
+  width: 80%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.04) 0%, transparent 60%);
+  animation: ev-hero-glow 8s ease-in-out infinite alternate;
+  z-index: 1;
+}
+
+@keyframes ev-hero-glow {
+  0% { transform: translate(0, 0) scale(1); opacity: 0.5; }
+  100% { transform: translate(-10%, 5%) scale(1.1); opacity: 0.8; }
+}
+
+.ev-hero-content {
+  position: relative;
+  z-index: 2;
+  padding: 20px 20px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ev-hero-back-btn {
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.ev-hero-back-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.5);
+  color: white;
+}
+
+.ev-hero-main {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ev-hero-title {
+  font-family: 'Luckiest Guy', 'Fira Code', monospace;
+  font-size: 1.6rem;
+  font-weight: 400;
+  color: white;
+  letter-spacing: 0.02em;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.ev-hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.ev-hero-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.ev-hero-meta-item svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+
+.ev-hero-code {
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.ev-hero-code:hover {
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: white;
+}
+
+.ev-hero-code:active {
+  transform: scale(0.96);
+}
+
+.ev-hero-status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ev-hero-status .event-status-badge {
+  font-size: 0.72rem;
+  border: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.ev-hero-status .status-hint {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.ev-hero-status .status-hint svg {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.ev-hero-status .status-menu-btn {
+  color: rgba(255, 255, 255, 0.8);
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.ev-hero-status .status-menu-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.ev-hero-actions {
+  margin-top: 2px;
+}
+
+.ev-hero-actions .survey-link-compact {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: white;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.ev-hero-actions .survey-link-compact:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.ev-hero-actions .survey-recreate-link {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.ev-hero-actions .survey-recreate-link:hover {
+  color: white;
+}
+
+.ev-hero-actions .btn-secondary {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+}
+
+.ev-hero-actions .btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.25);
 }
 </style>

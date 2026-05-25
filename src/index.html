@@ -188,17 +188,23 @@
       <!-- ===== イベント詳細 ===== -->
       <div id="event-detail-view" style="display:none;">
 
-        <!-- ヘッダー -->
-        <div class="card">
-          <div class="ev-detail-nav admin-only" style="margin-bottom:12px;">
-            <button class="btn btn-sm btn-secondary" onclick="backToEventList()">
-              <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-              一覧に戻る
-            </button>
+        <!-- ヒーローカード -->
+        <div class="ev-hero-card">
+          <div class="ev-hero-bg"></div>
+          <div class="ev-hero-content">
+            <div class="ev-detail-nav admin-only">
+              <button class="btn btn-sm ev-hero-back-btn" onclick="backToEventList()">
+                <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                一覧に戻る
+              </button>
+            </div>
+            <div class="ev-hero-main">
+              <h2 class="ev-hero-title" id="ev-detail-title">イベント詳細</h2>
+              <div class="ev-hero-meta" id="ev-hero-meta"></div>
+              <div class="ev-hero-status" id="ev-detail-status"></div>
+            </div>
+            <div class="ev-hero-actions" id="ev-survey-area"></div>
           </div>
-          <h2 id="ev-detail-title">イベント詳細</h2>
-          <div id="ev-detail-status"></div>
-          <div id="ev-survey-area" style="margin-top:10px;"></div>
         </div>
 
         <!-- タブ切り替え -->
