@@ -149,6 +149,10 @@ function renderStatsBoard() {
   // チップのアクティブ表示
   function chipClass(k) { return k === currentStatsSort ? 'lb-chip active' : 'lb-chip'; }
 
+  // MVP列を表示するか
+  var showRating = cachedMvpData && cachedMvpData.length > 0 && cachedMvpData.some(function(r) { return Number(r['レーティング']) > 0; });
+  var ratingChip = showRating ? '<button class="' + chipClass('rating') + '" onclick="sortStatsBy(\'rating\')">📊 Rating</button>' : '';
+
   // 列の並び順を動的に構成（ソート中の値を名前の直後に配置）
   var columns = [
     { key: 'matchPoints', label: 'Pts', tdClass: 'lb-td-pts' },
