@@ -1019,16 +1019,24 @@ function endedMatchHtml(m, teamColorMap) {
   else if (sB > sA) { resultA = ' match-lose'; resultB = ' match-win'; }
   else { resultA = ' match-draw'; resultB = ' match-draw'; }
 
-  // 大差バッジ（3点差以上 or 5得点以上）
+  // 試合結果バッジ（常に表示）
   var diff = Math.abs(sA - sB);
   var totalGoals = sA + sB;
   var dominantBadge = '';
   if (diff >= 3) {
-    dominantBadge = '<div style="text-align:center;"><span class="match-dominant-badge match-dominant-badge-fire">🔥 DOMINANT WIN</span></div>';
+    dominantBadge = '<div style="text-align:center;"><span class="match-dominant-badge match-dominant-badge-fire">🔥 BLOWOUT</span></div>';
   } else if (sA === sB && totalGoals >= 4) {
-    dominantBadge = '<div style="text-align:center;"><span class="match-dominant-badge match-dominant-badge-draw">⚡ THRILLER</span></div>';
+    dominantBadge = '<div style="text-align:center;"><span class="match-dominant-badge match-dominant-badge-draw">⚡ EPIC DRAW</span></div>';
   } else if (totalGoals >= 6) {
     dominantBadge = '<div style="text-align:center;"><span class="match-dominant-badge match-dominant-badge-fire">🎯 GOAL FEST</span></div>';
+  } else if (sA === sB && totalGoals === 0) {
+    dominantBadge = '<div style="text-align:center;"><span class="match-dominant-badge match-dominant-badge-calm">🧱 SHUT OUT</span></div>';
+  } else if (sA === sB) {
+    dominantBadge = '<div style="text-align:center;"><span class="match-dominant-badge match-dominant-badge-draw">🤝 DRAW</span></div>';
+  } else if (diff === 1) {
+    dominantBadge = '<div style="text-align:center;"><span class="match-dominant-badge match-dominant-badge-close">⚔️ CLOSE GAME</span></div>';
+  } else {
+    dominantBadge = '<div style="text-align:center;"><span class="match-dominant-badge match-dominant-badge-fire">💪 SOLID WIN</span></div>';
   }
 
   // 得点者集計
