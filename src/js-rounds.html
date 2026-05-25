@@ -406,12 +406,12 @@ function renderRoundsList(rounds) {
       var addMatchBtn = '';
       var addMatchArea = '';
       if (sd.teams && sd.teams.length >= 2) {
-        addMatchBtn = '<button class="btn btn-sm btn-primary" onclick="showAddMatch(\'' + round.id + '\')">' +
-          svg('<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>', 14) + ' 次の試合へ</button>';
+        addMatchBtn = '<button class="btn btn-accent" style="width:100%;" onclick="showAddMatch(\'' + round.id + '\')">' +
+          svg('<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>', 16) + ' 次の試合を組む</button>';
         addMatchArea = '<div id="add-match-' + round.id + '" style="display:none;"></div>';
       }
       if (addMatchBtn) {
-        roundBottomH = '<div style="margin-top:12px;padding-top:8px;border-top:1px solid var(--border-light);">' +
+        roundBottomH = '<div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border-light);">' +
           addMatchBtn + '</div>' + addMatchArea;
       }
     }
@@ -711,12 +711,13 @@ function showAddMatch(roundId) {
   var names = round.splitData.names || [];
   var optionsHtml = '<option value="-1">選択...</option>' +
     names.map(function(name, idx) { return '<option value="' + idx + '">' + esc(name) + '</option>'; }).join('');
-  c.innerHTML = '<div style="margin-top:8px;padding:12px;background:var(--bg-surface);border-radius:var(--radius-sm);border:1px solid var(--border-light);">' +
-    '<div class="input-row" style="align-items:center;">' +
-    '<select id="am-a-' + roundId + '" class="input" style="flex:1;min-width:0;">' + optionsHtml + '</select>' +
-    '<div style="padding:0 8px;font-weight:700;color:var(--primary);">VS</div>' +
-    '<select id="am-b-' + roundId + '" class="input" style="flex:1;min-width:0;">' + optionsHtml + '</select></div>' +
-    '<button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="doCreateMatch(\'' + roundId + '\')">' +
+  c.innerHTML = '<div class="add-match-area">' +
+    '<div style="font-family:\'Fira Code\',monospace;font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">NEXT MATCH</div>' +
+    '<div class="add-match-vs-display">' +
+    '<select id="am-a-' + roundId + '" class="input add-match-vs-team" style="flex:1;min-width:0;">' + optionsHtml + '</select>' +
+    '<div class="add-match-vs-circle">VS</div>' +
+    '<select id="am-b-' + roundId + '" class="input add-match-vs-team" style="flex:1;min-width:0;">' + optionsHtml + '</select></div>' +
+    '<button class="btn btn-primary add-match-kickoff-btn" onclick="doCreateMatch(\'' + roundId + '\')">' +
     svg('<polygon points="5 3 19 12 5 21 5 3"/>', 16) + ' キックオフ！</button></div>';
   c.style.display = 'block';
 }
@@ -879,7 +880,8 @@ function ongoingMatchHtml(m, teamColorMap) {
     '</div>';
 
   // スコアボード
-  h += '<div class="scoreboard" style="margin:12px 0;">' +
+  h += '<div class="scoreboard scoreboard-live" style="margin:12px 0;">' +
+    '<div class="scoreboard-live-badge"><span class="scoreboard-live-dot"></span>LIVE</div>' +
     '<div class="score-team"><span class="team-label team-' + clsA + '-badge">' + esc(m.teamAName) + '</span>' +
     '<span class="score" id="sa-' + m.id + '">' + m.scoreA + '</span></div>' +
     '<div class="score-vs">VS</div>' +

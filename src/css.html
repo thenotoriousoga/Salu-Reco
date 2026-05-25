@@ -1503,6 +1503,136 @@ body {
   opacity: 0.6;
 }
 
+/* --- 進行中試合 LIVE インジケーター --- */
+.scoreboard-live {
+  position: relative;
+  border-color: var(--success);
+  box-shadow: 0 0 0 1px var(--success), 0 4px 16px rgba(5, 150, 105, 0.12);
+}
+
+.scoreboard-live-badge {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 12px;
+  background: var(--success);
+  color: white;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  border-radius: 20px;
+  text-transform: uppercase;
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3);
+}
+
+.scoreboard-live-dot {
+  width: 6px;
+  height: 6px;
+  background: white;
+  border-radius: 50%;
+  animation: live-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.7); }
+}
+
+/* --- 終了試合カード — 折りたたみ時のスコア強調 --- */
+.match-card-ended {
+  transition: box-shadow var(--transition), background var(--transition);
+}
+
+.match-card-ended:hover {
+  box-shadow: var(--shadow-md);
+  background: var(--bg-surface);
+}
+
+.match-card-ended .match-header-score {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-top: 6px;
+  padding: 4px 10px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-xs);
+  display: inline-block;
+}
+
+/* --- 「次の試合へ」エリア — ドラマチックCTA --- */
+.add-match-area {
+  margin-top: 16px;
+  padding: 16px;
+  background: linear-gradient(135deg, var(--bg-surface) 0%, rgba(251, 191, 36, 0.06) 100%);
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  text-align: center;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.add-match-area:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.15);
+}
+
+.add-match-vs-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.add-match-vs-team {
+  flex: 1;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  font-family: 'Fira Code', monospace;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-align: center;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.add-match-vs-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+}
+
+.add-match-kickoff-btn {
+  width: 100%;
+  margin-top: 12px;
+  padding: 14px 20px;
+  font-size: 0.95rem;
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+}
+
+.add-match-kickoff-btn:hover {
+  box-shadow: 0 6px 20px rgba(220, 38, 38, 0.4);
+  transform: translateY(-1px);
+}
+
 /* --- ラウンド・マッチ折りたたみ --- */
 .round-section-header {
   display: flex;
@@ -1551,7 +1681,7 @@ body {
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
-  transition: transform var(--transition);
+  transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
   flex-shrink: 0;
 }
 
