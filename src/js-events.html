@@ -106,14 +106,16 @@ function renderEventDetail(d, activeTab) {
   renderPostMatch(ev, d.rounds, cachedMvpData);
 
   // ラウンド作成セクションの表示制御
-  // 進行中ラウンドがある、またはイベント終了の場合は非表示
+  // 「進行中」かつ進行中ラウンドがない場合のみ表示
   var hasOngoing = (d.rounds || []).some(function(r) { return r.status !== '終了'; });
   var canCreateRound = currentEventStatus === '進行中' && !hasOngoing;
-  document.getElementById('round-create-section').style.display = canCreateRound ? '' : 'none';
-
-  // ラウンド作成可能な場合のみボードを初期化
+  var roundCreateEl = document.getElementById('round-create-section');
   if (canCreateRound) {
+    roundCreateEl.style.display = '';
     initSplitBoard();
+  } else {
+    roundCreateEl.style.display = 'none';
+    roundCreateEl.style.setProperty('display', 'none', 'important');
   }
 
   switchTab(activeTab || 'tab-members');
