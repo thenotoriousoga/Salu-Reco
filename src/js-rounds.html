@@ -1313,22 +1313,23 @@ function showScoreCorrect(matchId, scoreA, scoreB) {
   };
 
   var html = '<div class="modal-overlay" id="score-correct-modal" onclick="if(event.target===this)closeScoreCorrect()">' +
-    '<div class="modal-box modal-box-wide" style="max-width:400px;padding:16px;">' +
-    '<h3 style="margin-bottom:12px;">⚽ スコア修正</h3>' +
-    '<div class="scoreboard" style="margin:0 0 12px;padding:16px 0;">' +
+    '<div class="modal-box modal-box-wide" style="padding:16px;display:flex;flex-direction:column;">' +
+    '<h3 style="margin-bottom:8px;flex-shrink:0;">⚽ スコア修正</h3>' +
+    '<div class="scoreboard" style="margin:0 0 10px;padding:10px 0;flex-shrink:0;">' +
     '<div class="score-team"><span class="team-label team-' + clsA + '-badge">' + esc(nameA) + '</span>' +
-    '<span class="score" id="sc-total-a-' + matchId + '" style="font-size:2.5rem;">' + scoreA + '</span></div>' +
-    '<div class="score-vs">VS</div>' +
+    '<span class="score" id="sc-total-a-' + matchId + '" style="font-size:2rem;">' + scoreA + '</span></div>' +
+    '<div class="score-vs" style="width:32px;height:32px;font-size:0.75rem;">VS</div>' +
     '<div class="score-team"><span class="team-label team-' + clsB + '-badge">' + esc(nameB) + '</span>' +
-    '<span class="score" id="sc-total-b-' + matchId + '" style="font-size:2.5rem;">' + scoreB + '</span></div></div>' +
-    '<div class="goal-section" style="margin-bottom:12px;">' +
+    '<span class="score" id="sc-total-b-' + matchId + '" style="font-size:2rem;">' + scoreB + '</span></div></div>' +
+    '<div style="flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;margin-bottom:12px;">' +
+    '<div class="goal-section" style="margin-bottom:0;">' +
     '<div class="goal-team-btns" style="display:flex;gap:8px;margin-bottom:8px;">' +
     '<button id="sc-tab-' + matchId + '-A" class="btn team-' + clsA + '-badge goal-team-btn" style="flex:1;padding:10px;" onclick="scTogglePanel(\'' + matchId + '\',\'A\')">' + esc(nameA) + '</button>' +
     '<button id="sc-tab-' + matchId + '-B" class="btn team-' + clsB + '-badge goal-team-btn" style="flex:1;padding:10px;" onclick="scTogglePanel(\'' + matchId + '\',\'B\')">' + esc(nameB) + '</button></div>' +
     buildPanel(match.teamA, 'A', nameA, clsA) +
     buildPanel(match.teamB, 'B', nameB, clsB) +
-    '</div>' +
-    '<div class="modal-actions">' +
+    '</div></div>' +
+    '<div class="modal-actions" style="flex-shrink:0;">' +
     '<button class="btn btn-secondary" onclick="closeScoreCorrect()">キャンセル</button>' +
     '<button class="btn btn-primary" onclick="doCorrectScore(\'' + matchId + '\')">保存</button>' +
     '</div></div></div>';
