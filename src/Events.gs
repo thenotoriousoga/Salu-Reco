@@ -263,6 +263,38 @@ function updateEventStatus(eventId, status) {
 // ===================================
 
 /**
+ * MVP選出結果を確定する（メンバーに公開する）
+ * @param {string} eventId - イベントID
+ * @return {Object} 結果オブジェクト { success, message }
+ */
+function confirmMvp(eventId) {
+  var event = findEvent_(eventId);
+  if (!event) return { success: false, message: 'イベントが見つかりません' };
+  if (event['ステータス'] !== 'イベント終了') {
+    return { success: false, message: 'イベント終了後のみMVPを確定できます' };
+  }
+  // MVP結果が存在するかチェック
+  var mvpResults = getSheetData_('MVP結果').filter(function(r) { return r['イベントID'] === eventId; });
+  if (mvpResults.length === 0) {
+    return { success: false, message: 'MVP選出がまだ行われていません' };
+  }
+  updateEventField_(eventId, 9, 'はい');
+  return { success: true, message: 'MVP結果を公開しました！🎉' };
+}
+
+/**
+ * MVP確定を取り消す（非公開に戻す）
+ * @param {string} eventId - イベントID
+ * @return {Object} 結果オブジェクト { success, message }
+ */
+function unconfirmMvp(eventId) {
+  var event = findEvent_(eventId);
+  if (!event) return { success: false, message: 'イベントが見つかりません' };
+  updateEventField_(eventId, 9, '');
+  return { success: true, message: 'MVP結果を非公開に戻しました' };
+}
+
+/**
  * イベントを「進行中」状態にする
  * @param {string} eventId - イベントID
  * @return {Object} 結果オブジェクト { success, message }

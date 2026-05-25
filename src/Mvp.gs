@@ -316,5 +316,7 @@ function selectMVP(eventId, mvpCount, subMvpCount) {
   if (results.success === false) return results;
 
   saveMvpResults_(eventId, results);
+  // MVP再選出時は確定フラグをリセット（再度確定が必要）
+  updateEventField_(eventId, 9, '');
   return { success: true, results: results, message: 'MVP選出が完了しました' };
 }

@@ -46,7 +46,13 @@ function openEvent(eventId, activeTab, skipHash) {
     currentMembers = d.members;
     cachedRounds = d.rounds;
     var evStatus = (d.event['ステータス'] || '準備中');
-    cachedMvpData = (evStatus === 'イベント終了') ? (d.mvpResults || []) : [];
+    var isMvpConfirmed = String(d.event['MVP確定'] || '') === 'はい';
+    // 一般メンバーにはMVP確定前の結果を見せない
+    if (evStatus === 'イベント終了' && (isAdmin() || isMvpConfirmed)) {
+      cachedMvpData = d.mvpResults || [];
+    } else {
+      cachedMvpData = [];
+    }
     cachedSurveyVoters = d.surveyVoters || [];
     previewTeams = [];
     previewNames = [];

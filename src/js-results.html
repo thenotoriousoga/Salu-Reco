@@ -255,16 +255,31 @@ function renderPostMatch(event, rounds, mvpResults) {
   var c = document.getElementById('post-match-content');
   var status = event['ステータス'] || '準備中';
   var hasMvpResults = mvpResults && mvpResults.length > 0;
+  var isMvpConfirmed = String(event['MVP確定'] || '') === 'はい';
   var canSelectMvp = isAdmin() && status === 'イベント終了';
 
   var trophySvg = '<svg aria-hidden="true" style="width:48px;height:48px;stroke:var(--border);fill:none;stroke-width:1.5;" viewBox="0 0 24 24">' +
     '<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 9 7 12 7s5-3 7.5-3a2.5 2.5 0 0 1 0 5H18"/>' +
     '<path d="M18 9v10a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9"/><path d="M12 7v14"/></svg>';
 
+  // 一般メンバー: MVP未確定の場合はティーザー表示
+  if (!isAdmin() && status === 'イベント終了' && !isMvpConfirmed) {
+    var teaser = hasMvpResults
+      ? '<div class="mvp-teaser">' +
+        '<div class="mvp-teaser-icon">🏆</div>' +
+        '<h3 class="mvp-teaser-title">MVP選出完了！</h3>' +
+        '<p class="mvp-teaser-text">幹事が結果を確認中です…<br>もう少しだけお待ちください！</p>' +
+        '<div class="mvp-teaser-dots"><span></span><span></span><span></span></div>' +
+        '</div>'
+      : '<div class="empty-state">' + trophySvg +
+        '<p>お疲れさまでした！アンケートに回答して、MVP発表を待とう！</p></div>';
+    c.innerHTML = teaser;
+    return;
+  }
+
+  // イベント終了前の表示
   if (!hasMvpResults && !canSelectMvp) {
-    var msg;
-    if (!isAdmin() && status === 'イベント終了') msg = 'お疲れさまでした！アンケートに回答して、MVP発表を待とう！';
-    else msg = '全試合終了後にMVP発表ができます。まずはピッチで暴れよう！';
+    var msg = '全試合終了後にMVP発表ができます。まずはピッチで暴れよう！';
     c.innerHTML = '<div class="empty-state">' + trophySvg + '<p>' + msg + '</p></div>';
     return;
   }
@@ -277,6 +292,29 @@ function renderPostMatch(event, rounds, mvpResults) {
       '<button class="btn btn-primary btn-large" onclick="runMvp()">' + svg(IC.trophy, 18) + ' MVPを発表</button></div>';
   }
   h += '<div id="mvp-results-area"></div>';
+
+  // 幹事向け: 確定/取消ボタン
+  if (canSelectMvp && hasMvpResults) {
+    if (!isMvpConfirmed) {
+      h += '<div id="mvp-confirm-area" class="mvp-confirm-section">' +
+        '<div class="mvp-confirm-notice">' +
+        '<span class="mvp-confirm-icon">🔒</span>' +
+        '<span>現在メンバーには非公開です</span>' +
+        '</div>' +
+        '<button class="btn btn-accent btn-large" onclick="doConfirmMvp()">' +
+        '<svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>' +
+        'メンバーに公開する 🎉</button></div>';
+    } else {
+      h += '<div id="mvp-confirm-area" class="mvp-confirmed-section">' +
+        '<div class="mvp-confirmed-notice">' +
+        '<span class="mvp-confirm-icon">🔓</span>' +
+        '<span>メンバーに公開中</span>' +
+        '</div>' +
+        '<button class="btn btn-secondary btn-sm" onclick="doUnconfirmMvp()" style="margin-top:8px;">' +
+        '非公開に戻す</button></div>';
+    }
+  }
+
   c.innerHTML = h;
   if (hasMvpResults) renderMvpResults(mvpResults);
 }
@@ -351,6 +389,26 @@ function runMvp() {
       })
       .selectMVP(currentEventId, mc, sc);
   }, '発表する');
+}
+
+/** MVP結果をメンバーに公開する */
+function doConfirmMvp() {
+  showConfirm('MVP公開', 'メンバーにMVP結果を公開します。よろしいですか？', function() {
+    callServer('confirmMvp', [currentEventId], function(r) {
+      showToast(r.message, !r.success);
+      if (r.success) openEvent(currentEventId, 'tab-results');
+    });
+  }, '公開する');
+}
+
+/** MVP結果を非公開に戻す */
+function doUnconfirmMvp() {
+  showConfirm('非公開に戻す', 'MVP結果をメンバーから非表示にします。よろしいですか？', function() {
+    callServer('unconfirmMvp', [currentEventId], function(r) {
+      showToast(r.message, !r.success);
+      if (r.success) openEvent(currentEventId, 'tab-results');
+    });
+  }, '非公開にする');
 }
 
 function renderMvpResults(results) {
