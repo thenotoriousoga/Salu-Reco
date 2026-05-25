@@ -2540,4 +2540,126 @@ body:not(.role-user):not(.role-admin) .user-only { display: none !important; }
   color: var(--team-a);
   border: 1px solid var(--team-a-border);
 }
+
+/* --- ラウンド順位表 --- */
+.round-ranking {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-light);
+}
+
+.round-ranking-title {
+  font-family: 'Fira Sans', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.round-ranking-live {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #fff;
+  background: #EF4444;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 8px;
+  animation: ranking-live-pulse 2s ease-in-out infinite;
+  letter-spacing: 0.5px;
+}
+
+@keyframes ranking-live-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.round-ranking-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.round-ranking-table th {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 6px 3px;
+  border-bottom: 2px solid var(--border);
+  white-space: nowrap;
+}
+
+.round-ranking-table th:first-child,
+.round-ranking-table td:first-child {
+  text-align: center;
+  width: 28px;
+}
+
+.round-ranking-table th:nth-child(2),
+.round-ranking-table td:nth-child(2) {
+  text-align: left;
+  padding-left: 6px;
+}
+
+.round-ranking-table td {
+  padding: 7px 3px;
+  text-align: center;
+  border-bottom: 1px solid var(--border-light);
+  font-family: 'Fira Code', monospace;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.round-ranking-table td:nth-child(2) {
+  font-family: 'Fira Sans', sans-serif;
+  font-weight: 600;
+  color: var(--text);
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.round-ranking-table tr:last-child td {
+  border-bottom: none;
+}
+
+.round-ranking-table tr:nth-child(1) td:first-child {
+  font-weight: 700;
+}
+
+.round-ranking-table tr:nth-child(2) td:first-child {
+  font-weight: 700;
+}
+
+.round-ranking-table tr:nth-child(3) td:first-child {
+  font-weight: 700;
+}
+
+.round-ranking-pts {
+  font-weight: 700 !important;
+  color: var(--primary) !important;
+}
+
+.round-ranking-goals {
+  color: var(--accent-dark) !important;
+  font-weight: 600 !important;
+}
+
+.round-ranking-diff {
+  font-weight: 600 !important;
+}
+
+.round-ranking-diff-pos {
+  color: var(--success) !important;
+}
+
+.round-ranking-diff-neg {
+  color: #EF4444 !important;
+}
 </style>

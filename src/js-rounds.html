@@ -395,6 +395,12 @@ function renderRoundsList(rounds) {
       }).join('');
     }
 
+    // ラウンド順位表（終了した試合が1つ以上あれば表示）
+    var rankingH = '';
+    if (round.matches && round.matches.some(function(m) { return m.status === '終了'; })) {
+      rankingH = buildRoundRankingHtml_(round, mm);
+    }
+
     var roundBottomH = '';
     if (round.status !== '終了' && canEditMatch) {
       var addMatchBtn = '';
@@ -436,8 +442,134 @@ function renderRoundsList(rounds) {
       '<h3 style="margin:0;">ラウンド' + round.roundNumber + '</h3>' +
       '<div style="display:flex;align-items:center;gap:4px;">' + roundMenuH + statusBadgeHtml(round.status) +
       expandIcon + '</div></div>' +
-      '<div class="' + roundBodyClass + '">' + teamsH + matchesH + roundBottomH + '</div></div>';
+      '<div class="' + roundBodyClass + '">' + teamsH + matchesH + rankingH + roundBottomH + '</div></div>';
   }).join('');
+}
+
+/**
+ * ラウンド内の順位表HTMLを生成する
+ * 各メンバーの勝ち点（勝利3pt、引分1pt）・得点・失点・得失点差を集計してランキング表示
+ * 同率（勝ち点＋得失点差が同じ）の場合は同順位とし、次の順位はスキップする
+ * @param {Object} round - ラウンドデータ
+ * @param {Object} mm - メンバーマップ（メンバーID → メンバーオブジェクト）
+ * @return {string} HTML文字列
+ */
+function buildRoundRankingHtml_(round, mm) {
+  var matches = round.matches || [];
+  var endedMatches = matches.filter(function(m) { return m.status === '終了'; });
+  if (endedMatches.length === 0) return '';
+
+  // 各メンバーの成績を集計
+  var playerStats = {};
+
+  endedMatches.forEach(function(match) {
+    var sA = Number(match.scoreA) || 0;
+    var sB = Number(match.scoreB) || 0;
+
+    // チームAのメンバー
+    (match.teamA || []).forEach(function(p) {
+      if (!playerStats[p.id]) playerStats[p.id] = { id: p.id, name: p.name, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, played: 0 };
+      playerStats[p.id].played++;
+      playerStats[p.id].goalsFor += sA;
+      playerStats[p.id].goalsAgainst += sB;
+      if (sA > sB) playerStats[p.id].wins++;
+      else if (sA === sB) playerStats[p.id].draws++;
+      else playerStats[p.id].losses++;
+    });
+
+    // チームBのメンバー
+    (match.teamB || []).forEach(function(p) {
+      if (!playerStats[p.id]) playerStats[p.id] = { id: p.id, name: p.name, wins: 0, draws: 0, losses: 0, goalsFor: 0, goalsAgainst: 0, played: 0 };
+      playerStats[p.id].played++;
+      playerStats[p.id].goalsFor += sB;
+      playerStats[p.id].goalsAgainst += sA;
+      if (sB > sA) playerStats[p.id].wins++;
+      else if (sA === sB) playerStats[p.id].draws++;
+      else playerStats[p.id].losses++;
+    });
+
+    // 個人得点集計
+    if (match.memberGoals) {
+      match.memberGoals.forEach(function(g) {
+        if (playerStats[g.memberId]) {
+          playerStats[g.memberId].personalGoals = (playerStats[g.memberId].personalGoals || 0) + (Number(g.count) || 0);
+        }
+      });
+    } else if (match.goals) {
+      match.goals.forEach(function(g) {
+        if (g.type === '通常' && g.memberId && playerStats[g.memberId]) {
+          playerStats[g.memberId].personalGoals = (playerStats[g.memberId].personalGoals || 0) + 1;
+        }
+      });
+    }
+  });
+
+  // 配列に変換してソート（勝ち点 → 得失点差 → 得点数）
+  var rankings = Object.keys(playerStats).map(function(id) {
+    var s = playerStats[id];
+    s.points = s.wins * 3 + s.draws;
+    s.goalDiff = s.goalsFor - s.goalsAgainst;
+    s.personalGoals = s.personalGoals || 0;
+    return s;
+  });
+
+  rankings.sort(function(a, b) {
+    if (b.points !== a.points) return b.points - a.points;
+    if (b.goalDiff !== a.goalDiff) return b.goalDiff - a.goalDiff;
+    return b.personalGoals - a.personalGoals;
+  });
+
+  if (rankings.length === 0) return '';
+
+  // 同率順位を計算（勝ち点と得失点差が同じなら同順位、次はスキップ）
+  var ranks = [];
+  for (var i = 0; i < rankings.length; i++) {
+    if (i === 0) {
+      ranks.push(1);
+    } else {
+      var prev = rankings[i - 1];
+      var curr = rankings[i];
+      if (curr.points === prev.points && curr.goalDiff === prev.goalDiff) {
+        ranks.push(ranks[i - 1]); // 同率
+      } else {
+        ranks.push(i + 1); // スキップ（例: 1,1,3）
+      }
+    }
+  }
+
+  // テーブルHTML生成
+  var rows = rankings.map(function(s, i) {
+    var rank = ranks[i];
+    var rankDisplay = '';
+    if (rank === 1) rankDisplay = '🥇';
+    else if (rank === 2) rankDisplay = '🥈';
+    else if (rank === 3) rankDisplay = '🥉';
+    else rankDisplay = rank;
+
+    var diffStr = s.goalDiff > 0 ? '+' + s.goalDiff : String(s.goalDiff);
+    var diffClass = s.goalDiff > 0 ? ' round-ranking-diff-pos' : (s.goalDiff < 0 ? ' round-ranking-diff-neg' : '');
+
+    return '<tr>' +
+      '<td>' + rankDisplay + '</td>' +
+      '<td>' + esc(s.name) + '</td>' +
+      '<td class="round-ranking-pts">' + s.points + '</td>' +
+      '<td>' + s.played + '</td>' +
+      '<td>' + s.wins + '</td>' +
+      '<td>' + s.draws + '</td>' +
+      '<td>' + s.losses + '</td>' +
+      '<td class="round-ranking-diff' + diffClass + '">' + diffStr + '</td>' +
+      '<td class="round-ranking-goals">' + s.personalGoals + '</td>' +
+      '</tr>';
+  }).join('');
+
+  var isLive = round.status !== '終了';
+  var liveIndicator = isLive ? '<span class="round-ranking-live">LIVE</span>' : '';
+
+  return '<div class="round-ranking">' +
+    '<div class="round-ranking-title">' + svg(IC.trophy, 16) + ' ラウンド順位' + liveIndicator + '</div>' +
+    '<table class="round-ranking-table">' +
+    '<thead><tr><th>#</th><th>名前</th><th>Pts</th><th>P</th><th>W</th><th>D</th><th>L</th><th>±</th><th>⚽</th></tr></thead>' +
+    '<tbody>' + rows + '</tbody></table></div>';
 }
 
 function showAddMatch(roundId) {
