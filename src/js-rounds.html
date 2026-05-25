@@ -363,7 +363,12 @@ function renderRoundsList(rounds) {
   var mm = buildMemberMapFromCurrent_();
   var canEditMatch = currentEventStatus === '進行中';
 
-  c.innerHTML = rounds.map(function(round) {
+  // 最新ラウンドを上に表示（降順）
+  var sortedRounds = rounds.slice().sort(function(a, b) {
+    return (b.roundNumber || 0) - (a.roundNumber || 0);
+  });
+
+  c.innerHTML = sortedRounds.map(function(round) {
     var sd = round.splitData || { names: [], teams: [] };
     var teamsH = renderRoundTeamsHtml(sd, mm);
 
@@ -449,29 +454,6 @@ function renderRoundsList(rounds) {
 
     // 終了ラウンドの折りたたみ時に最終順位サマリーを表示
     var roundSummaryH = '';
-    if (isRoundEnded && round.matches && round.matches.some(function(m) { return m.status === '終了'; })) {
-      var endedMatches = round.matches.filter(function(m) { return m.status === '終了'; });
-      var teamStats = {};
-      endedMatches.forEach(function(m) {
-        var sA = Number(m.scoreA) || 0;
-        var sB = Number(m.scoreB) || 0;
-        var nameA = m.teamAName || 'A';
-        var nameB = m.teamBName || 'B';
-        if (!teamStats[nameA]) teamStats[nameA] = { name: nameA, pts: 0 };
-        if (!teamStats[nameB]) teamStats[nameB] = { name: nameB, pts: 0 };
-        if (sA > sB) { teamStats[nameA].pts += 3; }
-        else if (sA === sB) { teamStats[nameA].pts += 1; teamStats[nameB].pts += 1; }
-        else { teamStats[nameB].pts += 3; }
-      });
-      var sorted = Object.keys(teamStats).map(function(k) { return teamStats[k]; });
-      sorted.sort(function(a, b) { return b.pts - a.pts; });
-      var medals = ['🥇', '🥈', '🥉'];
-      roundSummaryH = '<div class="round-summary-line">' +
-        sorted.map(function(t, i) {
-          var cls = teamColorMap[t.name] || 'a';
-          return '<span class="round-summary-team"><span class="round-summary-medal">' + (medals[i] || '') + '</span><span class="round-ranking-team-badge team-' + cls + '-badge">' + esc(t.name) + '</span></span>';
-        }).join('') + '</div>';
-    }
 
     return '<div class="card"><div' + roundToggle + ' class="round-section-header"' + (headerCursor ? ' style="' + headerCursor + '"' : '') + '>' +
       '<h3 style="margin:0;">ラウンド' + round.roundNumber + '</h3>' +
