@@ -1164,9 +1164,17 @@ body {
   user-select: none;
 }
 
+/* ソート中カラムのヘッダー */
 .lb-th-active {
   color: var(--primary) !important;
-  background: rgba(37, 99, 235, 0.06);
+  border-bottom: 3px solid var(--primary) !important;
+}
+
+/* ソート中カラムのセル値を強調 */
+.lb-td-sorted {
+  font-size: 0.9rem !important;
+  font-weight: 800 !important;
+  color: var(--primary) !important;
 }
 
 .lb-th-rank {
@@ -1239,11 +1247,6 @@ body {
 .lb-td-rating {
   font-weight: 700 !important;
   color: var(--primary) !important;
-}
-
-/* ソート中カラムのセルをハイライト */
-.lb-td-sorted {
-  background: rgba(37, 99, 235, 0.06);
 }
 
 /* 上位3行のハイライト */
