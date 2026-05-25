@@ -149,14 +149,36 @@ function renderStatsBoard() {
   // チップのアクティブ表示
   function chipClass(k) { return k === currentStatsSort ? 'lb-chip active' : 'lb-chip'; }
 
-  // ソート中のカラムをハイライトするためのキーマッピング
-  var sortColKey = currentStatsSort === 'matchPoints' ? 'pts' : (currentStatsSort === 'goals' ? 'goals' : 'rating');
-  function thHighlight(k) { return k === sortColKey ? ' class="lb-th-active"' : ''; }
+  // 列の並び順を動的に構成（ソート中の値を名前の直後に配置）
+  var columns = [
+    { key: 'matchPoints', label: 'Pts', tdClass: 'lb-td-pts' },
+    { key: 'played', label: 'P', tdClass: '' },
+    { key: 'wins', label: 'W', tdClass: 'lb-td-win' },
+    { key: 'draws', label: 'D', tdClass: 'lb-td-draw' },
+    { key: 'losses', label: 'L', tdClass: 'lb-td-loss' },
+    { key: 'goals', label: '⚽', tdClass: 'lb-td-goals' }
+  ];
+  if (showRating) {
+    columns.push({ key: 'rating', label: 'Rtg', tdClass: 'lb-td-rating' });
+  }
 
-  // MVP列を表示するか
-  var showRating = cachedMvpData && cachedMvpData.length > 0 && cachedMvpData.some(function(r) { return Number(r['レーティング']) > 0; });
-  var ratingChip = showRating ? '<button class="' + chipClass('rating') + '" onclick="sortStatsBy(\'rating\')">📊 Rating</button>' : '';
-  var ratingTh = showRating ? '<th' + thHighlight('rating') + '>Rtg</th>' : '';
+  // ソート中のカラムを先頭に移動
+  var sortIdx = -1;
+  for (var ci = 0; ci < columns.length; ci++) {
+    if (columns[ci].key === currentStatsSort) { sortIdx = ci; break; }
+  }
+  if (sortIdx > 0) {
+    var sortCol = columns.splice(sortIdx, 1)[0];
+    columns.unshift(sortCol);
+  }
+
+  // ヘッダー生成
+  var thHtml = columns.map(function(col) {
+    var cls = col.key === currentStatsSort ? ' class="lb-th-active"' : '';
+    return '<th' + cls + '>' + col.label + '</th>';
+  }).join('');
+
+  var colCount = columns.length + 2; // +2 for # and 名前
 
   var h = '<div class="lb-chips">' +
     '<button class="' + chipClass('matchPoints') + '" onclick="sortStatsBy(\'matchPoints\')">🏆 勝ち点</button>' +
@@ -168,13 +190,7 @@ function renderStatsBoard() {
     '<thead><tr>' +
     '<th class="lb-th-rank">#</th>' +
     '<th class="lb-th-name">名前</th>' +
-    '<th' + thHighlight('pts') + '>Pts</th>' +
-    '<th>P</th>' +
-    '<th>W</th>' +
-    '<th>D</th>' +
-    '<th>L</th>' +
-    '<th' + thHighlight('goals') + '>⚽</th>' +
-    ratingTh +
+    thHtml +
     '</tr></thead><tbody>';
 
   h += stats.map(function(s, i) {
@@ -187,23 +203,24 @@ function renderStatsBoard() {
 
     var rowClass = rank <= 3 ? ' lb-row-top' + rank : '';
 
-    var ratingTd = showRating ? '<td class="lb-td-rating' + (sortColKey === 'rating' ? ' lb-td-sorted' : '') + '">' + (s.rating > 0 ? s.rating.toFixed(1) : '-') + '</td>' : '';
+    // 各カラムのセル生成
+    var tdHtml = columns.map(function(col) {
+      var val = col.key === 'rating' ? (s.rating > 0 ? s.rating.toFixed(1) : '-') : (s[col.key] || 0);
+      var cls = col.tdClass;
+      if (col.key === currentStatsSort) cls += ' lb-td-sorted';
+      return '<td' + (cls ? ' class="' + cls.trim() + '"' : '') + '>' + val + '</td>';
+    }).join('');
+
     var detailHtml = buildStatsDetailHtml_(s);
-    var colSpan = showRating ? 9 : 8;
 
     return '<tr class="lb-row' + rowClass + '" onclick="toggleLbRow(this)">' +
       '<td class="lb-td-rank">' + rankDisplay + '</td>' +
       '<td class="lb-td-name"><span class="lb-name">' + esc(s.name) + '</span></td>' +
-      '<td class="lb-td-pts' + (sortColKey === 'pts' ? ' lb-td-sorted' : '') + '">' + s.matchPoints + '</td>' +
-      '<td>' + s.played + '</td>' +
-      '<td class="lb-td-win">' + s.wins + '</td>' +
-      '<td class="lb-td-draw">' + s.draws + '</td>' +
-      '<td class="lb-td-loss">' + s.losses + '</td>' +
-      '<td class="lb-td-goals' + (sortColKey === 'goals' ? ' lb-td-sorted' : '') + '">' + s.goals + '</td>' +
-      ratingTd +
+      tdHtml +
       '</tr>' +
-      '<tr class="lb-detail-row"><td colspan="' + (showRating ? 9 : 8) + '">' +
+      '<tr class="lb-detail-row"><td colspan="' + colCount + '">' +
       '<div class="lb-detail">' + detailHtml + '</div></td></tr>';
+  }).join('');
   }).join('');
 
   h += '</tbody></table></div>';
