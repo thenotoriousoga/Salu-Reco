@@ -298,13 +298,20 @@ function doCreateRound() {
 function renderTeamBoxHtml(team, idx, names, mm) {
   var cls = TEAM_CLASSES_[idx] || 'a';
   var name = (names || [])[idx] || ('チーム' + String.fromCharCode(65 + idx));
-  return '<div class="team-box team-' + cls + '"><h4>' + esc(name) + '</h4>' +
-    team.map(function(id) { return teamMemberHtml(id, mm); }).join('') + '</div>';
+  return '<div class="team-box-compact team-' + cls + '">' +
+    '<span class="team-box-compact-label team-' + cls + '-badge">' + esc(name) + ' <span class="team-box-compact-count">' + team.length + '</span></span>' +
+    '<div class="team-box-compact-members">' +
+    team.map(function(id) { var m = mm[id] || {}; return '<span class="team-box-compact-chip">' + esc(m['名前'] || '?') + '</span>'; }).join('') +
+    '</div></div>';
 }
 
 function renderRoundTeamsHtml(sd, mm) {
   if (!sd.teams || sd.teams.length === 0) return '';
-  var h = '<div class="teams-preview" style="margin:0 0 8px 0;">' +
+  var h = '<div class="teams-compact-wrap">' +
+    '<div class="teams-compact-toggle" onclick="toggleTeamsCompact(this)" role="button" tabindex="0" aria-expanded="false">' +
+    '<span class="teams-compact-toggle-label">' + svg('<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>', 14) + ' チーム編成</span>' +
+    '<svg class="teams-compact-chevron" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></div>' +
+    '<div class="teams-compact-body teams-compact-body-collapsed">' +
     sd.teams.map(function(team, idx) { return renderTeamBoxHtml(team, idx, sd.names, mm); }).join('');
 
   // 未参加者を表示
@@ -314,12 +321,14 @@ function renderRoundTeamsHtml(sd, mm) {
   });
   var absentees = (currentMembers || []).filter(function(m) { return !assignedIds[m['メンバーID']]; });
   if (absentees.length > 0) {
-    h += '<div class="team-box team-absent"><h4>不参加</h4>' +
-      absentees.map(function(m) { return '<div class="team-member team-member-absent">' + esc(m['名前'] || '?') + '</div>'; }).join('') +
-      '</div>';
+    h += '<div class="team-box-compact team-absent-compact">' +
+      '<span class="team-box-compact-label" style="background:var(--bg-surface);color:var(--text-muted);border:1px dashed var(--border);">不参加 <span class="team-box-compact-count">' + absentees.length + '</span></span>' +
+      '<div class="team-box-compact-members">' +
+      absentees.map(function(m) { return '<span class="team-box-compact-chip team-box-compact-chip-absent">' + esc(m['名前'] || '?') + '</span>'; }).join('') +
+      '</div></div>';
   }
 
-  h += '</div>';
+  h += '</div></div>';
   return h;
 }
 
@@ -738,6 +747,15 @@ function doCreateMatch(roundId) {
 
 function doEndRound(roundId) {
   callServer('endRound', [roundId], function(r) { showToast(r.message, !r.success); if (r.success) openEvent(currentEventId, 'tab-rounds'); });
+}
+
+function toggleTeamsCompact(toggleEl) {
+  var body = toggleEl.nextElementSibling;
+  if (body) body.classList.toggle('teams-compact-body-collapsed');
+  var chevron = toggleEl.querySelector('.teams-compact-chevron');
+  if (chevron) chevron.classList.toggle('teams-compact-chevron-open');
+  var expanded = !body.classList.contains('teams-compact-body-collapsed');
+  toggleEl.setAttribute('aria-expanded', String(expanded));
 }
 
 function toggleRoundBody(headerEl) {

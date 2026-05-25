@@ -617,6 +617,133 @@ body {
 .team-absent h4 { color: var(--text-muted); }
 .team-member-absent { color: var(--text-muted); font-size: 0.8rem; }
 
+/* --- コンパクトチーム編成表示（ラウンド一覧内） --- */
+.teams-compact-wrap {
+  margin: 0 0 12px 0;
+}
+
+.teams-compact-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition: background var(--transition);
+  user-select: none;
+}
+
+.teams-compact-toggle:hover {
+  background: var(--border-light);
+}
+
+.teams-compact-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.teams-compact-toggle-label svg {
+  width: 14px;
+  height: 14px;
+  stroke: var(--text-muted);
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.teams-compact-chevron {
+  width: 14px;
+  height: 14px;
+  stroke: var(--text-muted);
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.teams-compact-chevron-open {
+  transform: rotate(180deg);
+}
+
+.teams-compact-body {
+  padding: 10px 0 0;
+}
+
+.teams-compact-body-collapsed {
+  display: none;
+}
+
+.team-box-compact {
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border-light);
+}
+
+.team-box-compact.team-a { background: var(--team-a-bg); border-color: var(--team-a-border); }
+.team-box-compact.team-b { background: var(--team-b-bg); border-color: var(--team-b-border); }
+.team-box-compact.team-c { background: var(--team-c-bg); border-color: var(--team-c-border); }
+.team-box-compact.team-d { background: var(--team-d-bg); border-color: var(--team-d-border); }
+.team-box-compact.team-e { background: var(--team-e-bg); border-color: var(--team-e-border); }
+
+.team-box-compact-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  margin-bottom: 6px;
+  letter-spacing: 0.02em;
+}
+
+.team-box-compact-count {
+  font-size: 0.65rem;
+  opacity: 0.7;
+}
+
+.team-box-compact-members {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.team-box-compact-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.team-box-compact-chip-absent {
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  border: 1px dashed var(--border);
+}
+
+.team-absent-compact {
+  background: transparent;
+  border: 1px dashed var(--border);
+}
+
 /* チームカラーゾーン（チーム分けボード用） */
 .team-a-zone { background: var(--team-a-bg); border-color: var(--team-a-border); }
 .team-b-zone { background: var(--team-b-bg); border-color: var(--team-b-border); }
