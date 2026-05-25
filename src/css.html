@@ -751,7 +751,7 @@ body {
 .team-d-zone { background: var(--team-d-bg); border-color: var(--team-d-border); }
 .team-e-zone { background: var(--team-e-bg); border-color: var(--team-e-border); }
 
-/* 勝敗の視覚表示 */
+/* 勝敗の視覚表示（レガシー — .match-result-team 版が優先） */
 .match-win { border: 2px solid var(--success); box-shadow: 0 0 0 1px var(--success); }
 .match-lose { opacity: 0.6; }
 .match-draw { border: 2px solid var(--border); }
@@ -1631,11 +1631,7 @@ body {
 }
 
 /* --- 進行中試合 LIVE インジケーター --- */
-.scoreboard-live {
-  position: relative;
-  border-color: var(--success);
-  box-shadow: 0 0 0 1px var(--success), 0 4px 16px rgba(5, 150, 105, 0.12);
-}
+/* .scoreboard-live は下部の強化版セクションで定義 */
 
 .scoreboard-live-badge {
   position: absolute;
@@ -1951,17 +1947,325 @@ body {
   }
 }
 
-/* --- スコアバウンスアニメーション --- */
+/* --- スコアバウンスアニメーション（強化版） --- */
 @media (prefers-reduced-motion: no-preference) {
   .score.updated {
-    animation: scoreBounce 300ms ease;
+    animation: scoreBounce 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
   @keyframes scoreBounce {
     0% { transform: scale(1); }
-    50% { transform: scale(1.2); color: var(--primary); }
+    30% { transform: scale(1.4); color: var(--accent); text-shadow: 0 0 20px rgba(251, 191, 36, 0.6); }
+    60% { transform: scale(0.9); }
     100% { transform: scale(1); }
   }
+
+  /* ゴール時のフラッシュエフェクト */
+  .scoreboard-live.goal-flash {
+    animation: goalFlash 600ms ease-out;
+  }
+
+  @keyframes goalFlash {
+    0% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.8), 0 0 0 1px var(--success), 0 4px 16px rgba(5, 150, 105, 0.12); }
+    30% { box-shadow: 0 0 30px 10px rgba(251, 191, 36, 0.4), 0 0 0 1px var(--success), 0 4px 16px rgba(5, 150, 105, 0.12); }
+    100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0), 0 0 0 1px var(--success), 0 4px 16px rgba(5, 150, 105, 0.12); }
+  }
+
+  /* 得点ボタンのリップルエフェクト */
+  .goal-btn-ripple {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .goal-btn-ripple::after {
+    content: '⚽';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    font-size: 1.2rem;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .goal-btn-ripple.rippling::after {
+    animation: goalRipple 700ms ease-out forwards;
+  }
+
+  @keyframes goalRipple {
+    0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+    50% { transform: translate(-50%, -50%) scale(2); opacity: 0.6; }
+    100% { transform: translate(-50%, -100%) scale(2.5); opacity: 0; }
+  }
+}
+
+/* --- 進行中スコアボード強化 --- */
+.scoreboard-live {
+  position: relative;
+  border-color: var(--success);
+  box-shadow: 0 0 0 1px var(--success), 0 4px 16px rgba(5, 150, 105, 0.12);
+  background: linear-gradient(135deg, rgba(5, 150, 105, 0.03) 0%, var(--bg-surface) 40%, var(--border-light) 100%);
+  overflow: hidden;
+}
+
+/* スタジアムライト風の微妙なシマー */
+@media (prefers-reduced-motion: no-preference) {
+  .scoreboard-live::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: conic-gradient(from 0deg, transparent 0%, rgba(251, 191, 36, 0.03) 10%, transparent 20%);
+    animation: stadiumSweep 8s linear infinite;
+    pointer-events: none;
+  }
+}
+
+@keyframes stadiumSweep {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* リードしているチームのスコアを強調 */
+.score-leading {
+  color: var(--success) !important;
+  text-shadow: 0 2px 8px rgba(5, 150, 105, 0.2);
+  position: relative;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .score-leading::after {
+    content: '▲';
+    position: absolute;
+    top: -8px;
+    right: -12px;
+    font-size: 0.5rem;
+    color: var(--success);
+    animation: leadPulse 2s ease-in-out infinite;
+  }
+}
+
+@keyframes leadPulse {
+  0%, 100% { opacity: 0.6; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-2px); }
+}
+
+/* --- 終了試合の結果演出 --- */
+.match-result-team {
+  position: relative;
+  transition: all 300ms ease;
+}
+
+.match-result-team.match-win {
+  border: 2px solid var(--success);
+  box-shadow: 0 0 0 1px var(--success), 0 4px 12px rgba(5, 150, 105, 0.15);
+  background: linear-gradient(135deg, rgba(5, 150, 105, 0.05) 0%, var(--bg-card) 100%);
+}
+
+.match-result-team.match-win::before {
+  content: '🏆';
+  position: absolute;
+  top: -10px;
+  right: -6px;
+  font-size: 1.1rem;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+}
+
+.match-result-team.match-lose {
+  opacity: 0.55;
+  border: 1px solid var(--border-light);
+  filter: grayscale(0.2);
+}
+
+.match-result-team.match-draw {
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 0 1px var(--accent-dark), inset 0 0 12px rgba(251, 191, 36, 0.05);
+}
+
+/* 大差バッジ（3点差以上） */
+.match-dominant-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  margin-top: 8px;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: 20px;
+  animation: dominantGlow 2s ease-in-out infinite;
+}
+
+.match-dominant-badge-fire {
+  background: linear-gradient(135deg, #FEF3C7 0%, #FBBF24 100%);
+  color: #92400E;
+  border: 1px solid #F59E0B;
+}
+
+.match-dominant-badge-draw {
+  background: linear-gradient(135deg, #EDE9FE 0%, #C4B5FD 100%);
+  color: #5B21B6;
+  border: 1px solid #8B5CF6;
+}
+
+@keyframes dominantGlow {
+  0%, 100% { box-shadow: 0 0 4px rgba(251, 191, 36, 0.3); }
+  50% { box-shadow: 0 0 12px rgba(251, 191, 36, 0.6); }
+}
+
+/* --- 試合カードのリボンバナー --- */
+.match-card-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 16px;
+  margin: -16px -16px 12px -16px;
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+  color: white;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+.match-card-banner-live {
+  background: linear-gradient(135deg, #065F46 0%, var(--success) 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .match-card-banner-live::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+    animation: bannerShine 3s ease-in-out infinite;
+  }
+}
+
+@keyframes bannerShine {
+  0% { left: -100%; }
+  50%, 100% { left: 100%; }
+}
+
+.match-card-banner-ended {
+  background: linear-gradient(135deg, #374151 0%, #6B7280 100%);
+}
+
+/* --- チームカラーサイドストライプ --- */
+.match-card-striped {
+  position: relative;
+  overflow: hidden;
+}
+
+.match-card-striped::before,
+.match-card-striped::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+}
+
+.match-card-striped::before { left: 0; }
+.match-card-striped::after { right: 0; }
+
+.match-card-striped.stripe-a-b::before { background: var(--team-a); }
+.match-card-striped.stripe-a-b::after { background: var(--team-b); }
+.match-card-striped.stripe-a-c::before { background: var(--team-a); }
+.match-card-striped.stripe-a-c::after { background: var(--team-c); }
+.match-card-striped.stripe-a-d::before { background: var(--team-a); }
+.match-card-striped.stripe-a-d::after { background: var(--team-d); }
+.match-card-striped.stripe-a-e::before { background: var(--team-a); }
+.match-card-striped.stripe-a-e::after { background: var(--team-e); }
+.match-card-striped.stripe-b-c::before { background: var(--team-b); }
+.match-card-striped.stripe-b-c::after { background: var(--team-c); }
+.match-card-striped.stripe-b-d::before { background: var(--team-b); }
+.match-card-striped.stripe-b-d::after { background: var(--team-d); }
+.match-card-striped.stripe-b-e::before { background: var(--team-b); }
+.match-card-striped.stripe-b-e::after { background: var(--team-e); }
+.match-card-striped.stripe-c-d::before { background: var(--team-c); }
+.match-card-striped.stripe-c-d::after { background: var(--team-d); }
+.match-card-striped.stripe-c-e::before { background: var(--team-c); }
+.match-card-striped.stripe-c-e::after { background: var(--team-e); }
+.match-card-striped.stripe-d-e::before { background: var(--team-d); }
+.match-card-striped.stripe-d-e::after { background: var(--team-e); }
+
+/* --- 試合終了ホイッスルボタン強化 --- */
+.btn-whistle {
+  background: linear-gradient(135deg, var(--accent) 0%, #F59E0B 100%);
+  color: var(--text);
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
+  border: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-whistle:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(251, 191, 36, 0.5);
+}
+
+.btn-whistle::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  transition: left 400ms ease;
+}
+
+.btn-whistle:hover::before {
+  left: 100%;
+}
+
+/* --- ゴールパーティクル（CSS only） --- */
+.goal-particles {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+  overflow: hidden;
+}
+
+.goal-particle {
+  position: absolute;
+  font-size: 1.5rem;
+  animation: particleFly 1s ease-out forwards;
+  opacity: 0;
+}
+
+@keyframes particleFly {
+  0% { opacity: 1; transform: translate(0, 0) scale(1) rotate(0deg); }
+  100% { opacity: 0; transform: translate(var(--px), var(--py)) scale(0.3) rotate(720deg); }
+}
+
+/* --- 得点カウントのパルス --- */
+.goal-count span {
+  transition: transform 150ms ease, color 150ms ease;
+}
+
+.goal-count span.goal-count-pulse {
+  transform: scale(1.4);
+  color: var(--primary);
+  font-weight: 800;
 }
 
 /* --- レスポンシブ --- */
@@ -3217,5 +3521,10 @@ body:not(.role-user):not(.role-admin) .user-only { display: none !important; }
   .mvp-teaser::before { animation: none; }
   .mvp-teaser-icon { animation: none; }
   .mvp-teaser-dots span { animation: none; opacity: 0.6; }
+  .scoreboard-live::before { animation: none; display: none; }
+  .match-card-banner-live::after { animation: none; display: none; }
+  .match-dominant-badge { animation: none; }
+  .goal-particle { animation: none; display: none; }
+  .scoreboard-live-dot { animation: none; }
 }
 </style>

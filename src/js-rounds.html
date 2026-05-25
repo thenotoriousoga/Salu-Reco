@@ -386,8 +386,16 @@ function renderRoundsList(rounds) {
           ? '<span class="event-status-badge badge-ongoing">進行中</span>'
           : '<span class="event-status-badge badge-ended">終了</span>';
         var scoreH = (ongoing && canEditMatch) ? ongoingMatchHtml(m, teamColorMap) : endedMatchHtml(m, teamColorMap);
+
+        // チームカラーストライプ用クラス
+        var clsA = (teamColorMap && teamColorMap[m.teamAName]) || 'a';
+        var clsB = (teamColorMap && teamColorMap[m.teamBName]) || 'b';
+        var stripeClass = ' match-card-striped stripe-' + clsA + '-' + clsB;
+
         if (ongoing && canEditMatch) {
-          return '<div class="round-card" style="margin-left:0;"><div class="round-header"><span class="round-title">第' + m.matchNumber + '試合</span><div style="display:flex;align-items:center;gap:4px;">' + badge + '</div></div>' + scoreH + '</div>';
+          return '<div class="round-card' + stripeClass + '" style="margin-left:0;">' +
+            '<div class="match-card-banner match-card-banner-live">⚽ 第' + m.matchNumber + '試合</div>' +
+            scoreH + '</div>';
         }
         var scoreSummary = '<div class="match-header-score">' +
           esc(m.teamAName) + ' ' + m.scoreA + '-' + m.scoreB + ' ' + esc(m.teamBName) + '</div>';
@@ -400,7 +408,7 @@ function renderRoundsList(rounds) {
             '<button class="status-menu-item" onclick="reopenMatch(\'' + m.id + '\')">結果を編集</button>' +
             '</div></div>';
         }
-        return '<div class="round-card round-card-collapsed match-card-ended" style="margin-left:0;" onclick="toggleMatchBody(this)">' +
+        return '<div class="round-card round-card-collapsed match-card-ended' + stripeClass + '" style="margin-left:0;" onclick="toggleMatchBody(this)">' +
           '<div class="round-header">' +
           '<div class="round-header-main"><span class="round-title">第' + m.matchNumber + '試合</span>' + scoreSummary + '</div>' +
           '<div style="display:flex;align-items:center;gap:4px;">' + editMenuH + badge +
@@ -890,6 +898,12 @@ function ongoingMatchHtml(m, teamColorMap) {
   var clsA = (teamColorMap && teamColorMap[m.teamAName]) || 'a';
   var clsB = (teamColorMap && teamColorMap[m.teamBName]) || 'b';
   var tally = tallyGoalsByTeam_(m.goals);
+  var sA = Number(m.scoreA) || 0;
+  var sB = Number(m.scoreB) || 0;
+
+  // リードクラス
+  var leadClsA = sA > sB ? ' score-leading' : '';
+  var leadClsB = sB > sA ? ' score-leading' : '';
 
   // タイマー
   var h = '<div id="timer-area-' + m.id + '" class="match-timer-inline">' +
@@ -907,14 +921,14 @@ function ongoingMatchHtml(m, teamColorMap) {
     '<button class="btn btn-sm btn-secondary" onclick="resetTimer_(\'' + m.id + '\')">' + svg('<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>', 12) + '</button>' +
     '</div>';
 
-  // スコアボード
-  h += '<div class="scoreboard scoreboard-live" style="margin:12px 0;">' +
+  // スコアボード（リード表示付き）
+  h += '<div class="scoreboard scoreboard-live" id="scoreboard-' + m.id + '" style="margin:12px 0;">' +
     '<div class="scoreboard-live-badge"><span class="scoreboard-live-dot"></span>LIVE</div>' +
     '<div class="score-team"><span class="team-label team-' + clsA + '-badge">' + esc(m.teamAName) + '</span>' +
-    '<span class="score" id="sa-' + m.id + '">' + m.scoreA + '</span></div>' +
+    '<span class="score' + leadClsA + '" id="sa-' + m.id + '">' + m.scoreA + '</span></div>' +
     '<div class="score-vs">VS</div>' +
     '<div class="score-team"><span class="team-label team-' + clsB + '-badge">' + esc(m.teamBName) + '</span>' +
-    '<span class="score" id="sb-' + m.id + '">' + m.scoreB + '</span></div></div>';
+    '<span class="score' + leadClsB + '" id="sb-' + m.id + '">' + m.scoreB + '</span></div></div>';
 
   // 選手・得点セクション
   h += '<div class="goal-section"><h3 class="goal-section-title">' + svg(IC.goal, 16) + ' 選手・得点</h3>' +
@@ -927,7 +941,7 @@ function ongoingMatchHtml(m, teamColorMap) {
   h += '</div>';
 
   h += '<div style="display:flex;gap:8px;margin-top:12px;">' +
-    '<button class="btn btn-accent" style="flex:1;" onclick="endMatch(\'' + m.id + '\')">' + svg(IC.whistle, 16) + ' 試合終了</button></div>';
+    '<button class="btn btn-whistle" style="flex:1;" onclick="endMatch(\'' + m.id + '\')">' + svg(IC.whistle, 16) + ' 試合終了</button></div>';
   return h;
 }
 
@@ -1005,6 +1019,18 @@ function endedMatchHtml(m, teamColorMap) {
   else if (sB > sA) { resultA = ' match-lose'; resultB = ' match-win'; }
   else { resultA = ' match-draw'; resultB = ' match-draw'; }
 
+  // 大差バッジ（3点差以上 or 5得点以上）
+  var diff = Math.abs(sA - sB);
+  var totalGoals = sA + sB;
+  var dominantBadge = '';
+  if (diff >= 3) {
+    dominantBadge = '<div style="text-align:center;"><span class="match-dominant-badge match-dominant-badge-fire">🔥 DOMINANT WIN</span></div>';
+  } else if (sA === sB && totalGoals >= 4) {
+    dominantBadge = '<div style="text-align:center;"><span class="match-dominant-badge match-dominant-badge-draw">⚡ THRILLER</span></div>';
+  } else if (totalGoals >= 6) {
+    dominantBadge = '<div style="text-align:center;"><span class="match-dominant-badge match-dominant-badge-fire">🎯 GOAL FEST</span></div>';
+  }
+
   // 得点者集計
   var tally = tallyGoalsByTeam_(m.goals);
   var listA = buildScorerList_(tally.A, m.goals || [], 'A');
@@ -1030,7 +1056,7 @@ function endedMatchHtml(m, teamColorMap) {
     '<div class="match-result-team' + resultB + '" style="text-align:center;padding:8px 16px;border-radius:var(--radius-sm);flex:1;">' +
     '<div class="team-label team-' + clsB + '-badge" style="display:inline-block;margin-bottom:4px;">' + esc(m.teamBName) + '</div>' +
     '<div style="font-family:\'Fira Code\',monospace;font-size:1.5rem;font-weight:700;">' + sB + '</div></div>' +
-    '</div>' + goalsSummary + subH;
+    '</div>' + dominantBadge + goalsSummary + subH;
 }
 
 /**
@@ -1063,7 +1089,7 @@ function renderSubSectionHtml_(m, clsA, clsB) {
 // 得点操作
 // ===================================
 /**
- * 得点を増減する
+ * 得点を増減する（マイクロインタラクション付き）
  * @param {string} matchId - マッチID
  * @param {string} team - チーム（A / B）
  * @param {string} memberId - メンバーID（オウンゴール・不明の場合は空文字）
@@ -1083,6 +1109,15 @@ function changeGoal(matchId, team, memberId, type, delta) {
   if (delta < 0 && cur <= 0) return;
 
   el.textContent = Math.max(0, cur + delta);
+
+  // カウントのパルスアニメーション
+  el.classList.remove('goal-count-pulse');
+  void el.offsetWidth;
+  if (delta > 0) {
+    el.classList.add('goal-count-pulse');
+    setTimeout(function() { el.classList.remove('goal-count-pulse'); }, 200);
+  }
+
   recalcScoresFromGoals(matchId);
 }
 
@@ -1109,7 +1144,7 @@ function collectGoalsFromPanel_(matchId) {
   return goals;
 }
 
-/** 得点パネルからスコアを再計算 */
+/** 得点パネルからスコアを再計算（演出付き） */
 function recalcScoresFromGoals(matchId) {
   var scores = ['A', 'B'].map(function(team) {
     var panel = document.getElementById('goal-panel-' + matchId + '-' + team);
@@ -1124,8 +1159,65 @@ function recalcScoresFromGoals(matchId) {
 
   var eA = document.getElementById('sa-' + matchId);
   var eB = document.getElementById('sb-' + matchId);
-  if (eA) { eA.textContent = scores[0]; eA.classList.remove('updated'); void eA.offsetWidth; eA.classList.add('updated'); }
-  if (eB) { eB.textContent = scores[1]; eB.classList.remove('updated'); void eB.offsetWidth; eB.classList.add('updated'); }
+  var oldA = eA ? parseInt(eA.textContent) || 0 : 0;
+  var oldB = eB ? parseInt(eB.textContent) || 0 : 0;
+  var changed = (oldA !== scores[0] || oldB !== scores[1]);
+
+  if (eA) {
+    eA.textContent = scores[0];
+    // リードクラスの更新
+    eA.classList.toggle('score-leading', scores[0] > scores[1]);
+    if (oldA !== scores[0]) {
+      eA.classList.remove('updated'); void eA.offsetWidth; eA.classList.add('updated');
+    }
+  }
+  if (eB) {
+    eB.textContent = scores[1];
+    eB.classList.toggle('score-leading', scores[1] > scores[0]);
+    if (oldB !== scores[1]) {
+      eB.classList.remove('updated'); void eB.offsetWidth; eB.classList.add('updated');
+    }
+  }
+
+  // ゴール時のフラッシュ＆パーティクル
+  if (changed && (scores[0] > oldA || scores[1] > oldB)) {
+    var board = document.getElementById('scoreboard-' + matchId);
+    if (board) {
+      board.classList.remove('goal-flash');
+      void board.offsetWidth;
+      board.classList.add('goal-flash');
+      setTimeout(function() { board.classList.remove('goal-flash'); }, 700);
+    }
+    spawnGoalParticles_();
+  }
+}
+
+/**
+ * ゴール時のパーティクルエフェクトを生成する
+ */
+function spawnGoalParticles_() {
+  var container = document.createElement('div');
+  container.className = 'goal-particles';
+  document.body.appendChild(container);
+
+  var emojis = ['⚽', '🎉', '🔥', '⭐', '💥'];
+  for (var i = 0; i < 8; i++) {
+    var p = document.createElement('div');
+    p.className = 'goal-particle';
+    p.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+    var startX = 30 + Math.random() * 40; // 画面中央付近から
+    var startY = 40 + Math.random() * 20;
+    p.style.left = startX + '%';
+    p.style.top = startY + '%';
+    p.style.setProperty('--px', (Math.random() * 200 - 100) + 'px');
+    p.style.setProperty('--py', -(80 + Math.random() * 120) + 'px');
+    p.style.animationDelay = (Math.random() * 200) + 'ms';
+    container.appendChild(p);
+  }
+
+  setTimeout(function() {
+    if (container.parentNode) container.parentNode.removeChild(container);
+  }, 1500);
 }
 
 function endMatch(matchId) {
