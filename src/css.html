@@ -1777,6 +1777,33 @@ body {
   border-bottom: none;
 }
 
+/* サマリー行がある場合もヘッダー下の罫線を調整 */
+.round-section-header:has(+ .round-summary-line) {
+  padding-bottom: 8px;
+  margin-bottom: 0;
+  border-bottom: none;
+}
+
+/* 終了ラウンドの順位サマリー行 */
+.round-summary-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0 12px;
+  flex-wrap: wrap;
+}
+
+.round-summary-team {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.round-summary-medal {
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
 .round-body-collapsed {
   display: none;
 }
