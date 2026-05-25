@@ -504,4 +504,69 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 });
+// ===================================
+// スティッキータブバー（スクロール連動）
+// ===================================
+
+var stickyTabObserver_ = null;
+var stickyTabSentinel_ = null;
+
+/**
+ * イベント詳細画面が表示されたときにスティッキータブを初期化する
+ * タブバーがヘッダーの下端を超えたら、ヘッダーを隠してタブバーをスティッキーにする
+ */
+function initStickyTab() {
+  cleanupStickyTab();
+
+  var tabBar = document.querySelector('.tab-bar');
+  var header = document.querySelector('.header');
+  if (!tabBar || !header) return;
+
+  // センチネル要素を作成（タブバーの直前に配置）
+  stickyTabSentinel_ = document.createElement('div');
+  stickyTabSentinel_.className = 'tab-bar-sentinel';
+  stickyTabSentinel_.style.height = '1px';
+  stickyTabSentinel_.style.margin = '0';
+  stickyTabSentinel_.style.padding = '0';
+  stickyTabSentinel_.style.visibility = 'hidden';
+  tabBar.parentNode.insertBefore(stickyTabSentinel_, tabBar);
+
+  stickyTabObserver_ = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (!entry.isIntersecting) {
+        // センチネルが見えなくなった = タブバーがヘッダー位置に到達
+        header.classList.add('header-hidden');
+        tabBar.classList.add('tab-bar-sticky');
+      } else {
+        // センチネルが見えている = まだスクロールしていない
+        header.classList.remove('header-hidden');
+        tabBar.classList.remove('tab-bar-sticky');
+      }
+    });
+  }, {
+    threshold: 0,
+    rootMargin: '0px 0px 0px 0px'
+  });
+
+  stickyTabObserver_.observe(stickyTabSentinel_);
+}
+
+/**
+ * スティッキータブのクリーンアップ
+ */
+function cleanupStickyTab() {
+  if (stickyTabObserver_) {
+    stickyTabObserver_.disconnect();
+    stickyTabObserver_ = null;
+  }
+  if (stickyTabSentinel_ && stickyTabSentinel_.parentNode) {
+    stickyTabSentinel_.parentNode.removeChild(stickyTabSentinel_);
+    stickyTabSentinel_ = null;
+  }
+  var header = document.querySelector('.header');
+  var tabBar = document.querySelector('.tab-bar');
+  if (header) header.classList.remove('header-hidden');
+  if (tabBar) tabBar.classList.remove('tab-bar-sticky');
+}
+
 </script>

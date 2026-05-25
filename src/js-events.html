@@ -116,10 +116,14 @@ function renderEventDetail(d, activeTab) {
   }
 
   switchTab(activeTab || 'tab-members');
+
+  // スティッキータブを初期化
+  setTimeout(initStickyTab, 50);
 }
 
 /** イベント一覧に戻る */
 function backToEventList() {
+  cleanupStickyTab();
   document.getElementById('event-detail-view').style.display = 'none';
   document.getElementById('event-list-view').style.display = 'block';
   currentEventId = null;
