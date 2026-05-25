@@ -2985,6 +2985,113 @@ body:not(.role-user):not(.role-admin) .user-only { display: none !important; }
   max-width: 400px;
 }
 
+/* --- スコア修正モーダル --- */
+.sc-score-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.sc-score-team {
+  text-align: center;
+  flex: 1;
+}
+
+.sc-score-team .team-label {
+  display: inline-block;
+  margin-bottom: 6px;
+}
+
+.sc-score-input {
+  text-align: center;
+  font-family: 'Fira Code', monospace;
+  font-size: 1.5rem;
+  font-weight: 700;
+  padding: 8px;
+  width: 100%;
+}
+
+.sc-score-vs {
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: var(--text-muted);
+}
+
+.sc-goals-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+  max-height: 45vh;
+  overflow-y: auto;
+}
+
+.sc-team-panel {
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.sc-team-header {
+  padding: 6px 12px;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.sc-player-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border-light);
+}
+
+.sc-player-name {
+  font-size: 0.85rem;
+  font-weight: 500;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sc-player-goals {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.sc-goal-btn {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.sc-goal-count {
+  font-family: 'Fira Code', monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  min-width: 24px;
+  text-align: center;
+}
+
+.sc-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-align: center;
+  margin-bottom: 12px;
+}
+
 /* --- メンバー編集ボタン --- */
 .member-edit-btn {
   margin-left: auto;

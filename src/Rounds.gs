@@ -339,13 +339,14 @@ function reopenMatch(matchId) {
 }
 
 /**
- * 終了した試合のスコアを直接修正する（試合を再開せずに）
+ * 終了した試合のスコアと得点者を直接修正する（試合を再開せずに）
  * @param {string} matchId - マッチID
  * @param {number} scoreA - チームAの新スコア
  * @param {number} scoreB - チームBの新スコア
+ * @param {Object[]} goals - 得点データ配列 [{ team, memberId, type }, ...]
  * @return {Object} 結果オブジェクト { success, message }
  */
-function correctMatchScore(matchId, scoreA, scoreB) {
+function correctMatchScore(matchId, scoreA, scoreB, goals) {
   var ss = getSpreadsheet_();
   var matchSheet = ss.getSheetByName('マッチ');
   var matchRow = findRowIndex_(matchSheet, 0, matchId);
@@ -367,6 +368,17 @@ function correctMatchScore(matchId, scoreA, scoreB) {
   // スコアを更新（スコアA: 7列目, スコアB: 8列目）
   matchSheet.getRange(matchRow, 7).setValue(Number(scoreA) || 0);
   matchSheet.getRange(matchRow, 8).setValue(Number(scoreB) || 0);
+
+  // 得点データも更新（渡された場合）
+  if (goals) {
+    deleteRowsByMatch_('得点', 1, matchId);
+    if (goals.length > 0) {
+      var rows = goals.map(function(g) {
+        return [generateId_(), matchId, g.team, g.memberId || '', g.type || '通常'];
+      });
+      appendRows_(ensureSheet_(ss, '得点'), rows);
+    }
+  }
 
   return { success: true, message: 'スコアを修正しました' };
 }

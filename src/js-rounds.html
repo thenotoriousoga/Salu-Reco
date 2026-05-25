@@ -505,7 +505,7 @@ function buildRoundRankingHtml_(round, mm) {
     '</div></div>' +
     '<div class="round-ranking-panel" id="ranking-player-' + roundId + '">' +
     '<table class="round-ranking-table">' +
-    '<thead><tr><th>#</th><th>名前</th><th>Pts</th><th>P</th><th>W</th><th>D</th><th>L</th><th>±</th><th>⚽</th></tr></thead>' +
+    '<thead><tr><th>#</th><th>名前</th><th>Pts</th><th>P</th><th>W</th><th>D</th><th>L</th><th>⚽</th></tr></thead>' +
     '<tbody>' + playerRows + '</tbody></table></div>' +
     '<div class="round-ranking-panel active" id="ranking-team-' + roundId + '">' +
     '<table class="round-ranking-table round-ranking-table-team">' +
@@ -567,26 +567,22 @@ function buildPlayerRankingRows_(endedMatches) {
   var rankings = Object.keys(playerStats).map(function(id) {
     var s = playerStats[id];
     s.points = s.wins * 3 + s.draws;
-    s.goalDiff = s.goalsFor - s.goalsAgainst;
     return s;
   });
 
   rankings.sort(function(a, b) {
     if (b.points !== a.points) return b.points - a.points;
-    if (b.goalDiff !== a.goalDiff) return b.goalDiff - a.goalDiff;
     return b.personalGoals - a.personalGoals;
   });
 
   if (rankings.length === 0) return '';
 
   var ranks = calcTiedRanks_(rankings, function(a, b) {
-    return a.points === b.points && a.goalDiff === b.goalDiff;
+    return a.points === b.points && a.personalGoals === b.personalGoals;
   });
 
   return rankings.map(function(s, i) {
     var rankDisplay = rankToDisplay_(ranks[i]);
-    var diffStr = s.goalDiff > 0 ? '+' + s.goalDiff : String(s.goalDiff);
-    var diffClass = s.goalDiff > 0 ? ' round-ranking-diff-pos' : (s.goalDiff < 0 ? ' round-ranking-diff-neg' : '');
 
     return '<tr>' +
       '<td>' + rankDisplay + '</td>' +
@@ -596,7 +592,6 @@ function buildPlayerRankingRows_(endedMatches) {
       '<td>' + s.wins + '</td>' +
       '<td>' + s.draws + '</td>' +
       '<td>' + s.losses + '</td>' +
-      '<td class="round-ranking-diff' + diffClass + '">' + diffStr + '</td>' +
       '<td class="round-ranking-goals">' + s.personalGoals + '</td>' +
       '</tr>';
   }).join('');
@@ -1252,33 +1247,84 @@ function reopenMatch(matchId) {
 }
 
 /**
- * スコア修正モーダルを表示する
+ * スコア修正モーダルを表示する（個人得点編集付き）
  * @param {string} matchId - マッチID
  * @param {number} scoreA - 現在のスコアA
  * @param {number} scoreB - 現在のスコアB
  */
 function showScoreCorrect(matchId, scoreA, scoreB) {
   closeAllMatchMenus_();
-  // マッチデータからチーム名を取得
+  // マッチデータからチーム名・メンバーを取得
   var match = null;
   (cachedRounds || []).forEach(function(r) {
     (r.matches || []).forEach(function(m) {
       if (m.id === matchId) match = m;
     });
   });
-  var nameA = match ? match.teamAName : 'チームA';
-  var nameB = match ? match.teamBName : 'チームB';
+  if (!match) { showToast('試合データが見つかりません', true); return; }
+
+  var nameA = match.teamAName || 'チームA';
+  var nameB = match.teamBName || 'チームB';
+
+  // チーム名→カラークラスのマッピング
+  var teamColorMap = {};
+  (cachedRounds || []).forEach(function(r) {
+    if (r.splitData && r.splitData.names) {
+      r.splitData.names.forEach(function(n, idx) { teamColorMap[n] = TEAM_CLASSES_[idx] || 'a'; });
+    }
+  });
+  var clsA = teamColorMap[nameA] || 'a';
+  var clsB = teamColorMap[nameB] || 'b';
+
+  // 現在の個人得点を集計
+  var memberGoals = {};
+  (match.goals || []).forEach(function(g) {
+    if (g.type === '通常' && g.memberId) {
+      memberGoals[g.memberId] = (memberGoals[g.memberId] || 0) + 1;
+    }
+  });
+
+  // チームメンバーの得点入力行を生成
+  var buildPlayerRows = function(players, team) {
+    return (players || []).map(function(p) {
+      var cnt = memberGoals[p.id] || 0;
+      return '<div class="sc-player-row">' +
+        '<span class="sc-player-name">' + esc(p.name) + (p.isSub ? '<span class="sub-badge">助</span>' : '') + '</span>' +
+        '<div class="sc-player-goals">' +
+        '<button class="btn btn-sm btn-secondary sc-goal-btn" onclick="scChangeGoal(\'' + matchId + '\',\'' + p.id + '\',\'' + team + '\',-1)">-</button>' +
+        '<span class="sc-goal-count" id="sc-g-' + matchId + '-' + p.id + '">' + cnt + '</span>' +
+        '<button class="btn btn-sm btn-primary sc-goal-btn" onclick="scChangeGoal(\'' + matchId + '\',\'' + p.id + '\',\'' + team + '\',1)">+</button>' +
+        '</div></div>';
+    }).join('');
+  };
 
   var html = '<div class="modal-overlay" id="score-correct-modal" onclick="if(event.target===this)closeScoreCorrect()">' +
-    '<div class="modal-box" style="max-width:320px;">' +
-    '<h3 style="margin-bottom:16px;">スコア修正</h3>' +
-    '<div style="display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:20px;">' +
-    '<div style="text-align:center;flex:1;"><label style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:6px;">' + esc(nameA) + '</label>' +
-    '<input type="number" id="correct-score-a" value="' + scoreA + '" min="0" max="99" class="input" style="text-align:center;font-size:1.5rem;font-weight:700;padding:8px;"></div>' +
-    '<span style="font-weight:700;color:var(--text-muted);font-size:1.2rem;">-</span>' +
-    '<div style="text-align:center;flex:1;"><label style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:6px;">' + esc(nameB) + '</label>' +
-    '<input type="number" id="correct-score-b" value="' + scoreB + '" min="0" max="99" class="input" style="text-align:center;font-size:1.5rem;font-weight:700;padding:8px;"></div>' +
+    '<div class="modal-box modal-box-wide" style="max-width:400px;">' +
+    '<h3 style="margin-bottom:16px;">⚽ スコア修正</h3>' +
+
+    // チームスコア
+    '<div class="sc-score-row">' +
+    '<div class="sc-score-team"><span class="team-label team-' + clsA + '-badge">' + esc(nameA) + '</span>' +
+    '<input type="number" id="sc-score-a-' + matchId + '" value="' + scoreA + '" min="0" max="99" class="input sc-score-input"></div>' +
+    '<span class="sc-score-vs">-</span>' +
+    '<div class="sc-score-team"><span class="team-label team-' + clsB + '-badge">' + esc(nameB) + '</span>' +
+    '<input type="number" id="sc-score-b-' + matchId + '" value="' + scoreB + '" min="0" max="99" class="input sc-score-input"></div>' +
     '</div>' +
+
+    // 個人得点セクション
+    '<div class="sc-goals-section">' +
+    '<div class="sc-team-panel">' +
+    '<div class="sc-team-header team-' + clsA + '-badge">' + esc(nameA) + '</div>' +
+    buildPlayerRows(match.teamA, 'A') +
+    '</div>' +
+    '<div class="sc-team-panel">' +
+    '<div class="sc-team-header team-' + clsB + '-badge">' + esc(nameB) + '</div>' +
+    buildPlayerRows(match.teamB, 'B') +
+    '</div>' +
+    '</div>' +
+
+    '<p class="sc-hint">個人得点の合計がチームスコアと一致しなくても保存できます</p>' +
+
     '<div class="modal-actions">' +
     '<button class="btn btn-secondary" onclick="closeScoreCorrect()">キャンセル</button>' +
     '<button class="btn btn-primary" onclick="doCorrectScore(\'' + matchId + '\')">保存</button>' +
@@ -1288,20 +1334,76 @@ function showScoreCorrect(matchId, scoreA, scoreB) {
   container.innerHTML = html;
 }
 
+/**
+ * スコア修正モーダル内の個人得点を増減する
+ */
+function scChangeGoal(matchId, memberId, team, delta) {
+  var el = document.getElementById('sc-g-' + matchId + '-' + memberId);
+  if (!el) return;
+  var cur = parseInt(el.textContent) || 0;
+  var next = Math.max(0, cur + delta);
+  el.textContent = next;
+
+  // チームスコアを自動計算（個人得点の合計）
+  var total = 0;
+  var prefix = 'sc-g-' + matchId + '-';
+  var modal = document.getElementById('score-correct-modal');
+  if (!modal) return;
+
+  // 該当チームのメンバーの得点を合計
+  var match = null;
+  (cachedRounds || []).forEach(function(r) {
+    (r.matches || []).forEach(function(m) { if (m.id === matchId) match = m; });
+  });
+  if (!match) return;
+
+  var players = team === 'A' ? match.teamA : match.teamB;
+  (players || []).forEach(function(p) {
+    var countEl = document.getElementById(prefix + p.id);
+    if (countEl) total += parseInt(countEl.textContent) || 0;
+  });
+
+  var scoreInput = document.getElementById(team === 'A' ? 'sc-score-a-' + matchId : 'sc-score-b-' + matchId);
+  if (scoreInput) scoreInput.value = total;
+}
+
 function closeScoreCorrect() {
   document.getElementById('modal-container').innerHTML = '';
 }
 
 /**
- * スコア修正を実行する
+ * スコア修正を実行する（個人得点データ付き）
  * @param {string} matchId - マッチID
  */
 function doCorrectScore(matchId) {
-  var scoreA = parseInt(document.getElementById('correct-score-a').value) || 0;
-  var scoreB = parseInt(document.getElementById('correct-score-b').value) || 0;
+  var scoreA = parseInt(document.getElementById('sc-score-a-' + matchId).value) || 0;
+  var scoreB = parseInt(document.getElementById('sc-score-b-' + matchId).value) || 0;
   if (scoreA < 0 || scoreB < 0) { showToast('スコアは0以上で入力してください', true); return; }
+
+  // マッチデータからメンバーリストを取得
+  var match = null;
+  (cachedRounds || []).forEach(function(r) {
+    (r.matches || []).forEach(function(m) { if (m.id === matchId) match = m; });
+  });
+
+  // 個人得点データを収集
+  var goals = [];
+  var collectTeam = function(players, team) {
+    (players || []).forEach(function(p) {
+      var el = document.getElementById('sc-g-' + matchId + '-' + p.id);
+      var cnt = el ? (parseInt(el.textContent) || 0) : 0;
+      for (var i = 0; i < cnt; i++) {
+        goals.push({ team: team, memberId: p.id, type: '通常' });
+      }
+    });
+  };
+  if (match) {
+    collectTeam(match.teamA, 'A');
+    collectTeam(match.teamB, 'B');
+  }
+
   closeScoreCorrect();
-  callServer('correctMatchScore', [matchId, scoreA, scoreB], function(r) {
+  callServer('correctMatchScore', [matchId, scoreA, scoreB, goals], function(r) {
     showToast(r.message, !r.success);
     if (r.success) openEvent(currentEventId, 'tab-rounds');
   }, 'スコア修正に失敗しました');
