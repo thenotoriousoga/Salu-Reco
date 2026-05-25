@@ -1,17 +1,24 @@
 <script>
 // ===================================
-// イベント内成績（フロントで計算）
+// イベント内成績（リーダーボード形式）
 // ===================================
-var currentStatsMode = 'goals';
+var currentStatsSort = 'points'; // デフォルトソート: 勝ち点
+var currentStatsSortDir = 'desc';
 var cachedStatsData = [];
 var cachedMvpData = [];
 
-function switchStatsMode(mode) {
-  currentStatsMode = mode;
-  document.querySelectorAll('#stats-segment .segment-btn').forEach(function(b) {
-    b.classList.toggle('active', b.getAttribute('data-mode') === mode);
-  });
-  renderStatsCards();
+/**
+ * ソートキーを切り替える（同じキーなら昇降切り替え）
+ * @param {string} key - ソートキー
+ */
+function sortStatsBy(key) {
+  if (currentStatsSort === key) {
+    currentStatsSortDir = currentStatsSortDir === 'desc' ? 'asc' : 'desc';
+  } else {
+    currentStatsSort = key;
+    currentStatsSortDir = 'desc';
+  }
+  renderStatsBoard();
 }
 
 function toggleStatsDetail(el) {
@@ -29,44 +36,12 @@ function getMvpDataForMember_(memberId) {
   };
 }
 
-function ratingClass_(rating) {
-  if (rating >= 8.0) return ' stats-rating-high';
-  if (rating >= 6.0) return ' stats-rating-mid';
-  return '';
-}
-
-/**
- * モード別の強調表示HTMLを生成する
- * @param {Object} s - スタッツデータ
- * @return {string} HTML文字列
- */
-function statsHighlightHtml_(s) {
-  if (currentStatsMode === 'goals') return '<span class="stats-highlight">' + s.goals + '点</span>';
-  if (currentStatsMode === 'points') return '<span class="stats-highlight">' + s.matchPoints + 'pt</span>';
-  return '<span class="stats-rating' + ratingClass_(s.rating) + '">' + s.rating.toFixed(1) + '</span>';
-}
-
-/**
- * 詳細行HTMLを生成する（全モード共通）
- * @param {Object} s - スタッツデータ
- * @return {string} HTML文字列
- */
-function statsDetailsHtml_(s) {
-  return '<span>' + s.wins + '勝</span>' +
-    '<span>' + s.losses + '敗</span>' +
-    '<span>' + s.draws + '分</span>' +
-    '<span>' + s.played + '試合</span>' +
-    '<span>' + s.goals + '得点</span>';
-}
-
 function renderEventStats() {
   var c = document.getElementById('event-stats');
-  var segBar = document.getElementById('stats-segment');
   var members = currentMembers;
 
   // 準備中の場合はガイドメッセージを表示
   if (currentEventStatus === '準備中') {
-    segBar.style.display = 'none';
     var msg = isAdmin()
       ? '準備ができたら、ステータスを「進行中」に変更してください'
       : 'イベントが開始されるまでお待ちください';
@@ -78,7 +53,6 @@ function renderEventStats() {
   }
 
   if (!members || members.length === 0) {
-    segBar.style.display = 'none';
     c.innerHTML = '<div class="empty-state">' +
       '<svg aria-hidden="true" style="width:48px;height:48px;stroke:var(--border);fill:none;stroke-width:1.5;" viewBox="0 0 24 24">' +
       '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>' +
@@ -94,27 +68,6 @@ function renderEventStats() {
         allMatches.push({ match: m, roundNumber: r.roundNumber });
       });
     });
-  }
-
-  // スタッツタブ表示判定
-  var isFinished = currentEventStatus === 'イベント終了';
-  var hasMvp = isFinished && cachedMvpData && cachedMvpData.length > 0 && cachedMvpData.some(function(r) { return Number(r['レーティング']) > 0; });
-
-  segBar.style.display = 'flex';
-  var statsBtn = segBar.querySelector('[data-mode="stats"]');
-  if (hasMvp && !statsBtn) {
-    var btn = document.createElement('button');
-    btn.className = 'segment-btn';
-    btn.setAttribute('data-mode', 'stats');
-    btn.setAttribute('onclick', "switchStatsMode('stats')");
-    btn.textContent = '📊 スタッツ';
-    segBar.appendChild(btn);
-  } else if (!hasMvp && statsBtn) {
-    statsBtn.remove();
-    if (currentStatsMode === 'stats') {
-      currentStatsMode = 'goals';
-      segBar.querySelector('[data-mode="goals"]').classList.add('active');
-    }
   }
 
   // 成績データを計算
@@ -170,6 +123,7 @@ function renderEventStats() {
       draws: draws,
       goals: totalGoals,
       matchPoints: wins * 3 + draws,
+      winRate: played > 0 ? Math.round((wins / played) * 100) : 0,
       matchDetails: matchDetails,
       rating: mvpInfo ? mvpInfo.rating : 0,
       comment: mvpInfo ? mvpInfo.comment : '',
@@ -177,80 +131,132 @@ function renderEventStats() {
     };
   });
 
-  renderStatsCards();
+  renderStatsBoard();
 }
 
-function renderStatsCards() {
+/**
+ * リーダーボード形式で成績を描画する
+ * テーブルヘッダーをタップでソート切り替え
+ */
+function renderStatsBoard() {
   var c = document.getElementById('event-stats');
   var stats = cachedStatsData.slice();
 
   // ソート
-  if (currentStatsMode === 'goals') {
-    stats.sort(function(a, b) { return b.goals - a.goals || b.wins - a.wins; });
-  } else if (currentStatsMode === 'points') {
-    stats.sort(function(a, b) { return b.matchPoints - a.matchPoints || b.goals - a.goals; });
-  } else {
-    stats.sort(function(a, b) { return b.rating - a.rating || b.goals - a.goals; });
-  }
+  var key = currentStatsSort;
+  var dir = currentStatsSortDir === 'desc' ? -1 : 1;
+  stats.sort(function(a, b) {
+    var va = a[key] || 0, vb = b[key] || 0;
+    if (vb !== va) return (vb - va) * dir;
+    // セカンダリソート: 勝ち点 → 得点
+    if (key !== 'matchPoints' && b.matchPoints !== a.matchPoints) return b.matchPoints - a.matchPoints;
+    return b.goals - a.goals;
+  });
 
-  c.innerHTML = stats.map(function(s, i) {
-    // 勝率ゲージ
-    var winrateHtml = '';
+  // ソートインジケーター
+  var arrow = currentStatsSortDir === 'desc' ? '▼' : '▲';
+  function thClass(k) { return k === currentStatsSort ? ' class="lb-th-active"' : ''; }
+  function thArrow(k) { return k === currentStatsSort ? ' <span class="lb-sort-arrow">' + arrow + '</span>' : ''; }
+
+  // MVP列を表示するか
+  var showRating = cachedMvpData && cachedMvpData.length > 0 && cachedMvpData.some(function(r) { return Number(r['レーティング']) > 0; });
+  var ratingTh = showRating ? '<th' + thClass('rating') + ' onclick="sortStatsBy(\'rating\')">Rating' + thArrow('rating') + '</th>' : '';
+
+  var h = '<div class="lb-wrap">' +
+    '<table class="lb-table">' +
+    '<thead><tr>' +
+    '<th class="lb-th-rank">#</th>' +
+    '<th class="lb-th-name">名前</th>' +
+    '<th' + thClass('matchPoints') + ' onclick="sortStatsBy(\'matchPoints\')">Pts' + thArrow('matchPoints') + '</th>' +
+    '<th' + thClass('played') + ' onclick="sortStatsBy(\'played\')">P' + thArrow('played') + '</th>' +
+    '<th' + thClass('wins') + ' onclick="sortStatsBy(\'wins\')">W' + thArrow('wins') + '</th>' +
+    '<th' + thClass('draws') + ' onclick="sortStatsBy(\'draws\')">D' + thArrow('draws') + '</th>' +
+    '<th' + thClass('losses') + ' onclick="sortStatsBy(\'losses\')">L' + thArrow('losses') + '</th>' +
+    '<th' + thClass('goals') + ' onclick="sortStatsBy(\'goals\')">⚽' + thArrow('goals') + '</th>' +
+    ratingTh +
+    '</tr></thead><tbody>';
+
+  h += stats.map(function(s, i) {
+    var rank = i + 1;
+    var rankDisplay = '';
+    if (rank === 1) rankDisplay = '🥇';
+    else if (rank === 2) rankDisplay = '🥈';
+    else if (rank === 3) rankDisplay = '🥉';
+    else rankDisplay = rank;
+
+    var rowClass = rank <= 3 ? ' lb-row-top' + rank : '';
+
+    // 勝率バー（名前セルに小さく表示）
+    var winBar = '';
     if (s.played > 0) {
       var wPct = Math.round((s.wins / s.played) * 100);
       var dPct = Math.round((s.draws / s.played) * 100);
-      var lPct = 100 - wPct - dPct;
-      winrateHtml = '<div class="stats-winrate">' +
-        '<div class="stats-winrate-win" style="width:' + wPct + '%"></div>' +
-        '<div class="stats-winrate-draw" style="width:' + dPct + '%"></div>' +
-        '<div class="stats-winrate-lose" style="width:' + lPct + '%"></div>' +
-        '</div>';
+      winBar = '<div class="lb-winbar"><div class="lb-winbar-w" style="width:' + wPct + '%"></div><div class="lb-winbar-d" style="width:' + dPct + '%"></div></div>';
     }
 
-    // 試合別詳細
-    var matchRowsHtml = s.matchDetails.map(function(md) {
-      var resultClass = md.result === '勝ち' ? 'stats-match-win' : (md.result === '負け' ? 'stats-match-lose' : (md.result === '引分' ? 'stats-match-draw' : ''));
-      var resultBadge = resultClass ? '<span class="stats-match-result ' + resultClass + '">' + md.result + '</span>' : '<span class="stats-match-result">' + md.result + '</span>';
-      return '<div class="stats-match-row">' +
-        '<span class="stats-match-label">R' + md.roundNumber + '-M' + md.matchNumber + '</span>' +
-        resultBadge +
-        '<span>' + svg(IC.goal, 12) + ' ' + md.goals + '</span>' +
-        '<span class="stats-match-score">' + md.scoreA + '-' + md.scoreB + '</span>' +
-        '</div>';
-    }).join('');
+    // 展開用の詳細
+    var detailHtml = buildStatsDetailHtml_(s);
 
-    // AI評価コメント
-    var aiCommentHtml = '';
-    if (s.title || s.comment) {
-      aiCommentHtml = '<div class="stats-ai-section">' +
-        (s.title ? '<div class="stats-ai-title">🏅 ' + esc(s.title) + '</div>' : '') +
-        (s.comment ? '<div class="stats-ai-comment-text">' + esc(s.comment) + '</div>' : '') +
-        '</div>';
-    }
+    var ratingTd = showRating ? '<td class="lb-td-rating">' + (s.rating > 0 ? s.rating.toFixed(1) : '-') + '</td>' : '';
 
-    // 試合未実施の場合のプレースホルダー
-    if (!matchRowsHtml && !aiCommentHtml) {
-      matchRowsHtml = '<div class="stats-empty-detail">まだ試合に出場していません</div>';
-    }
+    return '<tr class="lb-row' + rowClass + '" onclick="toggleLbRow(this)">' +
+      '<td class="lb-td-rank">' + rankDisplay + '</td>' +
+      '<td class="lb-td-name"><span class="lb-name">' + esc(s.name) + '</span>' + winBar + '</td>' +
+      '<td class="lb-td-pts">' + s.matchPoints + '</td>' +
+      '<td>' + s.played + '</td>' +
+      '<td class="lb-td-win">' + s.wins + '</td>' +
+      '<td class="lb-td-draw">' + s.draws + '</td>' +
+      '<td class="lb-td-loss">' + s.losses + '</td>' +
+      '<td class="lb-td-goals">' + s.goals + '</td>' +
+      ratingTd +
+      '</tr>' +
+      '<tr class="lb-detail-row"><td colspan="' + (showRating ? 9 : 8) + '">' +
+      '<div class="lb-detail">' + detailHtml + '</div></td></tr>';
+  }).join('');
 
-    // 順位表示（メダル対応）
-    var rankDisplay = '';
-    if (i === 0) rankDisplay = '🥇';
-    else if (i === 1) rankDisplay = '🥈';
-    else if (i === 2) rankDisplay = '🥉';
-    else rankDisplay = '#' + (i + 1);
+  h += '</tbody></table></div>';
+  c.innerHTML = h;
+}
 
-    return '<div class="stats-card stats-card-expandable" onclick="toggleStatsDetail(this)">' +
-      '<div class="stats-name">' +
-      '<span class="stats-rank">' + rankDisplay + '</span>' + esc(s.name) +
-      statsHighlightHtml_(s) +
-      '<svg class="stats-expand-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>' +
-      '</div>' +
-      '<div class="stats-details">' + statsDetailsHtml_(s) + '</div>' +
-      winrateHtml +
-      '<div class="stats-detail"><div class="stats-detail-inner">' + matchRowsHtml + aiCommentHtml + '</div></div>' +
+/**
+ * リーダーボード行の展開/折りたたみ
+ */
+function toggleLbRow(tr) {
+  tr.classList.toggle('lb-row-expanded');
+  var detailRow = tr.nextElementSibling;
+  if (detailRow) detailRow.classList.toggle('lb-detail-row-open');
+}
+
+/**
+ * 個人の試合詳細HTMLを生成する
+ * @param {Object} s - スタッツデータ
+ * @return {string} HTML文字列
+ */
+function buildStatsDetailHtml_(s) {
+  if (s.matchDetails.length === 0 && !s.title && !s.comment) {
+    return '<div class="stats-empty-detail">まだ試合に出場していません</div>';
+  }
+
+  var matchRows = s.matchDetails.map(function(md) {
+    var resultClass = md.result === '勝ち' ? 'stats-match-win' : (md.result === '負け' ? 'stats-match-lose' : (md.result === '引分' ? 'stats-match-draw' : ''));
+    var resultBadge = '<span class="stats-match-result ' + resultClass + '">' + md.result + '</span>';
+    return '<div class="stats-match-row">' +
+      '<span class="stats-match-label">R' + md.roundNumber + '-M' + md.matchNumber + '</span>' +
+      resultBadge +
+      '<span>' + svg(IC.goal, 12) + ' ' + md.goals + '</span>' +
+      '<span class="stats-match-score">' + md.scoreA + '-' + md.scoreB + '</span>' +
       '</div>';
   }).join('');
+
+  var aiHtml = '';
+  if (s.title || s.comment) {
+    aiHtml = '<div class="stats-ai-section">' +
+      (s.title ? '<div class="stats-ai-title">🏅 ' + esc(s.title) + '</div>' : '') +
+      (s.comment ? '<div class="stats-ai-comment-text">' + esc(s.comment) + '</div>' : '') +
+      '</div>';
+  }
+
+  return matchRows + aiHtml;
 }
 
 // ===================================

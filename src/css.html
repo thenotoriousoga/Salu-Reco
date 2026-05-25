@@ -1097,134 +1097,193 @@ body {
 .status-ongoing { background: var(--success-bg); color: var(--success); border: 1px solid var(--success); }
 .status-ended { background: var(--border-light); color: var(--text-muted); border: 1px solid var(--border); }
 
-/* --- 成績 --- */
-.stats-sort { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
-.stats-sort .input { width: auto; flex: 1; }
-
-.stats-card {
-  padding: 14px 16px;
-  margin-bottom: 8px;
-  background: var(--bg-surface);
-  border-radius: var(--radius-sm);
-  border-left: 4px solid var(--border);
-  transition: box-shadow var(--transition), transform var(--transition);
-  position: relative;
-  overflow: hidden;
+/* --- 成績リーダーボード --- */
+.lb-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 0 -16px;
+  padding: 0 16px;
 }
 
-.stats-card::before {
+.lb-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  min-width: 340px;
+}
+
+.lb-table thead tr {
+  border-bottom: 2px solid var(--border);
+}
+
+.lb-table th {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 8px 4px;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition: color var(--transition);
+  position: relative;
+}
+
+.lb-table th:hover {
+  color: var(--primary);
+}
+
+.lb-th-active {
+  color: var(--primary) !important;
+}
+
+.lb-sort-arrow {
+  font-size: 0.6rem;
+  margin-left: 1px;
+}
+
+.lb-th-rank {
+  width: 28px;
+  cursor: default !important;
+}
+
+.lb-th-name {
+  text-align: left !important;
+  padding-left: 6px !important;
+  cursor: default !important;
+}
+
+.lb-table th:hover:not(.lb-th-rank):not(.lb-th-name)::after {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
   bottom: 0;
-  opacity: 0;
-  transition: opacity var(--transition);
-  pointer-events: none;
+  left: 20%;
+  right: 20%;
+  height: 2px;
+  background: var(--primary);
+  border-radius: 1px;
 }
 
-.stats-card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-1px);
+.lb-row {
+  cursor: pointer;
+  transition: background var(--transition);
+  border-bottom: 1px solid var(--border-light);
 }
 
-.stats-card:nth-child(1) {
-  border-left-color: var(--accent);
-  background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
+.lb-row:hover {
+  background: rgba(37, 99, 235, 0.03);
 }
 
-.stats-card:nth-child(2) {
-  border-left-color: #94A3B8;
-  background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
+.lb-row:active {
+  background: rgba(37, 99, 235, 0.06);
 }
 
-.stats-card:nth-child(3) {
-  border-left-color: #CD7F32;
-  background: linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%);
-}
-
-.stats-name {
-  font-family: 'Fira Code', monospace;
-  font-weight: 700;
-  font-size: 0.95rem;
-  margin-bottom: 8px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.stats-rank {
+.lb-row td {
+  padding: 10px 4px;
+  text-align: center;
   font-family: 'Fira Code', monospace;
   font-size: 0.8rem;
-  color: var(--text-muted);
-  margin-right: 2px;
-  font-weight: 700;
-  min-width: 24px;
-}
-
-.stats-card:nth-child(1) .stats-rank { color: var(--accent-dark); font-size: 1rem; }
-.stats-card:nth-child(2) .stats-rank { color: #64748B; font-size: 1rem; }
-.stats-card:nth-child(3) .stats-rank { color: #CD7F32; font-size: 1rem; }
-
-.stats-details {
-  display: flex;
-  gap: 6px;
-  font-size: 0.75rem;
   color: var(--text-secondary);
-  flex-wrap: wrap;
-}
-
-.stats-details span {
-  white-space: nowrap;
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  background: var(--bg-card);
-  padding: 2px 7px;
-  border-radius: 4px;
-  border: 1px solid var(--border-light);
-}
-
-.stats-details .stat-icon,
-.stat-icon {
-  width: 12px;
-  height: 12px;
-  stroke: currentColor;
-  fill: none;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  display: inline;
   vertical-align: middle;
 }
 
-/* --- 勝率ゲージ --- */
-.stats-winrate {
-  margin-top: 8px;
-  height: 4px;
+.lb-td-rank {
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.lb-td-name {
+  text-align: left !important;
+  padding-left: 6px !important;
+  max-width: 100px;
+}
+
+.lb-name {
+  font-family: 'Fira Sans', sans-serif;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--text);
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lb-winbar {
+  height: 3px;
   background: var(--border-light);
   border-radius: 2px;
-  overflow: hidden;
+  margin-top: 4px;
   display: flex;
+  overflow: hidden;
 }
 
-.stats-winrate-win {
+.lb-winbar-w {
   background: var(--success);
   height: 100%;
-  transition: width 400ms ease;
 }
 
-.stats-winrate-draw {
+.lb-winbar-d {
   background: var(--team-d);
   height: 100%;
-  transition: width 400ms ease;
 }
 
-.stats-winrate-lose {
-  background: var(--border);
-  height: 100%;
-  transition: width 400ms ease;
+.lb-td-pts {
+  font-weight: 700 !important;
+  color: var(--primary) !important;
+  font-size: 0.9rem !important;
+}
+
+.lb-td-win { color: var(--success) !important; font-weight: 600 !important; }
+.lb-td-loss { color: var(--text-muted) !important; }
+.lb-td-draw { color: var(--team-d) !important; }
+.lb-td-goals { color: var(--accent-dark) !important; font-weight: 600 !important; }
+
+.lb-td-rating {
+  font-weight: 700 !important;
+  color: var(--primary) !important;
+}
+
+/* 上位3行のハイライト */
+.lb-row-top1 td { background: rgba(255, 214, 0, 0.06); }
+.lb-row-top2 td { background: rgba(148, 163, 184, 0.04); }
+.lb-row-top3 td { background: rgba(205, 127, 50, 0.04); }
+
+.lb-row-top1 .lb-name { color: var(--accent-dark); }
+
+/* 展開行 */
+.lb-detail-row {
+  display: none;
+}
+
+.lb-detail-row-open {
+  display: table-row;
+}
+
+.lb-detail-row td {
+  padding: 0 !important;
+  border-bottom: 2px solid var(--border-light);
+}
+
+.lb-detail {
+  padding: 12px 16px;
+  background: var(--bg-surface);
+  animation: lb-detail-in 200ms ease;
+}
+
+@keyframes lb-detail-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 展開中の行にインジケーター */
+.lb-row-expanded {
+  background: rgba(37, 99, 235, 0.04) !important;
+}
+
+.lb-row-expanded td:first-child {
+  box-shadow: inset 3px 0 0 var(--primary);
 }
 
 /* --- セグメントボタン（ランキング切り替え） --- */
@@ -1269,90 +1328,7 @@ body {
   box-shadow: var(--shadow-sm);
 }
 
-/* --- スタッツカード拡張（レーティング表示） --- */
-.stats-rating {
-  font-family: 'Fira Code', monospace;
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--primary);
-  background: var(--bg-surface);
-  border: 2px solid var(--border);
-  border-radius: var(--radius-xs);
-  padding: 2px 8px;
-  margin-left: auto;
-  white-space: nowrap;
-}
-
-.stats-rating-high {
-  color: var(--accent-dark);
-  border-color: var(--accent);
-  background: #FFFBEB;
-}
-
-.stats-rating-mid {
-  color: var(--success);
-  border-color: var(--success);
-  background: var(--success-bg);
-}
-
-/* --- スタッツ強調表示 --- */
-.stats-highlight {
-  font-family: 'Fira Code', monospace;
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--primary);
-  margin-left: auto;
-  white-space: nowrap;
-  background: rgba(37, 99, 235, 0.08);
-  padding: 2px 8px;
-  border-radius: 4px;
-}
-
-/* --- アコーディオン展開（個人詳細） --- */
-.stats-card-expandable {
-  cursor: pointer;
-}
-
-.stats-expand-icon {
-  width: 16px;
-  height: 16px;
-  stroke: var(--text-muted);
-  fill: none;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  transition: transform var(--transition);
-  flex-shrink: 0;
-}
-
-.stats-card-expandable.expanded .stats-expand-icon {
-  transform: rotate(180deg);
-}
-
-.stats-detail {
-  max-height: 0;
-  overflow: hidden;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .stats-detail {
-    transition: max-height 300ms ease-out;
-  }
-
-  .stats-card-expandable.expanded .stats-detail {
-    transition: max-height 300ms ease-in;
-  }
-}
-
-.stats-card-expandable.expanded .stats-detail {
-  max-height: 600px;
-}
-
-.stats-detail-inner {
-  padding-top: 12px;
-  margin-top: 10px;
-  border-top: 1px solid var(--border-light);
-}
+/* --- 試合詳細（展開行内） --- */
 
 .stats-match-row {
   display: flex;
