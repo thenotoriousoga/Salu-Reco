@@ -2,22 +2,16 @@
 // ===================================
 // イベント内成績（リーダーボード形式）
 // ===================================
-var currentStatsSort = 'points'; // デフォルトソート: 勝ち点
-var currentStatsSortDir = 'desc';
+var currentStatsSort = 'matchPoints'; // デフォルト: 勝ち点ランキング
 var cachedStatsData = [];
 var cachedMvpData = [];
 
 /**
- * ソートキーを切り替える（同じキーなら昇降切り替え）
+ * ランキング基準を切り替える（常に降順）
  * @param {string} key - ソートキー
  */
 function sortStatsBy(key) {
-  if (currentStatsSort === key) {
-    currentStatsSortDir = currentStatsSortDir === 'desc' ? 'asc' : 'desc';
-  } else {
-    currentStatsSort = key;
-    currentStatsSortDir = 'desc';
-  }
+  currentStatsSort = key;
   renderStatsBoard();
 }
 
@@ -142,37 +136,40 @@ function renderStatsBoard() {
   var c = document.getElementById('event-stats');
   var stats = cachedStatsData.slice();
 
-  // ソート
+  // ソート（常に降順）
   var key = currentStatsSort;
-  var dir = currentStatsSortDir === 'desc' ? -1 : 1;
   stats.sort(function(a, b) {
     var va = a[key] || 0, vb = b[key] || 0;
-    if (vb !== va) return (vb - va) * dir;
+    if (vb !== va) return vb - va;
     // セカンダリソート: 勝ち点 → 得点
     if (key !== 'matchPoints' && b.matchPoints !== a.matchPoints) return b.matchPoints - a.matchPoints;
     return b.goals - a.goals;
   });
 
-  // ソートインジケーター
-  var arrow = currentStatsSortDir === 'desc' ? '▼' : '▲';
-  function thClass(k) { return k === currentStatsSort ? ' class="lb-th-active"' : ''; }
-  function thArrow(k) { return k === currentStatsSort ? ' <span class="lb-sort-arrow">' + arrow + '</span>' : ''; }
+  // アクティブ表示
+  function chipClass(k) { return k === currentStatsSort ? 'lb-chip active' : 'lb-chip'; }
 
   // MVP列を表示するか
   var showRating = cachedMvpData && cachedMvpData.length > 0 && cachedMvpData.some(function(r) { return Number(r['レーティング']) > 0; });
-  var ratingTh = showRating ? '<th' + thClass('rating') + ' onclick="sortStatsBy(\'rating\')">Rating' + thArrow('rating') + '</th>' : '';
+  var ratingChip = showRating ? '<button class="' + chipClass('rating') + '" onclick="sortStatsBy(\'rating\')">📊 Rating</button>' : '';
+  var ratingTh = showRating ? '<th>Rtg</th>' : '';
 
-  var h = '<div class="lb-wrap">' +
+  var h = '<div class="lb-chips">' +
+    '<button class="' + chipClass('matchPoints') + '" onclick="sortStatsBy(\'matchPoints\')">🏆 勝ち点</button>' +
+    '<button class="' + chipClass('goals') + '" onclick="sortStatsBy(\'goals\')">⚽ 得点</button>' +
+    ratingChip +
+    '</div>' +
+    '<div class="lb-wrap">' +
     '<table class="lb-table">' +
     '<thead><tr>' +
     '<th class="lb-th-rank">#</th>' +
     '<th class="lb-th-name">名前</th>' +
-    '<th' + thClass('matchPoints') + ' onclick="sortStatsBy(\'matchPoints\')">Pts' + thArrow('matchPoints') + '</th>' +
-    '<th' + thClass('played') + ' onclick="sortStatsBy(\'played\')">P' + thArrow('played') + '</th>' +
-    '<th' + thClass('wins') + ' onclick="sortStatsBy(\'wins\')">W' + thArrow('wins') + '</th>' +
-    '<th' + thClass('draws') + ' onclick="sortStatsBy(\'draws\')">D' + thArrow('draws') + '</th>' +
-    '<th' + thClass('losses') + ' onclick="sortStatsBy(\'losses\')">L' + thArrow('losses') + '</th>' +
-    '<th' + thClass('goals') + ' onclick="sortStatsBy(\'goals\')">⚽' + thArrow('goals') + '</th>' +
+    '<th>Pts</th>' +
+    '<th>P</th>' +
+    '<th>W</th>' +
+    '<th>D</th>' +
+    '<th>L</th>' +
+    '<th>⚽</th>' +
     ratingTh +
     '</tr></thead><tbody>';
 
@@ -186,22 +183,13 @@ function renderStatsBoard() {
 
     var rowClass = rank <= 3 ? ' lb-row-top' + rank : '';
 
-    // 勝率バー（名前セルに小さく表示）
-    var winBar = '';
-    if (s.played > 0) {
-      var wPct = Math.round((s.wins / s.played) * 100);
-      var dPct = Math.round((s.draws / s.played) * 100);
-      winBar = '<div class="lb-winbar"><div class="lb-winbar-w" style="width:' + wPct + '%"></div><div class="lb-winbar-d" style="width:' + dPct + '%"></div></div>';
-    }
-
-    // 展開用の詳細
-    var detailHtml = buildStatsDetailHtml_(s);
-
     var ratingTd = showRating ? '<td class="lb-td-rating">' + (s.rating > 0 ? s.rating.toFixed(1) : '-') + '</td>' : '';
+    var detailHtml = buildStatsDetailHtml_(s);
+    var colSpan = showRating ? 9 : 8;
 
     return '<tr class="lb-row' + rowClass + '" onclick="toggleLbRow(this)">' +
       '<td class="lb-td-rank">' + rankDisplay + '</td>' +
-      '<td class="lb-td-name"><span class="lb-name">' + esc(s.name) + '</span>' + winBar + '</td>' +
+      '<td class="lb-td-name"><span class="lb-name">' + esc(s.name) + '</span></td>' +
       '<td class="lb-td-pts">' + s.matchPoints + '</td>' +
       '<td>' + s.played + '</td>' +
       '<td class="lb-td-win">' + s.wins + '</td>' +

@@ -1098,6 +1098,43 @@ body {
 .status-ended { background: var(--border-light); color: var(--text-muted); border: 1px solid var(--border); }
 
 /* --- 成績リーダーボード --- */
+.lb-chips {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.lb-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 14px;
+  border: 2px solid var(--border);
+  border-radius: 20px;
+  background: var(--bg-surface);
+  font-family: 'Fira Sans', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 150ms ease;
+  white-space: nowrap;
+}
+
+.lb-chip:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: rgba(37, 99, 235, 0.04);
+}
+
+.lb-chip.active {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+}
+
 .lb-wrap {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -1124,23 +1161,7 @@ body {
   text-align: center;
   padding: 8px 4px;
   white-space: nowrap;
-  cursor: pointer;
   user-select: none;
-  transition: color var(--transition);
-  position: relative;
-}
-
-.lb-table th:hover {
-  color: var(--primary);
-}
-
-.lb-th-active {
-  color: var(--primary) !important;
-}
-
-.lb-sort-arrow {
-  font-size: 0.6rem;
-  margin-left: 1px;
 }
 
 .lb-th-rank {
@@ -1152,17 +1173,6 @@ body {
   text-align: left !important;
   padding-left: 6px !important;
   cursor: default !important;
-}
-
-.lb-table th:hover:not(.lb-th-rank):not(.lb-th-name)::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 20%;
-  right: 20%;
-  height: 2px;
-  background: var(--primary);
-  border-radius: 1px;
 }
 
 .lb-row {
@@ -1208,25 +1218,6 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.lb-winbar {
-  height: 3px;
-  background: var(--border-light);
-  border-radius: 2px;
-  margin-top: 4px;
-  display: flex;
-  overflow: hidden;
-}
-
-.lb-winbar-w {
-  background: var(--success);
-  height: 100%;
-}
-
-.lb-winbar-d {
-  background: var(--team-d);
-  height: 100%;
 }
 
 .lb-td-pts {
