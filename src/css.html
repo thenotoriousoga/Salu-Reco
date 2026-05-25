@@ -1103,23 +1103,52 @@ body {
 
 .stats-card {
   padding: 14px 16px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   background: var(--bg-surface);
   border-radius: var(--radius-sm);
-  border-left: 5px solid var(--primary);
-  transition: box-shadow var(--transition);
+  border-left: 4px solid var(--border);
+  transition: box-shadow var(--transition), transform var(--transition);
+  position: relative;
+  overflow: hidden;
 }
 
-.stats-card:hover { box-shadow: var(--shadow-md); }
-.stats-card:nth-child(1) { border-left-color: var(--accent); background: #FFFBEB; }
-.stats-card:nth-child(2) { border-left-color: #94A3B8; background: #F8FAFC; }
-.stats-card:nth-child(3) { border-left-color: #CD7F32; background: #FFF7ED; }
+.stats-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  opacity: 0;
+  transition: opacity var(--transition);
+  pointer-events: none;
+}
+
+.stats-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.stats-card:nth-child(1) {
+  border-left-color: var(--accent);
+  background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
+}
+
+.stats-card:nth-child(2) {
+  border-left-color: #94A3B8;
+  background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
+}
+
+.stats-card:nth-child(3) {
+  border-left-color: #CD7F32;
+  background: linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%);
+}
 
 .stats-name {
   font-family: 'Fira Code', monospace;
   font-weight: 700;
-  font-size: 1rem;
-  margin-bottom: 6px;
+  font-size: 0.95rem;
+  margin-bottom: 8px;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1127,26 +1156,40 @@ body {
 
 .stats-rank {
   font-family: 'Fira Code', monospace;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: var(--text-muted);
-  margin-right: 4px;
+  margin-right: 2px;
   font-weight: 700;
+  min-width: 24px;
 }
+
+.stats-card:nth-child(1) .stats-rank { color: var(--accent-dark); font-size: 1rem; }
+.stats-card:nth-child(2) .stats-rank { color: #64748B; font-size: 1rem; }
+.stats-card:nth-child(3) .stats-rank { color: #CD7F32; font-size: 1rem; }
 
 .stats-details {
   display: flex;
-  gap: 14px;
-  font-size: 0.8rem;
+  gap: 6px;
+  font-size: 0.75rem;
   color: var(--text-secondary);
   flex-wrap: wrap;
 }
 
-.stats-details span { white-space: nowrap; display: flex; align-items: center; gap: 3px; }
+.stats-details span {
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--bg-card);
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid var(--border-light);
+}
 
 .stats-details .stat-icon,
 .stat-icon {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   stroke: currentColor;
   fill: none;
   stroke-width: 2;
@@ -1154,6 +1197,34 @@ body {
   stroke-linejoin: round;
   display: inline;
   vertical-align: middle;
+}
+
+/* --- 勝率ゲージ --- */
+.stats-winrate {
+  margin-top: 8px;
+  height: 4px;
+  background: var(--border-light);
+  border-radius: 2px;
+  overflow: hidden;
+  display: flex;
+}
+
+.stats-winrate-win {
+  background: var(--success);
+  height: 100%;
+  transition: width 400ms ease;
+}
+
+.stats-winrate-draw {
+  background: var(--team-d);
+  height: 100%;
+  transition: width 400ms ease;
+}
+
+.stats-winrate-lose {
+  background: var(--border);
+  height: 100%;
+  transition: width 400ms ease;
 }
 
 /* --- セグメントボタン（ランキング切り替え） --- */
@@ -1227,11 +1298,14 @@ body {
 /* --- スタッツ強調表示 --- */
 .stats-highlight {
   font-family: 'Fira Code', monospace;
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 700;
   color: var(--primary);
   margin-left: auto;
   white-space: nowrap;
+  background: rgba(37, 99, 235, 0.08);
+  padding: 2px 8px;
+  border-radius: 4px;
 }
 
 /* --- アコーディオン展開（個人詳細） --- */
@@ -1271,7 +1345,7 @@ body {
 }
 
 .stats-card-expandable.expanded .stats-detail {
-  max-height: 500px;
+  max-height: 600px;
 }
 
 .stats-detail-inner {
@@ -1284,18 +1358,22 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 0;
-  font-size: 0.8rem;
+  padding: 8px 10px;
+  font-size: 0.78rem;
   color: var(--text-secondary);
-  border-bottom: 1px solid var(--border-light);
+  border-radius: 6px;
+  margin-bottom: 4px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  transition: background var(--transition);
 }
 
-.stats-match-row:last-child {
-  border-bottom: none;
+.stats-match-row:hover {
+  background: var(--bg-surface);
 }
 
 .stats-empty-detail {
-  padding: 10px 0;
+  padding: 16px 0;
   font-size: 0.8rem;
   color: var(--text-muted);
   text-align: center;
@@ -1304,16 +1382,17 @@ body {
 
 .stats-match-label {
   font-family: 'Fira Code', monospace;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 600;
-  min-width: 60px;
+  min-width: 52px;
+  color: var(--text-muted);
 }
 
 .stats-match-result {
   font-family: 'Fira Code', monospace;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 700;
-  padding: 1px 8px;
+  padding: 2px 8px;
   border-radius: 4px;
 }
 
@@ -1321,18 +1400,26 @@ body {
 .stats-match-lose { background: var(--border-light); color: var(--text-muted); }
 .stats-match-draw { background: var(--team-d-bg); color: var(--team-d); }
 
+.stats-match-score {
+  margin-left: auto;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
 .stats-ai-section {
   margin-top: 12px;
-  padding: 12px 14px;
-  background: linear-gradient(135deg, var(--bg-surface) 0%, rgba(255, 214, 0, 0.05) 100%);
+  padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(255, 214, 0, 0.04) 0%, rgba(255, 214, 0, 0.08) 100%);
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border-light);
+  border: 1px solid rgba(255, 214, 0, 0.2);
 }
 
 .stats-ai-title {
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 700;
-  color: var(--accent);
+  color: var(--accent-dark);
   margin-bottom: 8px;
   display: flex;
   align-items: center;
@@ -1340,9 +1427,9 @@ body {
 }
 
 .stats-ai-comment-text {
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   color: var(--text-secondary);
-  line-height: 1.6;
+  line-height: 1.7;
   white-space: pre-wrap;
 }
 

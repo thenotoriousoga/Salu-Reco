@@ -194,6 +194,19 @@ function renderStatsCards() {
   }
 
   c.innerHTML = stats.map(function(s, i) {
+    // 勝率ゲージ
+    var winrateHtml = '';
+    if (s.played > 0) {
+      var wPct = Math.round((s.wins / s.played) * 100);
+      var dPct = Math.round((s.draws / s.played) * 100);
+      var lPct = 100 - wPct - dPct;
+      winrateHtml = '<div class="stats-winrate">' +
+        '<div class="stats-winrate-win" style="width:' + wPct + '%"></div>' +
+        '<div class="stats-winrate-draw" style="width:' + dPct + '%"></div>' +
+        '<div class="stats-winrate-lose" style="width:' + lPct + '%"></div>' +
+        '</div>';
+    }
+
     // 試合別詳細
     var matchRowsHtml = s.matchDetails.map(function(md) {
       var resultClass = md.result === '勝ち' ? 'stats-match-win' : (md.result === '負け' ? 'stats-match-lose' : (md.result === '引分' ? 'stats-match-draw' : ''));
@@ -201,8 +214,8 @@ function renderStatsCards() {
       return '<div class="stats-match-row">' +
         '<span class="stats-match-label">R' + md.roundNumber + '-M' + md.matchNumber + '</span>' +
         resultBadge +
-        '<span>' + svg(IC.goal, 12) + ' ' + md.goals + '得点</span>' +
-        '<span style="margin-left:auto;font-family:\'Fira Code\',monospace;font-size:0.75rem;">' + md.scoreA + '-' + md.scoreB + '</span>' +
+        '<span>' + svg(IC.goal, 12) + ' ' + md.goals + '</span>' +
+        '<span class="stats-match-score">' + md.scoreA + '-' + md.scoreB + '</span>' +
         '</div>';
     }).join('');
 
@@ -220,13 +233,21 @@ function renderStatsCards() {
       matchRowsHtml = '<div class="stats-empty-detail">まだ試合に出場していません</div>';
     }
 
+    // 順位表示（メダル対応）
+    var rankDisplay = '';
+    if (i === 0) rankDisplay = '🥇';
+    else if (i === 1) rankDisplay = '🥈';
+    else if (i === 2) rankDisplay = '🥉';
+    else rankDisplay = '#' + (i + 1);
+
     return '<div class="stats-card stats-card-expandable" onclick="toggleStatsDetail(this)">' +
       '<div class="stats-name">' +
-      '<span class="stats-rank">#' + (i + 1) + '</span>' + esc(s.name) +
+      '<span class="stats-rank">' + rankDisplay + '</span>' + esc(s.name) +
       statsHighlightHtml_(s) +
       '<svg class="stats-expand-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>' +
       '</div>' +
       '<div class="stats-details">' + statsDetailsHtml_(s) + '</div>' +
+      winrateHtml +
       '<div class="stats-detail"><div class="stats-detail-inner">' + matchRowsHtml + aiCommentHtml + '</div></div>' +
       '</div>';
   }).join('');
