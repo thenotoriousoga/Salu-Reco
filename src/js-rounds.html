@@ -786,7 +786,8 @@ function toggleTeamsCompact(toggleEl) {
 }
 
 function toggleRoundBody(headerEl) {
-  var body = headerEl.nextElementSibling;
+  var card = headerEl.parentElement;
+  var body = card.querySelector('.round-body');
   if (body) body.classList.toggle('round-body-collapsed');
   var icon = headerEl.querySelector('.round-expand-icon');
   if (icon) icon.classList.toggle('round-expand-icon-open');

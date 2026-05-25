@@ -1771,7 +1771,7 @@ body {
 }
 
 /* 折りたたみ時はヘッダー下の余白・罫線を消す */
-.round-section-header:has(+ .round-body-collapsed) {
+.round-section-header:has(~ .round-body-collapsed) {
   padding-bottom: 0;
   margin-bottom: 0;
   border-bottom: none;
