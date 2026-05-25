@@ -146,13 +146,17 @@ function renderStatsBoard() {
     return b.goals - a.goals;
   });
 
-  // アクティブ表示
+  // チップのアクティブ表示
   function chipClass(k) { return k === currentStatsSort ? 'lb-chip active' : 'lb-chip'; }
+
+  // ソート中のカラムをハイライトするためのキーマッピング
+  var sortColKey = currentStatsSort === 'matchPoints' ? 'pts' : (currentStatsSort === 'goals' ? 'goals' : 'rating');
+  function thHighlight(k) { return k === sortColKey ? ' class="lb-th-active"' : ''; }
 
   // MVP列を表示するか
   var showRating = cachedMvpData && cachedMvpData.length > 0 && cachedMvpData.some(function(r) { return Number(r['レーティング']) > 0; });
   var ratingChip = showRating ? '<button class="' + chipClass('rating') + '" onclick="sortStatsBy(\'rating\')">📊 Rating</button>' : '';
-  var ratingTh = showRating ? '<th>Rtg</th>' : '';
+  var ratingTh = showRating ? '<th' + thHighlight('rating') + '>Rtg</th>' : '';
 
   var h = '<div class="lb-chips">' +
     '<button class="' + chipClass('matchPoints') + '" onclick="sortStatsBy(\'matchPoints\')">🏆 勝ち点</button>' +
@@ -164,12 +168,12 @@ function renderStatsBoard() {
     '<thead><tr>' +
     '<th class="lb-th-rank">#</th>' +
     '<th class="lb-th-name">名前</th>' +
-    '<th>Pts</th>' +
+    '<th' + thHighlight('pts') + '>Pts</th>' +
     '<th>P</th>' +
     '<th>W</th>' +
     '<th>D</th>' +
     '<th>L</th>' +
-    '<th>⚽</th>' +
+    '<th' + thHighlight('goals') + '>⚽</th>' +
     ratingTh +
     '</tr></thead><tbody>';
 
@@ -183,19 +187,19 @@ function renderStatsBoard() {
 
     var rowClass = rank <= 3 ? ' lb-row-top' + rank : '';
 
-    var ratingTd = showRating ? '<td class="lb-td-rating">' + (s.rating > 0 ? s.rating.toFixed(1) : '-') + '</td>' : '';
+    var ratingTd = showRating ? '<td class="lb-td-rating' + (sortColKey === 'rating' ? ' lb-td-sorted' : '') + '">' + (s.rating > 0 ? s.rating.toFixed(1) : '-') + '</td>' : '';
     var detailHtml = buildStatsDetailHtml_(s);
     var colSpan = showRating ? 9 : 8;
 
     return '<tr class="lb-row' + rowClass + '" onclick="toggleLbRow(this)">' +
       '<td class="lb-td-rank">' + rankDisplay + '</td>' +
       '<td class="lb-td-name"><span class="lb-name">' + esc(s.name) + '</span></td>' +
-      '<td class="lb-td-pts">' + s.matchPoints + '</td>' +
+      '<td class="lb-td-pts' + (sortColKey === 'pts' ? ' lb-td-sorted' : '') + '">' + s.matchPoints + '</td>' +
       '<td>' + s.played + '</td>' +
       '<td class="lb-td-win">' + s.wins + '</td>' +
       '<td class="lb-td-draw">' + s.draws + '</td>' +
       '<td class="lb-td-loss">' + s.losses + '</td>' +
-      '<td class="lb-td-goals">' + s.goals + '</td>' +
+      '<td class="lb-td-goals' + (sortColKey === 'goals' ? ' lb-td-sorted' : '') + '">' + s.goals + '</td>' +
       ratingTd +
       '</tr>' +
       '<tr class="lb-detail-row"><td colspan="' + (showRating ? 9 : 8) + '">' +
