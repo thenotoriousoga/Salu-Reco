@@ -93,20 +93,23 @@ function doLoginAdmin() {
 /**
  * URLパラメータの参加コードで自動ログインする
  * セッションに同じイベント・メンバーが残っていればメンバー選択をスキップする
+ * 幹事（admin）セッションが残っていればロールを維持する
  * @param {string} code - 参加コード
  */
 function autoLoginWithCode_(code) {
   if (!code) { showPage('login', true); return; }
   showLoading('イベントに参加中...');
+  var session = loadSession_();
   google.script.run
     .withSuccessHandler(function(r) {
       hideLoading();
       if (r.success) {
-        setRole_('user');
+        // 幹事セッションが同じイベントに対して残っていればロールを維持
+        var keepAdmin = session && session.role === 'admin' && session.eventId === r.eventId;
+        setRole_(keepAdmin ? 'admin' : 'user');
         currentEventId = r.eventId;
 
         // セッションに同じイベント・メンバーが残っていればスキップ
-        var session = loadSession_();
         if (session && session.eventId === r.eventId && session.memberId) {
           var found = (r.members || []).find(function(m) {
             return String(m['メンバーID']) === String(session.memberId);
