@@ -351,12 +351,12 @@ function saveMvpResults_(eventId, results) {
 // ===================================
 
 /**
- * MVP選出を実行する
- * イベントが「イベント終了」状態の場合のみ実行可能
+ * MVP選出を非同期で実行する（UIをブロックしない）
+ * トリガー経由で selectMVP_ を実行し、完了後にLINE通知を送信する
  * @param {string} eventId - イベントID
  * @param {number} mvpCount - MVP人数
  * @param {number} subMvpCount - 準MVP人数
- * @return {Object} 選出結果 { success, results, message }
+ * @return {Object} { success: true, message: '...' }
  */
 function selectMVP(eventId, mvpCount, subMvpCount) {
   var event = findEvent_(eventId);
@@ -365,8 +365,124 @@ function selectMVP(eventId, mvpCount, subMvpCount) {
     return { success: false, message: 'MVP選出はイベント終了後のみ可能です' };
   }
 
+  // 既に選出中なら二度押し防止
+  if (isMvpSelecting_(eventId)) {
+    return { success: false, message: 'MVP選出が進行中です。しばらくお待ちください。' };
+  }
+
   mvpCount = Number(mvpCount) || 1;
   subMvpCount = Number(subMvpCount) || 1;
+
+  // 非同期で実行をスケジュール
+  scheduleMvpSelection_(eventId, mvpCount, subMvpCount);
+
+  return { success: true, message: 'MVP選出を開始しました。完了後にLINEで通知します。' };
+}
+
+/**
+ * MVP選出が進行中かどうかを返す
+ * @param {string} eventId - イベントID
+ * @return {boolean}
+ */
+function isMvpSelecting_(eventId) {
+  var props = PropertiesService.getScriptProperties();
+  var reqJson = props.getProperty('MVP_SELECTION_REQUEST');
+  if (!reqJson) return false;
+  try {
+    var req = JSON.parse(reqJson);
+    return req.eventId === eventId;
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * MVP選出ステータスを取得する（フロントからのポーリング用）
+ * @param {string} eventId - イベントID
+ * @return {Object} { selecting: boolean }
+ */
+function getMvpSelectionStatus(eventId) {
+  return { selecting: isMvpSelecting_(eventId) };
+}
+
+/**
+ * MVP選出をトリガーで非同期実行するためにキューに積む
+ * @param {string} eventId - イベントID
+ * @param {number} mvpCount - MVP人数
+ * @param {number} subMvpCount - 準MVP人数
+ */
+function scheduleMvpSelection_(eventId, mvpCount, subMvpCount) {
+  var props = PropertiesService.getScriptProperties();
+  props.setProperty('MVP_SELECTION_REQUEST', JSON.stringify({
+    eventId: eventId, mvpCount: mvpCount, subMvpCount: subMvpCount
+  }));
+
+  // トリガーが既にあれば追加しない
+  var triggers = ScriptApp.getProjectTriggers();
+  var hasExisting = triggers.some(function(t) {
+    return t.getHandlerFunction() === 'executeMvpSelection_';
+  });
+
+  if (!hasExisting) {
+    ScriptApp.newTrigger('executeMvpSelection_')
+      .timeBased()
+      .after(1000)
+      .create();
+  }
+}
+
+/**
+ * トリガーから呼ばれるMVP選出実行関数
+ * 選出完了後にLINE通知をスケジュールする
+ */
+function executeMvpSelection_() {
+  var props = PropertiesService.getScriptProperties();
+  var reqJson = props.getProperty('MVP_SELECTION_REQUEST');
+
+  if (!reqJson) {
+    cleanupMvpTriggers_();
+    return;
+  }
+
+  try {
+    var req = JSON.parse(reqJson);
+    var result = selectMVP_(req.eventId, req.mvpCount, req.subMvpCount);
+
+    if (result.success) {
+      // LINE通知をスケジュール
+      scheduleNotification_('notifyMvpResult', [req.eventId]);
+    } else {
+      Logger.log('MVP選出失敗: ' + result.message);
+    }
+  } catch (e) {
+    Logger.log('MVP選出トリガー実行エラー: ' + e.message);
+  }
+
+  props.deleteProperty('MVP_SELECTION_REQUEST');
+  cleanupMvpTriggers_();
+}
+
+/**
+ * executeMvpSelection_ のトリガーを削除する
+ */
+function cleanupMvpTriggers_() {
+  var triggers = ScriptApp.getProjectTriggers();
+  triggers.forEach(function(trigger) {
+    if (trigger.getHandlerFunction() === 'executeMvpSelection_') {
+      ScriptApp.deleteTrigger(trigger);
+    }
+  });
+}
+
+/**
+ * MVP選出の実処理（内部関数）
+ * @param {string} eventId - イベントID
+ * @param {number} mvpCount - MVP人数
+ * @param {number} subMvpCount - 準MVP人数
+ * @return {Object} 選出結果 { success, results, message }
+ */
+function selectMVP_(eventId, mvpCount, subMvpCount) {
+  var event = findEvent_(eventId);
 
   // アンケート回答を自動取得
   if (event['フォームID']) {

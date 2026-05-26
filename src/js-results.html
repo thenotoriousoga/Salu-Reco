@@ -322,7 +322,7 @@ function renderPostMatch(event, rounds, mvpResults) {
             '<label class="mvp-admin-input-label">MVP<input type="number" id="mvp-count" value="1" min="1" max="5" class="mvp-admin-input"></label>' +
             '<label class="mvp-admin-input-label">準MVP<input type="number" id="sub-mvp-count" value="1" min="0" max="5" class="mvp-admin-input"></label>' +
           '</div>' +
-          '<button class="btn btn-primary" onclick="runMvp()">' + svg(IC.trophy, 16) + ' 選出する</button>' +
+          '<button class="btn btn-primary" id="mvp-select-btn" onclick="runMvp()">' + svg(IC.trophy, 16) + ' 選出する</button>' +
         '</div>';
 
     // 公開ステータス（結果がある場合のみ表示）
@@ -349,6 +349,11 @@ function renderPostMatch(event, rounds, mvpResults) {
 
   c.innerHTML = h;
   if (hasMvpResults) renderMvpResults(mvpResults);
+
+  // 選出中かどうかチェックしてUIを更新
+  if (canSelectMvp) {
+    checkMvpSelectingStatus_();
+  }
 }
 
 var mvpLoadingTimer_ = null;
@@ -398,21 +403,15 @@ function runMvp() {
 
     google.script.run
       .withSuccessHandler(function(r) {
-        clearMvpTimer();
-        hideLoading();
         if (r.success) {
           showToast(r.message);
-          cachedMvpData = (r.results || []).map(function(item) {
-            return {
-              'メンバーID': item.memberId,
-              '称号': item.title || '',
-              'レーティング': item.rating || 0,
-              '評価コメント': item.comment || ''
-            };
-          });
-          renderMvpResults(r.results);
-          renderEventStats();
-        } else { showToast(r.message, true); }
+          // ポーリング開始: 選出完了を待つ
+          pollMvpSelection_(clearMvpTimer);
+        } else {
+          clearMvpTimer();
+          hideLoading();
+          showToast(r.message, true);
+        }
       })
       .withFailureHandler(function() {
         clearMvpTimer();
@@ -421,6 +420,81 @@ function runMvp() {
       })
       .selectMVP(currentEventId, mc, sc);
   }, '発表する');
+}
+
+var mvpPollTimer_ = null;
+
+/**
+ * MVP選出完了をポーリングで待つ
+ * @param {Function} clearMvpTimer - ローディング歌詞タイマーを止める関数
+ */
+function pollMvpSelection_(clearMvpTimer) {
+  var pollInterval = 5000; // 5秒ごと
+  var maxPolls = 60; // 最大5分
+  var pollCount = 0;
+
+  mvpPollTimer_ = setInterval(function() {
+    pollCount++;
+    if (pollCount > maxPolls) {
+      clearInterval(mvpPollTimer_);
+      mvpPollTimer_ = null;
+      clearMvpTimer();
+      hideLoading();
+      showToast('MVP選出がタイムアウトしました。画面を更新してください。', true);
+      return;
+    }
+
+    google.script.run
+      .withSuccessHandler(function(status) {
+        if (!status.selecting) {
+          // 選出完了
+          clearInterval(mvpPollTimer_);
+          mvpPollTimer_ = null;
+          clearMvpTimer();
+          hideLoading();
+          // 最新データを取得して画面を更新
+          google.script.run
+            .withSuccessHandler(function(detail) {
+              if (detail && detail.mvpResults && detail.mvpResults.length > 0) {
+                showToast('MVP選出が完了しました！');
+                renderPostMatch(detail.event, detail.rounds, detail.mvpResults);
+                renderEventStats();
+              } else {
+                showToast('MVP選出に失敗しました。再度お試しください。', true);
+              }
+            })
+            .withFailureHandler(function() {
+              showToast('結果の取得に失敗しました。画面を更新してください。', true);
+            })
+            .getEventDetail(currentEventId);
+        }
+      })
+      .withFailureHandler(function() {
+        // ポーリング失敗は無視して次回リトライ
+      })
+      .getMvpSelectionStatus(currentEventId);
+  }, pollInterval);
+}
+
+/**
+ * ページ読み込み時に選出中かチェックし、選出中ならボタンを無効化してポーリング開始
+ */
+function checkMvpSelectingStatus_() {
+  google.script.run
+    .withSuccessHandler(function(status) {
+      if (status.selecting) {
+        var btn = document.getElementById('mvp-select-btn');
+        if (btn) {
+          btn.disabled = true;
+          btn.textContent = '⏳ 選出中…';
+        }
+        // ローディング表示してポーリング開始
+        showLoading('MVP選出中', 'AIが評価しています…しばらくお待ちください');
+        pollMvpSelection_(function() {});
+      }
+    })
+    .withFailureHandler(function() {})
+    .getMvpSelectionStatus(currentEventId);
 }
 
 /** MVP結果をメンバーに公開する */
