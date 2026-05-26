@@ -309,35 +309,43 @@ function renderPostMatch(event, rounds, mvpResults) {
   }
 
   var h = '';
-  if (canSelectMvp) {
-    h += '<div style="margin-bottom:14px;">' +
-      '<div class="input-group"><label for="mvp-count">MVP人数</label><input type="number" id="mvp-count" value="1" min="1" max="5" class="input" style="width:80px;"></div>' +
-      '<div class="input-group"><label for="sub-mvp-count">準MVP人数</label><input type="number" id="sub-mvp-count" value="1" min="0" max="5" class="input" style="width:80px;"></div>' +
-      '<button class="btn btn-primary btn-large" onclick="runMvp()">' + svg(IC.trophy, 18) + ' MVPを発表</button></div>';
-  }
-  h += '<div id="mvp-results-area"></div>';
 
-  // 幹事向け: 確定/取消ボタン
-  if (canSelectMvp && hasMvpResults) {
-    if (!isMvpConfirmed) {
-      h += '<div id="mvp-confirm-area" class="mvp-confirm-section">' +
-        '<div class="mvp-confirm-notice">' +
-        '<span class="mvp-confirm-icon">🔒</span>' +
-        '<span>現在メンバーには非公開です</span>' +
-        '</div>' +
-        '<button class="btn btn-accent btn-large" onclick="doConfirmMvp()">' +
-        '<svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>' +
-        'メンバーに公開する 🎉</button></div>';
-    } else {
-      h += '<div id="mvp-confirm-area" class="mvp-confirmed-section">' +
-        '<div class="mvp-confirmed-notice">' +
-        '<span class="mvp-confirm-icon">🔓</span>' +
-        '<span>メンバーに公開中</span>' +
-        '</div>' +
-        '<button class="btn btn-secondary btn-sm" onclick="doUnconfirmMvp()" style="margin-top:8px;">' +
-        '非公開に戻す</button></div>';
+  // 幹事向け: 操作パネル（選出 + 公開ステータスを一箇所にまとめる）
+  if (canSelectMvp) {
+    h += '<div class="mvp-admin-panel">' +
+      '<div class="mvp-admin-panel-header">' +
+        '<span class="mvp-admin-panel-label">⚙️ 幹事メニュー</span>' +
+      '</div>' +
+      '<div class="mvp-admin-panel-body">' +
+        '<div class="mvp-admin-controls">' +
+          '<div class="mvp-admin-inputs">' +
+            '<label class="mvp-admin-input-label">MVP<input type="number" id="mvp-count" value="1" min="1" max="5" class="mvp-admin-input"></label>' +
+            '<label class="mvp-admin-input-label">準MVP<input type="number" id="sub-mvp-count" value="1" min="0" max="5" class="mvp-admin-input"></label>' +
+          '</div>' +
+          '<button class="btn btn-primary" onclick="runMvp()">' + svg(IC.trophy, 16) + ' 選出する</button>' +
+        '</div>';
+
+    // 公開ステータス（結果がある場合のみ表示）
+    if (hasMvpResults) {
+      if (!isMvpConfirmed) {
+        h += '<div class="mvp-admin-status mvp-admin-status-private">' +
+          '<span class="mvp-admin-status-indicator"></span>' +
+          '<span class="mvp-admin-status-text">非公開</span>' +
+          '<button class="mvp-admin-action-btn mvp-admin-action-publish" onclick="doConfirmMvp()">公開する 🎉</button>' +
+        '</div>';
+      } else {
+        h += '<div class="mvp-admin-status mvp-admin-status-public">' +
+          '<span class="mvp-admin-status-indicator"></span>' +
+          '<span class="mvp-admin-status-text">公開中</span>' +
+          '<button class="mvp-admin-action-btn mvp-admin-action-unpublish" onclick="doUnconfirmMvp()">非公開に戻す</button>' +
+        '</div>';
+      }
     }
+
+    h += '</div></div>';
   }
+
+  h += '<div id="mvp-results-area"></div>';
 
   c.innerHTML = h;
   if (hasMvpResults) renderMvpResults(mvpResults);

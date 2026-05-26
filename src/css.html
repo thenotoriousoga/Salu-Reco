@@ -3792,48 +3792,156 @@ body:not(.role-user):not(.role-admin) .user-only { display: none !important; }
   40% { opacity: 1; transform: scale(1.3); }
 }
 
-/* --- MVP 確定セクション（幹事向け） --- */
-.mvp-confirm-section {
-  margin-top: 16px;
-  padding: 16px;
-  background: linear-gradient(135deg, #FEF3C7 0%, #FFFBEB 100%);
-  border: 2px dashed var(--accent);
-  border-radius: var(--radius);
-  text-align: center;
+/* --- MVP 幹事パネル --- */
+.mvp-admin-panel {
+  margin-bottom: 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
 }
 
-.mvp-confirm-notice {
+.mvp-admin-panel-header {
+  padding: 8px 14px;
+  background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+  border-bottom: 1px solid var(--border-light);
+}
+
+.mvp-admin-panel-label {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  letter-spacing: 0.05em;
+}
+
+.mvp-admin-panel-body {
+  padding: 14px;
+}
+
+.mvp-admin-controls {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-size: 0.85rem;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.mvp-admin-inputs {
+  display: flex;
+  gap: 10px;
+}
+
+.mvp-admin-input-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
   font-weight: 600;
   color: var(--text-secondary);
-  margin-bottom: 12px;
 }
 
-.mvp-confirm-icon {
-  font-size: 1.2rem;
-}
-
-.mvp-confirmed-section {
-  margin-top: 16px;
-  padding: 14px;
-  background: var(--success-bg);
-  border: 1px solid var(--success);
-  border-radius: var(--radius-sm);
+.mvp-admin-input {
+  width: 52px;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  font-family: 'Fira Code', monospace;
+  font-size: 0.85rem;
   text-align: center;
+  background: var(--bg-surface);
+  color: var(--text);
 }
 
-.mvp-confirmed-notice {
+.mvp-admin-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.1);
+}
+
+.mvp-admin-status {
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 8px;
-  font-size: 0.85rem;
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-xs);
+  font-size: 0.8rem;
   font-weight: 600;
-  color: var(--success);
+}
+
+.mvp-admin-status-private {
+  background: #FEF3C7;
+  border: 1px solid var(--accent);
+}
+
+.mvp-admin-status-public {
+  background: var(--success-bg);
+  border: 1px solid var(--success);
+}
+
+.mvp-admin-status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.mvp-admin-status-private .mvp-admin-status-indicator {
+  background: var(--accent-dark);
+  box-shadow: 0 0 6px rgba(217, 119, 6, 0.4);
+}
+
+.mvp-admin-status-public .mvp-admin-status-indicator {
+  background: var(--success);
+  box-shadow: 0 0 6px rgba(5, 150, 105, 0.4);
+  animation: statusPulse 2s ease-in-out infinite;
+}
+
+.mvp-admin-status-text {
+  color: var(--text-secondary);
+}
+
+.mvp-admin-action-btn {
+  margin-left: auto;
+  padding: 5px 12px;
+  border: none;
+  border-radius: var(--radius-xs);
+  font-family: 'Fira Sans', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.mvp-admin-action-publish {
+  background: linear-gradient(135deg, var(--accent), #F59E0B);
+  color: #78350F;
+  box-shadow: 0 2px 6px rgba(251, 191, 36, 0.3);
+}
+
+.mvp-admin-action-publish:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
+}
+
+.mvp-admin-action-unpublish {
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.mvp-admin-action-unpublish:hover {
+  background: var(--border-light);
+}
+
+@keyframes statusPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mvp-admin-status-public .mvp-admin-status-indicator { animation: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
