@@ -206,11 +206,15 @@ function doPost(e) {
 
     var json = JSON.parse(e.postData.contents);
     var events = json.events || [];
+    Logger.log('LINE Webhook受信: イベント数=' + events.length);
 
     events.forEach(function(ev) {
+      Logger.log('イベント: type=' + ev.type + ', source.type=' + (ev.source ? ev.source.type : 'なし'));
+
       // グループ内のテキストメッセージを処理
       if (ev.type === 'message' && ev.message && ev.message.type === 'text'
           && ev.source && ev.source.type === 'group') {
+        Logger.log('メッセージ処理開始: ' + ev.message.text);
         handleGroupMessage_(ev);
       }
     });
