@@ -571,22 +571,11 @@ function generateTeamSplitCommentary_(members, memberMap, teams, teamNames, roun
     return info;
   }).join('\n');
 
-  var prompt = '# 役割\n' +
-    'あなたはサッカー解説者「' + commentator.name + '」です。\n' +
+  var prompt = 'あなたはサッカー解説者「' + commentator.name + '」。\n' +
     'スタイル: ' + commentator.style + '\n\n' +
-    '# 指示\n' +
-    '社内フットサルのチーム分けが発表されました。以下のピックアップ選手について、試合前の解説コメントを書いてください。\n\n' +
-    '## ルール\n' +
-    '- 「' + commentator.name + '」の口調・キャラクターで書く\n' +
-    '- 2〜3文で簡潔に（80文字以内）\n' +
-    '- 社内フットサルなのでプロ扱いしすぎない。でも真剣に語る\n' +
-    '- 入力データにない情報を捏造しない\n' +
-    '- 経験「なし」の選手には成長や意外性に期待するコメント\n' +
-    '- 経験「あり」の選手にはキーマンとしての期待\n' +
-    '- ランキング情報があればそれに触れてもOK\n' +
-    '- 備考があればネタにしてOK\n' +
-    '- 出力は解説コメントのテキストのみ（JSON不要、名前の署名不要）\n\n' +
-    '## ピックアップ選手\n' + memberInfo;
+    '社内フットサルのチーム分け発表。以下の選手について試合前コメントを一言（80文字以内）。\n' +
+    '入力データにない情報は書かない。ランキング情報があれば触れてOK。\n\n' +
+    memberInfo;
 
   var response = callGeminiText_(prompt);
   if (!response) return null;
@@ -735,23 +724,14 @@ function generateRoundResultCommentary_(matches, allScorers, data, memberMap, ev
     return (i + 1) + '位 ' + r.name + '(' + r.points + 'pts)';
   }).join(', ');
 
-  var prompt = '# 役割\n' +
-    'あなたはサッカー解説者「' + commentator.name + '」です。\n' +
+  var prompt = 'あなたはサッカー解説者「' + commentator.name + '」。\n' +
     'スタイル: ' + commentator.style + '\n\n' +
-    '# 指示\n' +
-    '社内フットサルのラウンドが終了しました。試合結果とイベント全体の順位変動を見て、一言感想を述べてください。\n\n' +
-    '## ルール\n' +
-    '- 「' + commentator.name + '」の口調・キャラクターで書く\n' +
-    '- 1〜2文で簡潔に（60文字以内）\n' +
-    '- 社内フットサルなのでプロ扱いしすぎない。でも真剣に語る\n' +
-    '- 結果に基づいた感想（捏造しない）\n' +
-    '- 得点者がいればその選手に触れてもOK\n' +
-    '- 全体ランキングと今ラウンドの得点者を見比べて、順位変動を推測して触れてもOK（例：「この2得点で得点王に躍り出た」）\n' +
-    '- 出力は解説コメントのテキストのみ（JSON不要、名前の署名不要）\n\n' +
-    '## 今ラウンドの試合結果\n' + matchSummary + '\n\n' +
-    '## 今ラウンドの得点者\n' + (scorerSummary || 'なし') + '\n\n' +
-    '## イベント全体 得点ランキングTOP3\n' + (overallGoalTop3 || 'なし') + '\n\n' +
-    '## イベント全体 勝ち点ランキングTOP3\n' + (overallPointTop3 || 'なし');
+    '社内フットサルのラウンド終了。結果を見て一言感想（60文字以内）。\n' +
+    '入力データにない情報は書かない。順位変動を推測して触れてOK。\n\n' +
+    '試合結果:\n' + matchSummary + '\n\n' +
+    '得点者: ' + (scorerSummary || 'なし') + '\n\n' +
+    '全体得点TOP3: ' + (overallGoalTop3 || 'なし') + '\n' +
+    '全体勝ち点TOP3: ' + (overallPointTop3 || 'なし');
 
   var response = callGeminiText_(prompt);
   if (!response) return null;
