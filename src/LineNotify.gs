@@ -62,8 +62,16 @@ function executePendingNotification_() {
 
   try {
     var data = JSON.parse(pending);
-    var fn = this[data.fn] || globalThis[data.fn];
-    if (typeof fn === 'function') {
+    // GASではグローバル関数を名前で呼び出す
+    var fnMap = {
+      'notifyEventStart': notifyEventStart,
+      'notifyTeamSplit': notifyTeamSplit,
+      'notifyRoundResult': notifyRoundResult,
+      'notifySurveyReminder': notifySurveyReminder,
+      'notifyMvpResult': notifyMvpResult
+    };
+    var fn = fnMap[data.fn];
+    if (fn) {
       fn.apply(null, data.args);
     }
     // 成功したらプロパティを削除
