@@ -622,7 +622,7 @@ function generateTeamSplitCommentary_(members, memberMap, teams, teamNames, roun
     if (p.spirit) info += ' 意気込み:「' + p.spirit + '」';
     if (p.note) info += ' 備考: ' + p.note;
     // 年次・経験は補足（参考程度）
-    info += ' （' + p.years + '年目, 経験' + p.experience + '）';
+    info += ' （社会人' + p.years + '年目, サッカー経験' + p.experience + '）';
     return info;
   }).join('\n');
 
