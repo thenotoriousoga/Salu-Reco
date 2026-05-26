@@ -65,20 +65,9 @@ function memberSummaryHtml_(members, voters) {
   return html;
 }
 
-/** ソートチップバーのHTMLを生成する */
+/** ソートチップバーのHTMLを生成する（無効化 — 登録順のみ） */
 function memberSortBarHtml_() {
-  var sorts = [
-    { key: 'default', label: '登録順' },
-    { key: 'years', label: '年次順' },
-    { key: 'exp', label: '経験者優先' }
-  ];
-  var html = '<div class="member-sort-bar">';
-  sorts.forEach(function(s) {
-    var cls = s.key === memberSortMode ? ' active' : '';
-    html += '<button class="member-sort-chip' + cls + '" onclick="sortMembers(\'' + s.key + '\')">' + s.label + '</button>';
-  });
-  html += '</div>';
-  return html;
+  return '';
 }
 
 /** メンバーをソートする */

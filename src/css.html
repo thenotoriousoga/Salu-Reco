@@ -468,42 +468,61 @@ body {
 }
 
 .member-item-v2 {
-  padding: 10px 0;
-  border-bottom: 1px solid var(--border-light);
+  padding: 12px 14px;
+  border-bottom: none;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition), transform var(--transition);
+}
+
+.member-item-v2:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
 }
 
 .member-item-v2:last-child {
-  border-bottom: none;
+  margin-bottom: 0;
 }
 
 .member-main {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .member-name-v2 {
   font-weight: 600;
   font-size: 0.95rem;
   color: var(--text);
+  letter-spacing: -0.01em;
 }
 
 .member-years {
   font-weight: 400;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: var(--text-muted);
+  opacity: 0.85;
 }
 
 .member-icons {
   display: flex;
   align-items: center;
-  gap: 4px;
-  margin-left: 4px;
+  gap: 5px;
+  margin-left: 6px;
 }
 
 .member-icon {
-  font-size: 0.85rem;
-  opacity: 0.7;
+  font-size: 0.82rem;
+  opacity: 0.8;
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+
+.member-item-v2:hover .member-icon {
+  opacity: 1;
+  transform: scale(1.05);
 }
 
 .member-icon-survey {
@@ -4204,47 +4223,53 @@ body:not(.role-user):not(.role-admin) .user-only { display: none !important; }
   transition: width 400ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* --- メンバー行のカラーストライプ --- */
+/* --- メンバーカード（v2リデザイン） --- */
 .member-item-v2 {
   position: relative;
-  padding-left: 12px;
+  padding-left: 0;
 }
 
 .member-item-v2::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 10px;
-  bottom: 10px;
-  width: 3px;
-  border-radius: 2px;
-  background: var(--border);
-  transition: background 200ms ease;
+  display: none;
 }
 
-.member-item-v2.member-exp::before {
-  background: var(--success);
-}
-
+.member-item-v2.member-exp::before,
 .member-item-v2.member-organizer::before {
-  background: var(--accent);
+  display: none;
+}
+
+/* 経験者カード — 微妙な緑のアクセント */
+.member-item-v2.member-exp {
+  border-color: rgba(5, 150, 105, 0.15);
+  background: linear-gradient(135deg, var(--bg-card) 85%, rgba(209, 250, 229, 0.4));
+}
+
+/* 幹事カード — 微妙なゴールドのアクセント */
+.member-item-v2.member-organizer {
+  border-color: rgba(251, 191, 36, 0.25);
+  background: linear-gradient(135deg, var(--bg-card) 85%, rgba(254, 243, 199, 0.5));
 }
 
 /* --- 意気込み吹き出し風 --- */
 .member-spirit {
   position: relative;
   display: inline-block;
-  margin-top: 4px;
-  padding: 4px 10px;
-  background: rgba(220, 38, 38, 0.05);
-  border: 1px solid rgba(220, 38, 38, 0.12);
-  border-radius: 10px 10px 10px 2px;
+  margin-top: 6px;
+  padding: 5px 12px;
+  background: rgba(220, 38, 38, 0.04);
+  border: 1px solid rgba(220, 38, 38, 0.1);
+  border-radius: 12px 12px 12px 3px;
   font-size: 0.8rem;
   font-style: normal;
   color: var(--primary-dark);
   line-height: 1.4;
   max-width: 100%;
   word-break: break-word;
+  transition: background 150ms ease;
+}
+
+.member-item-v2:hover .member-spirit {
+  background: rgba(220, 38, 38, 0.07);
 }
 
 .member-spirit::before {
