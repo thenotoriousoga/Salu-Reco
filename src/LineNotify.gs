@@ -32,6 +32,62 @@ var SEPARATOR_ = '━━━━━━━━━━━━━━━';
 var MEDALS_ = ['🥇', '🥈', '🥉'];
 
 /**
+ * 通知処理を非同期で実行する（1秒後にトリガーで実行）
+ * UIをブロックせずにLINE通知を送信するための仕組み
+ * @param {string} functionName - 実行する通知関数名
+ * @param {Array} args - 関数に渡す引数の配列
+ */
+function scheduleNotification_(functionName, args) {
+  var props = PropertiesService.getScriptProperties();
+  props.setProperty('PENDING_NOTIFICATION', JSON.stringify({ fn: functionName, args: args }));
+
+  ScriptApp.newTrigger('executePendingNotification_')
+    .timeBased()
+    .after(1000)
+    .create();
+}
+
+/**
+ * 保留中の通知を実行する（トリガーから呼ばれる）
+ */
+function executePendingNotification_() {
+  var props = PropertiesService.getScriptProperties();
+  var pending = props.getProperty('PENDING_NOTIFICATION');
+
+  if (!pending) {
+    // 既に処理済み or データなし → トリガー削除のみ
+    cleanupNotificationTriggers_();
+    return;
+  }
+
+  try {
+    var data = JSON.parse(pending);
+    var fn = this[data.fn] || globalThis[data.fn];
+    if (typeof fn === 'function') {
+      fn.apply(null, data.args);
+    }
+    // 成功したらプロパティを削除
+    props.deleteProperty('PENDING_NOTIFICATION');
+  } catch (e) {
+    // 失敗時はプロパティを残す（再実行でリトライされる）
+  }
+
+  cleanupNotificationTriggers_();
+}
+
+/**
+ * executePendingNotification_ のトリガーを削除する
+ */
+function cleanupNotificationTriggers_() {
+  var triggers = ScriptApp.getProjectTriggers();
+  triggers.forEach(function(trigger) {
+    if (trigger.getHandlerFunction() === 'executePendingNotification_') {
+      ScriptApp.deleteTrigger(trigger);
+    }
+  });
+}
+
+/**
  * ラウンド番号に基づいて解説者を選ぶ（同じラウンドでは別の解説者、連続ラウンドでも被らない）
  * @param {number} roundNumber - ラウンド番号
  * @param {number} offset - オフセット（0=チーム分け, 1=ラウンド結果）

@@ -26,8 +26,8 @@ function createRound(eventId, teamNames, teams) {
 
   roundSheet.appendRow([roundId, eventId, roundNumber, splitJson, '進行中']);
 
-  // LINE通知: チーム分け結果
-  notifyTeamSplit(eventId, teamNames, teams, roundNumber);
+  // LINE通知: チーム分け結果（非同期で実行）
+  scheduleNotification_('notifyTeamSplit', [eventId, teamNames, teams, roundNumber]);
 
   return {
     success: true,
@@ -177,8 +177,8 @@ function endRound(roundId) {
 
   sheet.getRange(rowIndex, 5).setValue('終了');
 
-  // LINE通知: ラウンド結果サマリ
-  notifyRoundResult(roundId);
+  // LINE通知: ラウンド結果サマリ（非同期で実行）
+  scheduleNotification_('notifyRoundResult', [roundId]);
 
   return { success: true, message: 'ラウンドを終了しました。新しいチーム分けを行いましょう！' };
 }

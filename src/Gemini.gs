@@ -46,7 +46,7 @@ function callGeminiWithMimeType_(prompt, mimeType, model) {
     }
   };
 
-  var maxAttempts = 2;
+  var maxAttempts = 5;
   for (var attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       var res = UrlFetchApp.fetch(url, {
