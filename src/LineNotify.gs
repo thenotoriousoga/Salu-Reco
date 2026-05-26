@@ -124,7 +124,8 @@ function sendLineFlexMessage_(groupId, altText, flexContent) {
 }
 
 // ===================================
-// LINEグループ連携管理
+// LINEグループ連携管理（コマンド送信方式）
+// グループ内で「連携:参加コード」と送信すると自動紐づけ
 // ===================================
 
 /**
@@ -144,8 +145,6 @@ function verifyLineSignature_(e) {
   if (e.parameter && e.parameter['X-Line-Signature']) {
     signature = e.parameter['X-Line-Signature'];
   } else if (e.headers) {
-    // GAS の doPost では headers が取れない場合があるため、
-    // headers プロパティがある環境のみ検証する
     signature = e.headers['X-Line-Signature'] || e.headers['x-line-signature'] || '';
   }
 
@@ -164,8 +163,36 @@ function verifyLineSignature_(e) {
 }
 
 /**
+ * LINE Messaging API の Reply API でメッセージを返信する
+ * @param {string} replyToken - リプライトークン
+ * @param {string} message - 返信メッセージ
+ */
+function replyLineMessage_(replyToken, message) {
+  var token = PropertiesService.getScriptProperties().getProperty('LINE_CHANNEL_ACCESS_TOKEN');
+  if (!token || !replyToken) return;
+
+  var url = 'https://api.line.me/v2/bot/message/reply';
+  var payload = {
+    replyToken: replyToken,
+    messages: [{ type: 'text', text: message }]
+  };
+
+  try {
+    UrlFetchApp.fetch(url, {
+      method: 'post',
+      contentType: 'application/json',
+      headers: { 'Authorization': 'Bearer ' + token },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    });
+  } catch (e) {
+    Logger.log('LINE返信失敗: ' + (e.message || e));
+  }
+}
+
+/**
  * Webhook エンドポイント（doPost）
- * 公式アカウントがLINEグループに招待された時にグループIDを記録する
+ * グループ内で「連携:参加コード」メッセージを受信した時にイベントと紐づける
  * @param {Object} e - POSTイベント
  * @return {ContentOutput} 200 OK
  */
@@ -180,13 +207,11 @@ function doPost(e) {
     var json = JSON.parse(e.postData.contents);
     var events = json.events || [];
 
-    events.forEach(function(event) {
-      // 公式アカウントがグループに参加した時
-      if (event.type === 'join' && event.source && event.source.type === 'group') {
-        var groupId = event.source.groupId;
-        // 未紐づけのグループIDとして一時保存
-        savePendingGroupId_(groupId);
-        Logger.log('LINE公式アカウントがグループに参加: ' + groupId);
+    events.forEach(function(ev) {
+      // グループ内のテキストメッセージを処理
+      if (ev.type === 'message' && ev.message && ev.message.type === 'text'
+          && ev.source && ev.source.type === 'group') {
+        handleGroupMessage_(ev);
       }
     });
   } catch (err) {
@@ -197,45 +222,49 @@ function doPost(e) {
 }
 
 /**
- * 未紐づけのグループIDを一時保存する（スクリプトプロパティに保存）
- * @param {string} groupId - グループID
+ * グループ内メッセージを処理する
+ * 「連携:参加コード」形式のメッセージでイベントとグループを紐づける
+ * @param {Object} ev - LINEイベントオブジェクト
  */
-function savePendingGroupId_(groupId) {
-  PropertiesService.getScriptProperties().setProperty('LINE_PENDING_GROUP_ID', groupId);
-}
+function handleGroupMessage_(ev) {
+  var text = (ev.message.text || '').trim();
+  var groupId = ev.source.groupId;
+  var replyToken = ev.replyToken;
 
-/**
- * 未紐づけのグループIDを取得する
- * @return {string|null} 保留中のグループID
- */
-function getPendingGroupId() {
-  return PropertiesService.getScriptProperties().getProperty('LINE_PENDING_GROUP_ID') || null;
-}
+  // 「連携:XXXX」または「連携：XXXX」形式を検出
+  var match = text.match(/^連携[:：]\s*(.+)$/);
+  if (!match) return;
 
-/**
- * イベントにLINEグループを紐づける
- * @param {string} eventId - イベントID
- * @param {string} [groupId] - グループID（省略時は保留中のIDを使用）
- * @return {Object} 結果オブジェクト { success, message, groupId }
- */
-function linkLineGroup(eventId, groupId) {
-  if (!groupId) {
-    groupId = getPendingGroupId();
-  }
-  if (!groupId) {
-    return { success: false, message: 'LINEグループIDがありません。Botをグループに招待してから再度お試しください。' };
+  var code = match[1].trim().toUpperCase();
+
+  // 参加コードからイベントを検索
+  var eventData = getSheetData_('イベント');
+  var event = eventData.find(function(e) {
+    return String(e['コード']).toUpperCase() === code;
+  });
+
+  if (!event) {
+    replyLineMessage_(replyToken, '❌ 参加コード「' + code + '」に該当するイベントが見つかりません。');
+    return;
   }
 
-  var event = findEvent_(eventId);
-  if (!event) return { success: false, message: 'イベントが見つかりません' };
+  var eventId = event['イベントID'];
 
-  // イベントシートの「LINEグループID」列（10列目）に保存
+  // 既に別のグループが紐づいている場合
+  if (event['LINEグループID'] && event['LINEグループID'] !== groupId) {
+    replyLineMessage_(replyToken, '⚠️ 「' + event['名称'] + '」は既に別のLINEグループと連携済みです。\n解除するには「解除:' + code + '」と送信してください。');
+    return;
+  }
+
+  // 既に同じグループが紐づいている場合
+  if (event['LINEグループID'] === groupId) {
+    replyLineMessage_(replyToken, 'ℹ️ このグループは既に「' + event['名称'] + '」と連携済みです。');
+    return;
+  }
+
+  // 紐づけ実行
   updateEventField_(eventId, 10, groupId);
-
-  // 保留IDをクリア
-  PropertiesService.getScriptProperties().deleteProperty('LINE_PENDING_GROUP_ID');
-
-  return { success: true, message: 'LINEグループを紐づけました', groupId: groupId };
+  replyLineMessage_(replyToken, '✅ 連携完了！\n\n📋 ' + event['名称'] + '\n📅 ' + event['日付'] + '\n\nこのグループにイベントの通知が届きます。');
 }
 
 /**
