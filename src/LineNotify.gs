@@ -34,50 +34,71 @@ var MEDALS_ = ['🥇', '🥈', '🥉'];
 /**
  * 通知処理を非同期で実行する（1秒後にトリガーで実行）
  * UIをブロックせずにLINE通知を送信するための仕組み
+ * 複数の通知をキューに積んで順番に実行する
  * @param {string} functionName - 実行する通知関数名
  * @param {Array} args - 関数に渡す引数の配列
  */
 function scheduleNotification_(functionName, args) {
   var props = PropertiesService.getScriptProperties();
-  props.setProperty('PENDING_NOTIFICATION', JSON.stringify({ fn: functionName, args: args }));
+  var queue = props.getProperty('NOTIFICATION_QUEUE');
+  var items = queue ? JSON.parse(queue) : [];
+  items.push({ fn: functionName, args: args });
+  props.setProperty('NOTIFICATION_QUEUE', JSON.stringify(items));
 
-  ScriptApp.newTrigger('executePendingNotification_')
-    .timeBased()
-    .after(1000)
-    .create();
+  // トリガーが既にあれば追加しない（1つで全キューを処理する）
+  var triggers = ScriptApp.getProjectTriggers();
+  var hasExisting = triggers.some(function(t) {
+    return t.getHandlerFunction() === 'executePendingNotification_';
+  });
+
+  if (!hasExisting) {
+    ScriptApp.newTrigger('executePendingNotification_')
+      .timeBased()
+      .after(1000)
+      .create();
+  }
 }
 
 /**
- * 保留中の通知を実行する（トリガーから呼ばれる）
+ * キューに積まれた通知を順番に実行する（トリガーから呼ばれる）
  */
 function executePendingNotification_() {
   var props = PropertiesService.getScriptProperties();
-  var pending = props.getProperty('PENDING_NOTIFICATION');
+  var queue = props.getProperty('NOTIFICATION_QUEUE');
 
-  if (!pending) {
-    // 既に処理済み or データなし → トリガー削除のみ
+  if (!queue) {
     cleanupNotificationTriggers_();
     return;
   }
 
+  var items = JSON.parse(queue);
+  if (items.length === 0) {
+    props.deleteProperty('NOTIFICATION_QUEUE');
+    cleanupNotificationTriggers_();
+    return;
+  }
+
+  var fnMap = {
+    'notifyEventStart': notifyEventStart,
+    'notifyTeamSplit': notifyTeamSplit,
+    'notifyRoundResult': notifyRoundResult,
+    'notifySurveyReminder': notifySurveyReminder,
+    'notifyMvpResult': notifyMvpResult
+  };
+
   try {
-    var data = JSON.parse(pending);
-    // GASではグローバル関数を名前で呼び出す
-    var fnMap = {
-      'notifyEventStart': notifyEventStart,
-      'notifyTeamSplit': notifyTeamSplit,
-      'notifyRoundResult': notifyRoundResult,
-      'notifySurveyReminder': notifySurveyReminder,
-      'notifyMvpResult': notifyMvpResult
-    };
-    var fn = fnMap[data.fn];
-    if (fn) {
-      fn.apply(null, data.args);
+    // キューを順番に実行
+    for (var i = 0; i < items.length; i++) {
+      var data = items[i];
+      var fn = fnMap[data.fn];
+      if (fn) {
+        fn.apply(null, data.args);
+      }
     }
-    // 成功したらプロパティを削除
-    props.deleteProperty('PENDING_NOTIFICATION');
+    // 全て成功したらキューを削除
+    props.deleteProperty('NOTIFICATION_QUEUE');
   } catch (e) {
-    // 失敗時はプロパティを残す（再実行でリトライされる）
+    // 失敗時はキューを残す（再実行でリトライされる）
   }
 
   cleanupNotificationTriggers_();
