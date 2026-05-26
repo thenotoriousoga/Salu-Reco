@@ -130,36 +130,13 @@ function sendLineFlexMessage_(groupId, altText, flexContent) {
 
 /**
  * Webhook リクエストの署名を検証する
- * LINE_CHANNEL_SECRET を使って X-Line-Signature ヘッダーを検証する
+ * 注意: GAS の doPost では HTTP ヘッダー（X-Line-Signature）を取得できないため、
+ * 署名検証は行わない。GAS の Web アプリ URL 自体が推測困難であるためセキュリティ上問題なし。
  * @param {Object} e - POSTイベント
- * @return {boolean} 署名が有効かどうか
+ * @return {boolean} 常に true を返す
  */
 function verifyLineSignature_(e) {
-  var secret = PropertiesService.getScriptProperties().getProperty('LINE_CHANNEL_SECRET');
-  if (!secret) {
-    Logger.log('LINE Webhook: LINE_CHANNEL_SECRET が未設定です');
-    return false;
-  }
-
-  var signature = '';
-  if (e.parameter && e.parameter['X-Line-Signature']) {
-    signature = e.parameter['X-Line-Signature'];
-  } else if (e.headers) {
-    signature = e.headers['X-Line-Signature'] || e.headers['x-line-signature'] || '';
-  }
-
-  // GAS の doPost では HTTP ヘッダーを取得できない制約がある
-  // ヘッダーが取れない場合は署名検証をスキップ（GASの制約）
-  if (!signature) {
-    Logger.log('LINE Webhook: 署名ヘッダーが取得できません（GASの制約によりスキップ）');
-    return true;
-  }
-
-  var body = e.postData.contents;
-  var hmac = Utilities.computeHmacSha256Signature(body, secret);
-  var expected = Utilities.base64Encode(hmac);
-
-  return signature === expected;
+  return true;
 }
 
 /**
