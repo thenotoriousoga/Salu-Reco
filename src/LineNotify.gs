@@ -677,57 +677,97 @@ function notifyRoundResult(roundId) {
     ''
   ];
 
-  // 得点者集計用
-  var allScorers = {};
+  // ラウンド内の勝ち点・得点を集計
+  var matchIds = matches.map(function(m) { return m['マッチID']; });
+  var roundMatchScores = buildMatchScores_(data['得点'], matchIds);
+
+  // チームごとの勝ち点を集計（チーム名ベース）
+  var teamStats = {}; // { teamName: { points, goalsFor, goalsAgainst } }
 
   matches.forEach(function(match) {
-    var matchId = match['マッチID'];
+    var mId = match['マッチID'];
+    var sc = roundMatchScores[mId] || { A: 0, B: 0 };
+    var teamAName = match['チームA名'] || 'チームA';
+    var teamBName = match['チームB名'] || 'チームB';
 
-    // スコア集計
-    var matchGoals = data['得点'].filter(function(g) { return g['マッチID'] === matchId; });
-    var scoreA = 0, scoreB = 0;
-    matchGoals.forEach(function(g) {
-      if (g['チーム'] === 'A') scoreA++;
-      if (g['チーム'] === 'B') scoreB++;
-      // 得点者集計
-      if (g['種別'] === '通常' && g['メンバーID']) {
-        var name = (memberMap[g['メンバーID']] || {})['名前'] || '不明';
-        allScorers[name] = (allScorers[name] || 0) + 1;
-      }
-    });
+    if (!teamStats[teamAName]) teamStats[teamAName] = { points: 0, goalsFor: 0, goalsAgainst: 0, played: 0 };
+    if (!teamStats[teamBName]) teamStats[teamBName] = { points: 0, goalsFor: 0, goalsAgainst: 0, played: 0 };
 
-    lines.push('━━━━━━━━━━━━━━━');
-    lines.push('⚽ MATCH ' + match['マッチ番号']);
-    lines.push('━━━━━━━━━━━━━━━');
-    lines.push('  ' + match['チームA名'] + '  ' + scoreA + ' - ' + scoreB + '  ' + match['チームB名']);
-    if (scoreA > scoreB) {
-      lines.push('  👑 ' + match['チームA名'] + ' WIN');
-    } else if (scoreB > scoreA) {
-      lines.push('  👑 ' + match['チームB名'] + ' WIN');
+    teamStats[teamAName].played++;
+    teamStats[teamBName].played++;
+    teamStats[teamAName].goalsFor += sc.A;
+    teamStats[teamAName].goalsAgainst += sc.B;
+    teamStats[teamBName].goalsFor += sc.B;
+    teamStats[teamBName].goalsAgainst += sc.A;
+
+    if (sc.A > sc.B) {
+      teamStats[teamAName].points += 3;
+      teamStats[teamAName].wins = (teamStats[teamAName].wins || 0) + 1;
+      teamStats[teamBName].losses = (teamStats[teamBName].losses || 0) + 1;
+    } else if (sc.B > sc.A) {
+      teamStats[teamBName].points += 3;
+      teamStats[teamBName].wins = (teamStats[teamBName].wins || 0) + 1;
+      teamStats[teamAName].losses = (teamStats[teamAName].losses || 0) + 1;
     } else {
-      lines.push('  🤝 DRAW');
+      teamStats[teamAName].points += 1;
+      teamStats[teamBName].points += 1;
+      teamStats[teamAName].draws = (teamStats[teamAName].draws || 0) + 1;
+      teamStats[teamBName].draws = (teamStats[teamBName].draws || 0) + 1;
     }
-    lines.push('');
   });
 
-  // 得点ランキング
+  // チーム順位表（勝ち点 → 得失点差 → 得点数 でソート）
+  var standings = Object.keys(teamStats).map(function(name) {
+    var s = teamStats[name];
+    s.name = name;
+    s.diff = s.goalsFor - s.goalsAgainst;
+    return s;
+  }).sort(function(a, b) {
+    if (b.points !== a.points) return b.points - a.points;
+    if (b.diff !== a.diff) return b.diff - a.diff;
+    return b.goalsFor - a.goalsFor;
+  });
+
+  // 個人得点集計
+  var allScorers = {};
+  data['得点'].forEach(function(g) {
+    if (matchIds.indexOf(g['マッチID']) < 0) return;
+    if (g['種別'] === '通常' && g['メンバーID']) {
+      var name = (memberMap[g['メンバーID']] || {})['名前'] || '不明';
+      allScorers[name] = (allScorers[name] || 0) + 1;
+    }
+  });
+
+  lines.push('📊 STANDINGS');
+  lines.push('━━━━━━━━━━━━━━━');
+  var medals = ['🥇', '🥈', '🥉'];
+  standings.forEach(function(s, i) {
+    var prefix = i < 3 ? medals[i] : '　';
+    var w = s.wins || 0;
+    var d = s.draws || 0;
+    var l = s.losses || 0;
+    lines.push(prefix + ' ' + s.name + '  ' + s.points + 'pts (' + w + '勝' + d + '分' + l + '敗)');
+  });
+  lines.push('');
+
+  // 得点ランキング TOP3
   var scorerList = Object.keys(allScorers).map(function(name) {
     return { name: name, count: allScorers[name] };
-  }).sort(function(a, b) { return b.count - a.count; });
+  }).sort(function(a, b) { return b.count - a.count; }).slice(0, 3);
 
   if (scorerList.length > 0) {
+    lines.push('🎯 TOP SCORERS');
     lines.push('━━━━━━━━━━━━━━━');
-    lines.push('🎯 SCORERS');
-    lines.push('━━━━━━━━━━━━━━━');
-    scorerList.forEach(function(s) {
+    scorerList.forEach(function(s, i) {
       var goals = '';
-      for (var i = 0; i < s.count; i++) goals += '⚽';
-      lines.push('  ' + s.name + ' ' + goals);
+      for (var j = 0; j < s.count; j++) goals += '⚽';
+      var prefix = i < 3 ? medals[i] : '　';
+      lines.push(prefix + ' ' + s.name + ' ' + goals);
     });
     lines.push('');
   }
 
-  // 解説者コメント（SCORERSの直後）
+  // 解説者コメント
   var commentary = generateRoundResultCommentary_(matches, allScorers, data, memberMap, eventId, round['ラウンド番号']);
   if (commentary) {
     lines.push(commentary);
