@@ -205,31 +205,43 @@ function doPost(e) {
  * @param {Object} ev - LINEイベントオブジェクト
  */
 function handleGroupMessage_(ev) {
+  var ss = getSpreadsheet_();
+  var debugSheet = ensureSheet_(ss, 'デバッグログ');
+
   var text = (ev.message.text || '').trim();
   var groupId = ev.source.groupId;
   var replyToken = ev.replyToken;
 
+  debugSheet.appendRow([new Date(), '1.handleGroupMessage_開始', text]);
+
   // メンションがあるか確認（公式アカウント宛のメンションが含まれているか）
   var mention = ev.message.mention;
   if (!mention || !mention.mentionees || mention.mentionees.length === 0) {
-    return; // メンションなしは無視
+    debugSheet.appendRow([new Date(), '2.メンションなし→終了', '']);
+    return;
   }
 
+  debugSheet.appendRow([new Date(), '3.メンションあり', JSON.stringify(mention)]);
+
   // メンション部分を除去してコマンドを抽出
-  // メンションのテキスト位置を使って、メンション以外の部分を取得
   var commandText = text;
-  // mentionees を index の降順でソートして後ろから除去（位置ズレ防止）
   var mentionees = mention.mentionees.slice().sort(function(a, b) { return b.index - a.index; });
   mentionees.forEach(function(m) {
     commandText = commandText.substring(0, m.index) + commandText.substring(m.index + m.length);
   });
   commandText = commandText.trim();
 
+  debugSheet.appendRow([new Date(), '4.コマンドテキスト', commandText]);
+
   // 「連携:XXXX」または「連携：XXXX」形式を検出
   var match = commandText.match(/^連携[:：]\s*(.+)$/);
-  if (!match) return;
+  if (!match) {
+    debugSheet.appendRow([new Date(), '5.連携コマンドではない→終了', '']);
+    return;
+  }
 
   var code = match[1].trim().toUpperCase();
+  debugSheet.appendRow([new Date(), '6.参加コード', code]);
 
   // 参加コードからイベントを検索
   var eventData = getSheetData_('イベント');
@@ -238,23 +250,29 @@ function handleGroupMessage_(ev) {
   });
 
   if (!event) {
+    debugSheet.appendRow([new Date(), '7.イベント見つからない', code]);
     sendLineMessage_(groupId, '❌ 参加コード「' + code + '」に該当するイベントが見つかりません。');
     return;
   }
 
   var eventId = event['イベントID'];
+  debugSheet.appendRow([new Date(), '8.イベント発見', eventId + ' / ' + event['名称']]);
 
   // 既に別のグループが紐づいている場合
   if (event['LINEグループID'] && event['LINEグループID'] !== groupId) {
-    sendLineMessage_(groupId, '⚠️ 「' + event['名称'] + '」は既に別のLINEグループと連携済みです。\n解除するには「@Salu-Rec 解除:' + code + '」と送信してください。');
+    debugSheet.appendRow([new Date(), '9.別グループ連携済み', event['LINEグループID']]);
+    sendLineMessage_(groupId, '⚠️ 「' + event['名称'] + '」は既に別のLINEグループと連携済みです。');
     return;
   }
 
   // 既に同じグループが紐づいている場合
   if (event['LINEグループID'] === groupId) {
+    debugSheet.appendRow([new Date(), '10.同じグループ連携済み', groupId]);
     sendLineMessage_(groupId, 'ℹ️ このグループは既に「' + event['名称'] + '」と連携済みです。');
     return;
   }
+
+  debugSheet.appendRow([new Date(), '11.紐づけ実行', eventId + ' → ' + groupId]);
 
   // 紐づけ実行
   updateEventField_(eventId, 10, groupId);
@@ -276,7 +294,9 @@ function handleGroupMessage_(ev) {
     replyLines.push('🔗 ' + eventUrl);
   }
 
-  sendLineMessage_(groupId, replyLines.join('\n'));
+  debugSheet.appendRow([new Date(), '12.sendLineMessage_呼び出し前', groupId]);
+  var result = sendLineMessage_(groupId, replyLines.join('\n'));
+  debugSheet.appendRow([new Date(), '13.sendLineMessage_結果', result]);
 }
 
 /**
