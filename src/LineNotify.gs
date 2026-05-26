@@ -174,34 +174,24 @@ function replyLineMessage_(replyToken, message) {
  * @return {ContentOutput} 200 OK
  */
 function doPost(e) {
-  // デバッグ: スプレッドシートに記録
-  var ss = getSpreadsheet_();
-  var debugSheet = ensureSheet_(ss, 'デバッグログ');
-  debugSheet.appendRow([new Date(), 'doPost開始', e.postData ? e.postData.contents : '(postData なし)']);
-
   try {
-    // 署名検証
+    // 署名検証（GASではスキップ）
     if (!verifyLineSignature_(e)) {
-      debugSheet.appendRow([new Date(), '署名検証失敗', '']);
       return ContentService.createTextOutput('OK');
     }
 
     var json = JSON.parse(e.postData.contents);
     var events = json.events || [];
-    debugSheet.appendRow([new Date(), 'イベント数', events.length]);
 
     events.forEach(function(ev) {
-      debugSheet.appendRow([new Date(), 'イベント', ev.type + ' / ' + (ev.source ? ev.source.type : 'なし')]);
-
       // グループ内のテキストメッセージを処理
       if (ev.type === 'message' && ev.message && ev.message.type === 'text'
           && ev.source && ev.source.type === 'group') {
-        debugSheet.appendRow([new Date(), 'メッセージ', ev.message.text]);
         handleGroupMessage_(ev);
       }
     });
   } catch (err) {
-    debugSheet.appendRow([new Date(), 'エラー', err.message || err]);
+    // エラーは握りつぶす（LINE に 200 を返す必要がある）
   }
 
   return ContentService.createTextOutput('OK');
