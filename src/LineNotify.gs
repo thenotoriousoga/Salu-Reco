@@ -198,28 +198,31 @@ function replyLineMessage_(replyToken, message) {
  */
 function doPost(e) {
   try {
+    console.log('doPost呼び出し');
+    console.log('postData: ' + e.postData.contents);
+
     // 署名検証
     if (!verifyLineSignature_(e)) {
-      Logger.log('LINE Webhook: 署名検証に失敗しました');
+      console.log('LINE Webhook: 署名検証に失敗しました');
       return ContentService.createTextOutput('OK');
     }
 
     var json = JSON.parse(e.postData.contents);
     var events = json.events || [];
-    Logger.log('LINE Webhook受信: イベント数=' + events.length);
+    console.log('LINE Webhook受信: イベント数=' + events.length);
 
     events.forEach(function(ev) {
-      Logger.log('イベント: type=' + ev.type + ', source.type=' + (ev.source ? ev.source.type : 'なし'));
+      console.log('イベント: type=' + ev.type + ', source.type=' + (ev.source ? ev.source.type : 'なし'));
 
       // グループ内のテキストメッセージを処理
       if (ev.type === 'message' && ev.message && ev.message.type === 'text'
           && ev.source && ev.source.type === 'group') {
-        Logger.log('メッセージ処理開始: ' + ev.message.text);
+        console.log('メッセージ処理開始: ' + ev.message.text);
         handleGroupMessage_(ev);
       }
     });
   } catch (err) {
-    Logger.log('Webhook処理エラー: ' + (err.message || err));
+    console.log('Webhook処理エラー: ' + (err.message || err));
   }
 
   return ContentService.createTextOutput('OK');
