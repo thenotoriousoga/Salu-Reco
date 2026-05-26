@@ -438,7 +438,7 @@ function doUnconfirmMvp() {
 function renderMvpResults(results) {
   var c = document.getElementById('mvp-results-area');
   if (!results || results.length === 0) { c.innerHTML = ''; return; }
-  var h = '<h3 style="margin-top:16px;margin-bottom:10px;">' + svg(IC.trophy, 18) + ' MVP選出結果</h3>';
+  var h = '<div class="mvp-results-header">🏆 MVP AWARD</div>';
   h += results.map(function(r) {
     var rank = r['順位'] || r.rank || '';
     var name = r['名前'] || r.name || '';
@@ -447,14 +447,19 @@ function renderMvpResults(results) {
     var rating = r['レーティング'] || r.rating || 0;
     if (!rank) return '';
     var cc = rank === 'MVP' ? 'rank-mvp' : 'rank-sub';
-    var rb = rank === 'MVP'
-      ? '<span class="mvp-result-rank" style="background:var(--accent);color:var(--text);">MVP</span>'
-      : '<span class="mvp-result-rank" style="background:#94A3B8;color:white;">準MVP</span>';
-    var titleHtml = title ? '<div class="mvp-result-title">🏅 ' + esc(title) + '</div>' : '';
-    return '<div class="mvp-result-card ' + cc + '"><div class="mvp-result-name">' + esc(name) + rb + '</div>' +
+    var badgeCls = rank === 'MVP' ? 'badge-mvp' : 'badge-sub';
+    var rankLabel = rank === 'MVP' ? '🏆 MVP' : '🥈 準MVP';
+    var titleHtml = title ? '<div class="mvp-result-title">「' + esc(title) + '」</div>' : '';
+    var reasonHtml = reason ? '<div class="mvp-result-reason">' + esc(reason) + '</div>' : '';
+    return '<div class="mvp-result-card ' + cc + '">' +
+      '<div class="mvp-result-header">' +
+        '<span class="mvp-result-rank-badge ' + badgeCls + '">' + rankLabel + '</span>' +
+        '<span class="mvp-result-rating">⭐ ' + rating + '</span>' +
+      '</div>' +
+      '<div class="mvp-result-name">' + esc(name) + '</div>' +
       titleHtml +
-      '<div class="mvp-result-reason">' + esc(reason) + '</div>' +
-      '<div class="mvp-result-scores"><span>⭐ ' + rating + '</span></div></div>';
+      reasonHtml +
+    '</div>';
   }).join('');
   c.innerHTML = h;
 }

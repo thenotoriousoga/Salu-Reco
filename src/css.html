@@ -6,7 +6,7 @@
    Typography: Fira Sans / Fira Code
    =================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Luckiest+Guy&family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap');
 
 /* --- リセット・ベース --- */
 *, *::before, *::after {
@@ -2602,30 +2602,160 @@ body {
 }
 
 /* --- MVP結果カード --- */
-.mvp-result-card {
-  padding: 16px;
-  margin-bottom: 10px;
-  border-radius: var(--radius-sm);
-  border-left: 5px solid var(--primary);
-  background: var(--bg-surface);
-}
-
-.mvp-result-card.rank-mvp { border-left-color: var(--accent); background: #FFFBEB; }
-.mvp-result-card.rank-sub { border-left-color: #94A3B8; background: #F8FAFC; }
-
-.mvp-result-name { font-family: 'Fira Code', monospace; font-weight: 700; font-size: 1rem; margin-bottom: 4px; }
-
-.mvp-result-rank {
+.mvp-results-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 20px 0 16px;
   font-family: 'Fira Code', monospace;
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 12px;
-  margin-left: 8px;
+  color: var(--accent-dark);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
-.mvp-result-title { font-size: 0.95rem; font-weight: 600; color: var(--accent); margin-top: 4px; }
-.mvp-result-reason { font-size: 0.85rem; color: var(--text-secondary); margin-top: 4px; white-space: pre-wrap; }
+.mvp-results-header::before,
+.mvp-results-header::after {
+  content: '';
+  flex: 1;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+}
+
+.mvp-result-card {
+  position: relative;
+  padding: 20px;
+  margin-bottom: 14px;
+  border-radius: var(--radius);
+  border: 2px solid var(--border-light);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  animation: mvpCardIn 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.mvp-result-card:nth-child(1) { animation-delay: 0ms; }
+.mvp-result-card:nth-child(2) { animation-delay: 120ms; }
+.mvp-result-card:nth-child(3) { animation-delay: 240ms; }
+.mvp-result-card:nth-child(4) { animation-delay: 360ms; }
+.mvp-result-card:nth-child(5) { animation-delay: 480ms; }
+
+.mvp-result-card.rank-mvp {
+  border-color: var(--accent);
+  background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 50%, #FFFBEB 100%);
+  box-shadow: 0 4px 20px rgba(251, 191, 36, 0.2), 0 2px 8px rgba(251, 191, 36, 0.1);
+}
+
+.mvp-result-card.rank-mvp::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(251, 191, 36, 0.15), transparent);
+  animation: mvpShimmer 3s ease-in-out infinite;
+  animation-delay: 1s;
+}
+
+.mvp-result-card.rank-sub {
+  border-color: #CBD5E1;
+  background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 50%, #F8FAFC 100%);
+  box-shadow: 0 2px 12px rgba(148, 163, 184, 0.15);
+}
+
+.mvp-result-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.mvp-result-rank-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.05em;
+}
+
+.mvp-result-rank-badge.badge-mvp {
+  background: linear-gradient(135deg, var(--accent), #F59E0B);
+  color: #78350F;
+  box-shadow: 0 2px 8px rgba(251, 191, 36, 0.3);
+}
+
+.mvp-result-rank-badge.badge-sub {
+  background: linear-gradient(135deg, #94A3B8, #64748B);
+  color: white;
+}
+
+.mvp-result-rating {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--accent-dark);
+}
+
+.mvp-result-name {
+  font-family: 'Fira Sans', sans-serif;
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.mvp-result-title {
+  font-family: 'Dela Gothic One', sans-serif;
+  font-size: 1.1rem;
+  color: var(--accent-dark);
+  margin: 8px 0;
+  line-height: 1.4;
+}
+
+.mvp-result-reason {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  white-space: pre-wrap;
+  margin-top: 10px;
+  padding-left: 12px;
+  border-left: 3px solid var(--accent);
+  opacity: 0.9;
+}
+
+.rank-sub .mvp-result-reason {
+  border-left-color: #94A3B8;
+}
+
+@keyframes mvpCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes mvpShimmer {
+  0% { left: -100%; }
+  50% { left: 150%; }
+  100% { left: 150%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mvp-result-card { animation: none; }
+  .mvp-result-card.rank-mvp::before { animation: none; display: none; }
+}
+
 .mvp-result-scores { display: flex; gap: 12px; font-size: 0.8rem; color: var(--text-muted); margin-top: 6px; }
 
 /* --- アンケートリンク --- */
