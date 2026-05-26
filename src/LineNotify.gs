@@ -427,6 +427,65 @@ function notifyTeamSplit(eventId, teamNames, teams, roundNumber) {
 }
 
 /**
+ * イベントの得点・勝ち点ランキングを計算する
+ * @param {string} eventId - イベントID
+ * @return {Object} { goalRanking: [{id, name, count}], pointRanking: [{id, name, points}] }
+ */
+function calcEventStats_(eventId) {
+  var data = getMultipleSheetData_(['ラウンド', 'マッチ', 'マッチメンバー', '得点', 'メンバー']);
+  var members = data['メンバー'].filter(function(m) { return m['イベントID'] === eventId; });
+  var memberMap = buildMap_(members, 'メンバーID');
+
+  var rounds = data['ラウンド'].filter(function(r) { return r['イベントID'] === eventId; });
+  var roundIds = rounds.map(function(r) { return r['ラウンドID']; });
+  var matches = data['マッチ'].filter(function(m) { return roundIds.indexOf(m['ラウンドID']) >= 0 && m['ステータス'] === '終了'; });
+  var matchIds = matches.map(function(m) { return m['マッチID']; });
+
+  // マッチごとのスコア
+  var matchScores = {};
+  data['得点'].forEach(function(g) {
+    if (matchIds.indexOf(g['マッチID']) < 0) return;
+    if (!matchScores[g['マッチID']]) matchScores[g['マッチID']] = { A: 0, B: 0 };
+    if (g['チーム'] === 'A') matchScores[g['マッチID']].A++;
+    if (g['チーム'] === 'B') matchScores[g['マッチID']].B++;
+  });
+
+  // 得点ランキング
+  var goalCounts = {};
+  data['得点'].forEach(function(g) {
+    if (matchIds.indexOf(g['マッチID']) < 0) return;
+    if (g['種別'] === '通常' && g['メンバーID']) {
+      goalCounts[g['メンバーID']] = (goalCounts[g['メンバーID']] || 0) + 1;
+    }
+  });
+
+  // 勝ち点ランキング
+  var pointCounts = {};
+  data['マッチメンバー'].forEach(function(mm) {
+    if (matchIds.indexOf(mm['マッチID']) < 0) return;
+    var memberId = mm['メンバーID'];
+    if (!pointCounts[memberId]) pointCounts[memberId] = 0;
+
+    var sc = matchScores[mm['マッチID']] || { A: 0, B: 0 };
+    var myScore = mm['チーム'] === 'A' ? sc.A : sc.B;
+    var oppScore = mm['チーム'] === 'A' ? sc.B : sc.A;
+
+    if (myScore > oppScore) pointCounts[memberId] += 3;
+    else if (myScore === oppScore) pointCounts[memberId] += 1;
+  });
+
+  var goalRanking = Object.keys(goalCounts).map(function(id) {
+    return { id: id, name: (memberMap[id] || {})['名前'] || '不明', count: goalCounts[id] };
+  }).sort(function(a, b) { return b.count - a.count; });
+
+  var pointRanking = Object.keys(pointCounts).map(function(id) {
+    return { id: id, name: (memberMap[id] || {})['名前'] || '不明', points: pointCounts[id] };
+  }).sort(function(a, b) { return b.points - a.points; });
+
+  return { goalRanking: goalRanking, pointRanking: pointRanking };
+}
+
+/**
  * チーム分け時の解説者コメントをGemini AIで生成する
  * ランダムに選手をピックアップし、ラウンドに応じた解説者がコメントする
  * @param {Object[]} members - メンバー配列
@@ -439,29 +498,69 @@ function notifyTeamSplit(eventId, teamNames, teams, roundNumber) {
 function generateTeamSplitCommentary_(members, memberMap, teams, teamNames, roundNumber) {
   var commentator = pickCommentatorByRound_(roundNumber, 0);
 
-  // ランダムに1〜2人の選手をピックアップ
+  // ラウンド2以降は過去の成績を取得
+  var goalRanking = [];
+  var pointRanking = [];
+  if (roundNumber > 1) {
+    var eventId = members[0] ? members[0]['イベントID'] : '';
+    if (eventId) {
+      var stats = calcEventStats_(eventId);
+      goalRanking = stats.goalRanking;
+      pointRanking = stats.pointRanking;
+    }
+  }
+
+  // ラウンド番号に基づいて選手を決定的に選ぶ（重複しない、幹事は除外）
   var allMemberIds = [];
   teams.forEach(function(team) { allMemberIds = allMemberIds.concat(team); });
-  shuffle_(allMemberIds);
-  var pickCount = Math.min(2, allMemberIds.length);
-  var pickedMembers = allMemberIds.slice(0, pickCount).map(function(id) {
+  // 幹事を除外
+  allMemberIds = allMemberIds.filter(function(id) {
+    var m = memberMap[id] || {};
+    return m['幹事'] !== 'はい';
+  });
+  if (allMemberIds.length === 0) return null;
+  // メンバーIDでソートして順序を固定
+  allMemberIds.sort();
+  var pickIndex = (roundNumber - 1) % allMemberIds.length;
+  var pickedMembers = [allMemberIds[pickIndex]].map(function(id) {
     var m = memberMap[id] || {};
     var teamIndex = -1;
     for (var t = 0; t < teams.length; t++) {
       if (teams[t].indexOf(id) >= 0) { teamIndex = t; break; }
     }
     var tName = (teamNames && teamNames[teamIndex]) ? teamNames[teamIndex] : 'チーム' + (teamIndex + 1);
+
+    // ランキング順位を取得
+    var goalRank = '';
+    var pointRank = '';
+    if (roundNumber > 1) {
+      for (var gi = 0; gi < goalRanking.length; gi++) {
+        if (goalRanking[gi].id === id) { goalRank = (gi + 1) + '位(' + goalRanking[gi].count + 'G)'; break; }
+      }
+      for (var pi = 0; pi < pointRanking.length; pi++) {
+        if (pointRanking[pi].id === id) { pointRank = (pi + 1) + '位(' + pointRanking[pi].points + 'pts)'; break; }
+      }
+    }
+
     return {
       name: m['名前'] || '不明',
       team: tName,
       experience: m['サッカー経験'] || 'なし',
       years: m['年次'] || '不明',
-      note: m['備考'] || ''
+      note: m['備考'] || '',
+      spirit: m['意気込み'] || '',
+      goalRank: goalRank,
+      pointRank: pointRank
     };
   });
 
   var memberInfo = pickedMembers.map(function(p) {
-    return '- ' + p.name + '（' + p.team + '）: 経験=' + p.experience + ', 年次=' + p.years + (p.note ? ', 備考=' + p.note : '');
+    var info = '- ' + p.name + '（' + p.team + '）: 経験=' + p.experience + ', 年次=' + p.years;
+    if (p.note) info += ', 備考=' + p.note;
+    if (p.spirit) info += ', 意気込み=' + p.spirit;
+    if (p.goalRank) info += ', 得点ランキング=' + p.goalRank;
+    if (p.pointRank) info += ', 勝ち点ランキング=' + p.pointRank;
+    return info;
   }).join('\n');
 
   var prompt = '# 役割\n' +
@@ -476,6 +575,7 @@ function generateTeamSplitCommentary_(members, memberMap, teams, teamNames, roun
     '- 入力データにない情報を捏造しない\n' +
     '- 経験「なし」の選手には成長や意外性に期待するコメント\n' +
     '- 経験「あり」の選手にはキーマンとしての期待\n' +
+    '- ランキング情報があればそれに触れてもOK\n' +
     '- 備考があればネタにしてOK\n' +
     '- 出力は解説コメントのテキストのみ（JSON不要、名前の署名不要）\n\n' +
     '## ピックアップ選手\n' + memberInfo;
@@ -618,20 +718,32 @@ function generateRoundResultCommentary_(matches, allScorers, data, memberMap, ev
     return name + ': ' + allScorers[name] + '点';
   }).join(', ');
 
+  // イベント全体のランキング（このラウンド終了時点）
+  var overallStats = calcEventStats_(eventId);
+  var overallGoalTop3 = overallStats.goalRanking.slice(0, 3).map(function(r, i) {
+    return (i + 1) + '位 ' + r.name + '(' + r.count + 'G)';
+  }).join(', ');
+  var overallPointTop3 = overallStats.pointRanking.slice(0, 3).map(function(r, i) {
+    return (i + 1) + '位 ' + r.name + '(' + r.points + 'pts)';
+  }).join(', ');
+
   var prompt = '# 役割\n' +
     'あなたはサッカー解説者「' + commentator.name + '」です。\n' +
     'スタイル: ' + commentator.style + '\n\n' +
     '# 指示\n' +
-    '社内フットサルのラウンドが終了しました。試合結果を見て、一言感想を述べてください。\n\n' +
+    '社内フットサルのラウンドが終了しました。試合結果とイベント全体の順位変動を見て、一言感想を述べてください。\n\n' +
     '## ルール\n' +
     '- 「' + commentator.name + '」の口調・キャラクターで書く\n' +
     '- 1〜2文で簡潔に（60文字以内）\n' +
     '- 社内フットサルなのでプロ扱いしすぎない。でも真剣に語る\n' +
     '- 結果に基づいた感想（捏造しない）\n' +
     '- 得点者がいればその選手に触れてもOK\n' +
+    '- 全体ランキングと今ラウンドの得点者を見比べて、順位変動を推測して触れてもOK（例：「この2得点で得点王に躍り出た」）\n' +
     '- 出力は解説コメントのテキストのみ（JSON不要、名前の署名不要）\n\n' +
-    '## 試合結果\n' + matchSummary + '\n\n' +
-    '## 得点者\n' + (scorerSummary || 'なし');
+    '## 今ラウンドの試合結果\n' + matchSummary + '\n\n' +
+    '## 今ラウンドの得点者\n' + (scorerSummary || 'なし') + '\n\n' +
+    '## イベント全体 得点ランキングTOP3\n' + (overallGoalTop3 || 'なし') + '\n\n' +
+    '## イベント全体 勝ち点ランキングTOP3\n' + (overallPointTop3 || 'なし');
 
   var response = callGeminiText_(prompt);
   if (!response) return null;
