@@ -829,7 +829,7 @@ function notifyMvpResult(eventId) {
     SEPARATOR_,
     '',
     'Congratulations.',
-    '私 Gianni Infantino は、FIFA会長の名において',
+    '私、ジャンニ・インファンティーノは、FIFA会長の名において',
     '本日の最優秀選手を発表する。',
     '',
     '厳正なる審査の結果──',

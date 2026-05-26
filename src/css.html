@@ -4063,4 +4063,242 @@ body:not(.role-user):not(.role-admin) .user-only { display: none !important; }
 .ev-hero-actions {
   margin-top: 2px;
 }
+
+/* ===================================
+   メンバー一覧 改善
+   =================================== */
+
+/* --- 人数サマリーバー --- */
+.member-summary {
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+}
+
+.member-summary-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.member-summary-count {
+  font-family: 'Fira Code', monospace;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.member-summary-count span {
+  font-size: 1.6rem;
+  color: var(--primary);
+}
+
+.member-summary-survey {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--success);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.member-summary-survey svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.member-summary-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--border-light);
+  overflow: hidden;
+  display: flex;
+}
+
+.member-summary-bar-exp {
+  background: linear-gradient(90deg, var(--success), #34D399);
+  border-radius: 4px 0 0 4px;
+  transition: width 400ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.member-summary-bar-noexp {
+  background: var(--border);
+  transition: width 400ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.member-summary-legend {
+  display: flex;
+  gap: 12px;
+  margin-top: 6px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.member-summary-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.member-summary-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.member-summary-legend-dot-exp {
+  background: var(--success);
+}
+
+.member-summary-legend-dot-noexp {
+  background: var(--border);
+}
+
+/* --- アンケート回答率バー --- */
+.member-survey-bar {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-light);
+}
+
+.member-survey-bar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.member-survey-bar-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.member-survey-bar-count {
+  font-family: 'Fira Code', monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--success);
+}
+
+.member-survey-bar-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border-light);
+  overflow: hidden;
+}
+
+.member-survey-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--success), #6EE7B7);
+  transition: width 400ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* --- メンバー行のカラーストライプ --- */
+.member-item-v2 {
+  position: relative;
+  padding-left: 12px;
+}
+
+.member-item-v2::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--border);
+  transition: background 200ms ease;
+}
+
+.member-item-v2.member-exp::before {
+  background: var(--success);
+}
+
+.member-item-v2.member-organizer::before {
+  background: var(--accent);
+}
+
+/* --- 意気込み吹き出し風 --- */
+.member-spirit {
+  position: relative;
+  display: inline-block;
+  margin-top: 4px;
+  padding: 4px 10px;
+  background: rgba(220, 38, 38, 0.05);
+  border: 1px solid rgba(220, 38, 38, 0.12);
+  border-radius: 10px 10px 10px 2px;
+  font-size: 0.8rem;
+  font-style: normal;
+  color: var(--primary-dark);
+  line-height: 1.4;
+  max-width: 100%;
+  word-break: break-word;
+}
+
+.member-spirit::before {
+  content: '🔥';
+  margin-right: 4px;
+}
+
+/* --- ソートチップ --- */
+.member-sort-bar {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.member-sort-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  background: var(--bg-surface);
+  font-family: 'Fira Sans', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 150ms ease;
+  white-space: nowrap;
+  min-height: 32px;
+}
+
+.member-sort-chip:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.member-sort-chip.active {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.2);
+}
+
+/* --- staggered fade-in --- */
+@media (prefers-reduced-motion: no-preference) {
+  .member-item-v2 {
+    animation: memberFadeIn 300ms ease both;
+  }
+
+  @keyframes memberFadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}
 </style>

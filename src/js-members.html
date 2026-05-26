@@ -20,6 +20,90 @@ function memberLegendHtml_() {
   return '<span class="member-legend-inline">👔幹事 ⚽経験あり <span class="legend-survey">✓回答済</span></span>';
 }
 
+/** 現在のソート状態 */
+var memberSortMode = 'default';
+
+/** メンバーサマリーバーのHTMLを生成する */
+function memberSummaryHtml_(members, voters) {
+  var total = members.length;
+  var expCount = members.filter(function(m) { return m['サッカー経験'] === 'あり'; }).length;
+  var noexpCount = total - expCount;
+  var expPct = total > 0 ? Math.round((expCount / total) * 100) : 0;
+  var noexpPct = 100 - expPct;
+  var surveyCount = 0;
+  members.forEach(function(m) {
+    if (voters.indexOf(m['名前']) !== -1) surveyCount++;
+  });
+  var surveyPct = total > 0 ? Math.round((surveyCount / total) * 100) : 0;
+
+  var html = '<div class="member-summary">';
+  html += '<div class="member-summary-header">';
+  html += '<span class="member-summary-count">参加 <span>' + total + '</span>人</span>';
+  if (surveyCount > 0) {
+    html += '<span class="member-summary-survey"><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>' + surveyCount + '/' + total + ' 回答済</span>';
+  }
+  html += '</div>';
+  html += '<div class="member-summary-bar">';
+  html += '<div class="member-summary-bar-exp" style="width:' + expPct + '%"></div>';
+  html += '<div class="member-summary-bar-noexp" style="width:' + noexpPct + '%"></div>';
+  html += '</div>';
+  html += '<div class="member-summary-legend">';
+  html += '<span class="member-summary-legend-item"><span class="member-summary-legend-dot member-summary-legend-dot-exp"></span>経験者 ' + expCount + '</span>';
+  html += '<span class="member-summary-legend-item"><span class="member-summary-legend-dot member-summary-legend-dot-noexp"></span>未経験 ' + noexpCount + '</span>';
+  html += '</div>';
+  // アンケート回答率バー
+  if (total > 0) {
+    html += '<div class="member-survey-bar">';
+    html += '<div class="member-survey-bar-header">';
+    html += '<span class="member-survey-bar-label">アンケート回答率</span>';
+    html += '<span class="member-survey-bar-count">' + surveyPct + '%</span>';
+    html += '</div>';
+    html += '<div class="member-survey-bar-track"><div class="member-survey-bar-fill" style="width:' + surveyPct + '%"></div></div>';
+    html += '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+/** ソートチップバーのHTMLを生成する */
+function memberSortBarHtml_() {
+  var sorts = [
+    { key: 'default', label: '登録順' },
+    { key: 'years', label: '年次順' },
+    { key: 'exp', label: '経験者優先' }
+  ];
+  var html = '<div class="member-sort-bar">';
+  sorts.forEach(function(s) {
+    var cls = s.key === memberSortMode ? ' active' : '';
+    html += '<button class="member-sort-chip' + cls + '" onclick="sortMembers(\'' + s.key + '\')">' + s.label + '</button>';
+  });
+  html += '</div>';
+  return html;
+}
+
+/** メンバーをソートする */
+function sortMembers(mode) {
+  memberSortMode = mode;
+  if (typeof currentMembers !== 'undefined' && currentMembers) {
+    renderMemberList(currentMembers, cachedSurveyVoters);
+  }
+}
+
+/** ソート済みメンバー配列を返す */
+function getSortedMembers_(members) {
+  var sorted = members.slice();
+  if (memberSortMode === 'years') {
+    sorted.sort(function(a, b) { return (Number(b['年次']) || 0) - (Number(a['年次']) || 0); });
+  } else if (memberSortMode === 'exp') {
+    sorted.sort(function(a, b) {
+      var aExp = a['サッカー経験'] === 'あり' ? 1 : 0;
+      var bExp = b['サッカー経験'] === 'あり' ? 1 : 0;
+      return bExp - aExp;
+    });
+  }
+  return sorted;
+}
+
 function renderMemberList(members, surveyVoters) {
   var c = document.getElementById('member-list');
   var voters = surveyVoters || cachedSurveyVoters || [];
@@ -34,10 +118,13 @@ function renderMemberList(members, surveyVoters) {
     return;
   }
 
-  // メンバーリスト（凡例は見出しに含める）
-  var h = members.map(function(m) {
+  // サマリーバー + ソートチップ + メンバーリスト
+  var sorted = getSortedMembers_(members);
+  var h = memberSummaryHtml_(members, voters);
+  h += memberSortBarHtml_();
+  h += sorted.map(function(m, i) {
     var hasAnswered = voters.indexOf(m['名前']) !== -1;
-    return memberItemHtml_(m, false, hasAnswered, isAdmin());
+    return memberItemHtml_(m, false, hasAnswered, isAdmin(), i);
   }).join('');
   c.innerHTML = h;
 
@@ -60,11 +147,24 @@ function renderMemberList(members, surveyVoters) {
  * @param {boolean} isQueue - キュー内のメンバーか
  * @param {boolean} hasAnswered - アンケート回答済みか
  * @param {boolean} canEdit - 編集可能か
+ * @param {number} index - リスト内のインデックス（アニメーション用）
  * @return {string} HTML文字列
  */
-function memberItemHtml_(m, isQueue, hasAnswered, canEdit) {
+function memberItemHtml_(m, isQueue, hasAnswered, canEdit, index) {
   var id = isQueue ? '' : m['メンバーID'];
   var a = extractMemberAttrs_(m, isQueue);
+  var idx = index || 0;
+
+  // クラス名（経験者/幹事でストライプ色を変える）
+  var itemCls = 'member-item-v2';
+  if (a.orgLabel === 'はい') {
+    itemCls += ' member-organizer';
+  } else if (a.expLabel === 'あり') {
+    itemCls += ' member-exp';
+  }
+
+  // staggered animation delay
+  var delayStyle = idx > 0 ? ' style="animation-delay:' + (idx * 30) + 'ms;cursor:pointer;"' : ' style="cursor:pointer;"';
 
   // アイコン部分（幹事→経験→回答済の順）
   var icons = '';
@@ -89,8 +189,8 @@ function memberItemHtml_(m, isQueue, hasAnswered, canEdit) {
   // 3行目: 意気込み
   var spirit = isQueue ? '' : (m['意気込み'] || '');
 
-  // クリックで詳細を展開/閉じる（管理者は長押しで編集）
-  var toggleAttr = (id && !isQueue) ? ' onclick="toggleMemberDetail(this, event, \'' + id + '\',' + (canEdit ? 'true' : 'false') + ')" style="cursor:pointer;"' : '';
+  // クリックで詳細を展開/閉じる
+  var toggleAttr = (id && !isQueue) ? ' onclick="toggleMemberDetail(this, event, \'' + id + '\',' + (canEdit ? 'true' : 'false') + ')"' : '';
 
   // 意気込み編集ボタン（自分のメンバーの場合）
   var spiritBtn = '';
@@ -98,15 +198,15 @@ function memberItemHtml_(m, isQueue, hasAnswered, canEdit) {
     spiritBtn = '<button class="btn btn-sm btn-secondary" onclick="event.stopPropagation();openSpiritEdit(\'' + id + '\')" style="padding:4px 8px;font-size:0.75rem;">✏️ 意気込み</button>';
   }
 
-  var html = '<div class="member-item-v2"' + toggleAttr + '>' +
+  var html = '<div class="' + itemCls + '"' + delayStyle + toggleAttr + '>' +
     '<div class="member-main">' +
     '<span class="member-name-v2">' + nameWithYears + '</span>' +
     '<span class="member-icons">' + icons + '</span>' +
     '<span style="margin-left:auto;display:flex;gap:4px;">' + spiritBtn + editBtn + '</span>' +
     '</div>';
-  // 意気込みは常に表示
+  // 意気込みは吹き出し風に常時表示
   if (spirit) {
-    html += '<div class="member-sub" style="color:var(--primary);font-style:italic;">🔥 ' + esc(spirit) + '</div>';
+    html += '<div class="member-spirit">' + esc(spirit) + '</div>';
   }
   // 備考は折りたたみ（タップで表示）
   if (subLine) {
