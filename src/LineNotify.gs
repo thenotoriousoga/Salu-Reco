@@ -19,7 +19,10 @@
 var COMMENTATORS_ = [
   { name: '林陵平', style: '元Jリーガーの視点で戦術的に分析する。落ち着いたトーンで的確に語る。選手名や特徴にかけたダジャレを必ず入れる（例：「ドクの独特なドリブル」「ライスには朝飯前」のような言葉遊び）。' },
   { name: '戸田和幸', style: '情熱的で熱い語り口。選手の闘志やメンタルに注目する。ストレートな物言い。' },
-  { name: 'ベン・メイブリー', style: '海外サッカーに精通した視点。ユーモアを交えつつ独自の切り口で語る。必ず「毎度、まいど！ ベン・メイブリーです」から始める。' }
+  { name: 'ベン・メイブリー', style: '海外サッカーに精通した視点。ユーモアを交えつつ独自の切り口で語る。必ず「毎度、まいど！ ベン・メイブリーです」から始める。' },
+  { name: '粕谷秀樹', style: '辛口で歯に衣着せない物言い。プレミアリーグ的な視点で冷静にバッサリ切る。褒めるときも一言多い。' },
+  { name: '倉敷保雄', style: '詩的で格調高い実況スタイル。情景描写が美しく、名フレーズを生み出す。文学的な表現を好む。' },
+  { name: '下田恒幸', style: 'テンポの良い実況で臨場感を伝える。選手の名前を叫ぶのが特徴。ゴールシーンでは感情が溢れる。「さぁ」から始めがち。' }
 ];
 
 /** LINE Messaging API エンドポイント */
@@ -123,15 +126,21 @@ function cleanupNotificationTriggers_() {
  * @return {Object} { name, style }
  */
 function pickCommentatorByRound_(roundNumber, offset) {
-  // 手動で最適な順序を定義（3人の場合、連続しない全6組み合わせ）
+  // 6人の解説者から、チーム分けと結果で被らないペアを選ぶ
   // [チーム分け担当index, 結果担当index]
   var pairs = [
-    [0, 1], // 林 → 戸田
-    [2, 0], // ベン → 林
-    [1, 2], // 戸田 → ベン
-    [0, 2], // 林 → ベン
-    [1, 0], // 戸田 → 林
-    [2, 1]  // ベン → 戸田
+    [0, 3], // 林 → 粕谷
+    [1, 4], // 戸田 → 倉敷
+    [2, 5], // ベン → 下田
+    [3, 0], // 粕谷 → 林
+    [4, 1], // 倉敷 → 戸田
+    [5, 2], // 下田 → ベン
+    [0, 4], // 林 → 倉敷
+    [1, 5], // 戸田 → 下田
+    [2, 3], // ベン → 粕谷
+    [3, 2], // 粕谷 → ベン
+    [4, 0], // 倉敷 → 林
+    [5, 1]  // 下田 → 戸田
   ];
   var pairIndex = (roundNumber - 1) % pairs.length;
   return COMMENTATORS_[pairs[pairIndex][offset]];
@@ -223,14 +232,25 @@ function doPost(e) {
  */
 function handleJoinGroup_(groupId) {
   var lines = [
-    'こんにちは！Salu-Rec です⚽',
+    '✦━━━━━━━━━━━━━━━✦',
+    '  ⭐ Salu-Rec HAS ARRIVED ⭐',
+    '✦━━━━━━━━━━━━━━━✦',
     '',
-    'イベントと連携するには、',
-    'チャットで以下のように送信してください：',
+    'お招きいただき光栄です。',
+    'この舞台を、特別な一日に変えてみせます。',
     '',
+    'イベントとの連携を完了するには',
+    '以下を送信してください。',
+    '',
+    '━━━━━━━━━━━━━━━',
+    '📝 HOW TO CONNECT',
+    '━━━━━━━━━━━━━━━',
     '@Salu-Rec 連携:参加コード',
     '',
-    '参加コードはイベント作成時に発行されたものです。'
+    '※参加コードはイベント作成時に',
+    '  発行されたものです。',
+    '',
+    'LET THE GAME BEGIN. ⚽'
   ];
 
   sendLineMessage_(groupId, lines.join('\n'));
@@ -298,12 +318,19 @@ function handleGroupMessage_(ev) {
   var eventUrl = appUrl ? appUrl + '?code=' + encodeURIComponent(code) : '';
 
   var replyLines = [
-    '✅ 連携完了！',
+    '✦━━━━━━━━━━━━━━━✦',
+    '  ⚽ CONNECTED ⚽',
+    '✦━━━━━━━━━━━━━━━✦',
     '',
-    '⚽ ' + event['名称'],
+    '連携が完了しました。',
+    'この舞台は正式に登録された。',
+    '',
+    '🏟️ ' + event['名称'],
     '📅 ' + event['日付'],
     '',
-    'このグループにイベントの通知が届きます。'
+    'イベントの通知はすべてここに届きます。',
+    '',
+    'THE COUNTDOWN BEGINS. ⏱️'
   ];
 
   if (eventUrl) {
@@ -360,25 +387,28 @@ function notifyEventStart(eventId) {
   var eventUrl = appUrl ? appUrl + '?code=' + encodeURIComponent(event['コード'] || '') : '';
 
   var lines = [
-    SEPARATOR_,
-    '⚽ THE MATCH DAY ⚽',
-    SEPARATOR_,
+    '✦━━━━━━━━━━━━━━━✦',
+    '  ⭐ MATCH DAY ⭐',
+    '✦━━━━━━━━━━━━━━━✦',
     '',
     '🏟️ ' + event['名称'],
     '',
     '選ばれし' + members.length + '名の戦士たちが',
-    'ピッチに集結した。',
+    'ピッチに集結する。',
     ''
   ];
 
   if (memberNames.length > 0) {
+    lines.push('━━━━━━━━━━━━━━━');
     lines.push('📋 SQUAD LIST');
+    lines.push('━━━━━━━━━━━━━━━');
     lines.push(memberNames.join(' / '));
     lines.push('');
   }
 
-  lines.push('栄光を掴むのは誰だ。');
-  lines.push('間もなくキックオフ⏱️');
+  lines.push('歴史を刻むのは、誰だ──');
+  lines.push('');
+  lines.push('THE FUTSAL IS HERE. ⚽');
 
   if (eventUrl) {
     lines.push('');
@@ -411,9 +441,11 @@ function notifyTeamSplit(eventId, teamNames, teams, roundNumber) {
   var memberMap = buildMap_(members, 'メンバーID');
 
   var lines = [
-    SEPARATOR_,
-    '📋 GROUP STAGE - ROUND ' + roundNumber,
-    SEPARATOR_,
+    '✦━━━━━━━━━━━━━━━✦',
+    '  ⚔️ ROUND ' + roundNumber + ' LINE-UP ⚔️',
+    '✦━━━━━━━━━━━━━━━✦',
+    '',
+    '布陣が発表された──',
     ''
   ];
 
@@ -425,8 +457,10 @@ function notifyTeamSplit(eventId, teamNames, teams, roundNumber) {
       return m['名前'];
     });
 
+    lines.push('━━━━━━━━━━━━━━━');
     lines.push('🏴 ' + teamName + '（' + teamMembers.length + '名）');
-    lines.push('  ' + teamMembers.join(' / '));
+    lines.push('━━━━━━━━━━━━━━━');
+    lines.push(teamMembers.join(' / '));
     lines.push('');
   }
 
@@ -438,8 +472,8 @@ function notifyTeamSplit(eventId, teamNames, teams, roundNumber) {
   }
 
   lines.push('');
-  lines.push('運命の組み合わせが決まった。');
-  lines.push('栄光を掴むのは誰だ⚔️');
+  lines.push('組み合わせは決まった。');
+  lines.push('あとはピッチで証明するだけだ。');
 
   var appUrl = ScriptApp.getService().getUrl() || '';
   if (appUrl) {
@@ -630,9 +664,9 @@ function notifyRoundResult(roundId) {
   }
 
   var lines = [
-    SEPARATOR_,
-    '🏁 FULL TIME - ROUND ' + round['ラウンド番号'],
-    SEPARATOR_,
+    '✦━━━━━━━━━━━━━━━✦',
+    '  🏁 FULL TIME - ROUND ' + round['ラウンド番号'] + ' 🏁',
+    '✦━━━━━━━━━━━━━━━✦',
     ''
   ];
 
@@ -655,7 +689,9 @@ function notifyRoundResult(roundId) {
       }
     });
 
+    lines.push('━━━━━━━━━━━━━━━');
     lines.push('⚽ MATCH ' + match['マッチ番号']);
+    lines.push('━━━━━━━━━━━━━━━');
     lines.push('  ' + match['チームA名'] + '  ' + scoreA + ' - ' + scoreB + '  ' + match['チームB名']);
     if (scoreA > scoreB) {
       lines.push('  👑 ' + match['チームA名'] + ' WIN');
@@ -673,7 +709,9 @@ function notifyRoundResult(roundId) {
   }).sort(function(a, b) { return b.count - a.count; });
 
   if (scorerList.length > 0) {
+    lines.push('━━━━━━━━━━━━━━━');
     lines.push('🎯 SCORERS');
+    lines.push('━━━━━━━━━━━━━━━');
     scorerList.forEach(function(s) {
       var goals = '';
       for (var i = 0; i < s.count; i++) goals += '⚽';
@@ -689,7 +727,7 @@ function notifyRoundResult(roundId) {
     lines.push('');
   }
 
-  lines.push('激闘の幕が下りた。次の戦いへ続く。');
+  lines.push('激闘の幕が下りた。次のラウンドへ続く──');
 
   var appUrl = ScriptApp.getService().getUrl() || '';
   if (appUrl) {
@@ -774,17 +812,21 @@ function notifySurveyReminder(eventId) {
   }
 
   var lines = [
-    SEPARATOR_,
-    '🏅 MAN OF THE MATCH',
-    SEPARATOR_,
+    '✦━━━━━━━━━━━━━━━✦',
+    '  🏅 MAN OF THE MATCH 🏅',
+    '✦━━━━━━━━━━━━━━━✦',
     '',
     '全試合が終了した。',
     '',
-    '今宵の最優秀選手は誰か──',
+    '最優秀選手は誰か──',
     'それを決めるのは、ピッチに立った君たちだ。',
     '',
-    '📋 VOTE',
-    event['フォームURL']
+    '━━━━━━━━━━━━━━━',
+    '📋 CAST YOUR VOTE',
+    '━━━━━━━━━━━━━━━',
+    event['フォームURL'],
+    '',
+    'YOUR VOTE DECIDES GLORY. 🗳️'
   ];
 
   var sent = sendLineMessage_(groupId, lines.join('\n'));
@@ -824,25 +866,28 @@ function notifyMvpResult(eventId) {
   var subMvps = mvpResults.filter(function(r) { return r['順位'] === '準MVP'; });
 
   var lines = [
-    SEPARATOR_,
-    '👑 BEST PLAYER AWARD',
-    SEPARATOR_,
+    '✦━━━━━━━━━━━━━━━✦',
+    '  👑 BEST PLAYER AWARD 👑',
+    '✦━━━━━━━━━━━━━━━✦',
     '',
-    'Congratulations.',
-    '私、ジャンニ・インファンティーノは、FIFA会長の名において',
+    'THE VOTES ARE IN.',
+    '',
+    '私、ジャンニ・インファンティーノは、',
+    'FIFA会長の名において',
     '本日の最優秀選手を発表する。',
     '',
-    '厳正なる審査の結果──',
+    '厳正なる投票の結果──',
     '以下の選手に栄誉を授ける。',
     ''
   ];
 
   // MVP
   if (mvps.length > 0) {
+    lines.push('━━━━━━━━━━━━━━━');
     lines.push('🏆 MVP');
+    lines.push('━━━━━━━━━━━━━━━');
     mvps.forEach(function(r) {
-      lines.push('');
-      lines.push('  ' + r['名前']);
+      lines.push('  ⭐ ' + r['名前']);
       lines.push('  「' + r['称号'] + '」');
     });
     lines.push('');
@@ -850,9 +895,10 @@ function notifyMvpResult(eventId) {
 
   // 準MVP
   if (subMvps.length > 0) {
+    lines.push('━━━━━━━━━━━━━━━');
     lines.push('🥈 準MVP');
+    lines.push('━━━━━━━━━━━━━━━');
     subMvps.forEach(function(r) {
-      lines.push('');
       lines.push('  ' + r['名前']);
       lines.push('  「' + r['称号'] + '」');
     });
@@ -862,9 +908,9 @@ function notifyMvpResult(eventId) {
   // 得点ランキング TOP3
   var goalRanking = stats.goalRanking.slice(0, 3);
   if (goalRanking.length > 0) {
-    lines.push(SEPARATOR_);
+    lines.push('━━━━━━━━━━━━━━━');
     lines.push('⚽ TOP SCORERS');
-    lines.push(SEPARATOR_);
+    lines.push('━━━━━━━━━━━━━━━');
     goalRanking.forEach(function(r, i) {
       lines.push(MEDALS_[i] + ' ' + r.name + '  ' + r.count + 'G');
     });
@@ -874,14 +920,16 @@ function notifyMvpResult(eventId) {
   // 勝ち点ランキング TOP3
   var pointRanking = stats.pointRanking.slice(0, 3);
   if (pointRanking.length > 0) {
-    lines.push(SEPARATOR_);
+    lines.push('━━━━━━━━━━━━━━━');
     lines.push('📊 WIN POINTS');
-    lines.push(SEPARATOR_);
+    lines.push('━━━━━━━━━━━━━━━');
     pointRanking.forEach(function(r, i) {
       lines.push(MEDALS_[i] + ' ' + r.name + '  ' + r.points + 'pts');
     });
     lines.push('');
   }
+
+  lines.push('CONGRATULATIONS. 🎉');
 
   // アプリURLがあれば追加
   var appUrl = ScriptApp.getService().getUrl() || '';
