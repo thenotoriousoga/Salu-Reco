@@ -424,7 +424,7 @@ function generateTeamSplitCommentary_(members, memberMap, teams, teamNames, roun
     '- 出力は解説コメントのテキストのみ（JSON不要、名前の署名不要）\n\n' +
     '## ピックアップ選手\n' + memberInfo;
 
-  var response = callGemini_(prompt);
+  var response = callGeminiText_(prompt);
   if (!response) return null;
 
   // 解説者名を付けて返す
@@ -577,7 +577,7 @@ function generateRoundResultCommentary_(matches, allScorers, data, memberMap, ev
     '## 試合結果\n' + matchSummary + '\n\n' +
     '## 得点者\n' + (scorerSummary || 'なし');
 
-  var response = callGemini_(prompt);
+  var response = callGeminiText_(prompt);
   if (!response) return null;
 
   return '🎙️ ' + commentator.name + '\n「' + response.trim().replace(/^「|」$/g, '') + '」';
