@@ -42,7 +42,8 @@ function callGeminiWithMimeType_(prompt, mimeType, model) {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: {
       temperature: 0.3,
-      responseMimeType: mimeType
+      responseMimeType: mimeType,
+      maxOutputTokens: 65536
     }
   };
 
@@ -59,15 +60,30 @@ function callGeminiWithMimeType_(prompt, mimeType, model) {
       var code = res.getResponseCode();
       if (code === 200) {
         var json = JSON.parse(res.getContentText());
-        return json.candidates[0].content.parts[0].text;
+        var candidate = json.candidates[0];
+
+        // 出力が途中で切れていないかチェック
+        var finishReason = candidate.finishReason;
+        if (finishReason && finishReason !== 'STOP') {
+          Logger.log('Gemini 出力が不完全です（finishReason: ' + finishReason + '）');
+          if (attempt < maxAttempts) {
+            Logger.log('リトライします（' + attempt + '/' + maxAttempts + '）...');
+            Utilities.sleep(3000);
+            continue;
+          }
+          return null;
+        }
+
+        return candidate.content.parts[0].text;
       }
 
       Logger.log('Gemini API エラー: ' + code + ' ' + res.getContentText());
 
-      // 503（高負荷）の場合、1回だけリトライ
-      if (code === 503 && attempt < maxAttempts) {
-        Logger.log('リトライします（' + attempt + '/' + maxAttempts + '）...');
-        Utilities.sleep(5000);
+      // 503（高負荷）または 429（レートリミット）の場合リトライ
+      if ((code === 503 || code === 429) && attempt < maxAttempts) {
+        var waitTime = code === 429 ? 10000 : 5000;
+        Logger.log('リトライします（' + attempt + '/' + maxAttempts + '）... ' + waitTime + 'ms 待機');
+        Utilities.sleep(waitTime);
         continue;
       }
 
