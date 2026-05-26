@@ -279,6 +279,10 @@ function confirmMvp(eventId) {
     return { success: false, message: 'MVP選出がまだ行われていません' };
   }
   updateEventField_(eventId, 9, 'はい');
+
+  // LINE通知: MVP結果
+  notifyMvpResult(eventId);
+
   return { success: true, message: 'MVP結果を公開しました！🎉' };
 }
 
@@ -313,6 +317,10 @@ function startEvent(eventId) {
   }
 
   updateEventStatus(eventId, '進行中');
+
+  // LINE通知
+  notifyEventStart(eventId);
+
   return { success: true, message: 'イベントを開始しました。チーム分けを行いましょう！' };
 }
 
@@ -340,6 +348,12 @@ function endEvent(eventId) {
   }
 
   updateEventStatus(eventId, 'イベント終了');
+
+  // LINE通知: アンケートリマインド（フォームがあれば）
+  if (event['フォームURL']) {
+    notifySurveyReminder(eventId);
+  }
+
   return { success: true, message: 'イベントを終了しました。MVP選出が可能です' };
 }
 

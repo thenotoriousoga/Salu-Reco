@@ -4,16 +4,53 @@
 // ===================================
 // 必要なスクリプトプロパティ:
 //   LINE_CHANNEL_ACCESS_TOKEN - メッセージ送信用トークン
-//   LINE_CHANNEL_SECRET       - Webhook署名検証用シークレット
 //
 // イベントシートの「LINEグループID」列にグループIDを保存する。
-// 公式アカウントをグループに招待した際にWebhook経由でグループIDを取得し、
-// linkLineGroup(eventId, groupId) でイベントに紐づける。
+// グループ内で「@公式アカウント 連携:参加コード」と送信すると紐づけされる。
 // ===================================
 
 // ===================================
 // LINE API 基盤
 // ===================================
+
+/**
+ * 解説者リスト
+ */
+var COMMENTATORS_ = [
+  { name: '林陵平', style: '元Jリーガーの視点で戦術的に分析する。落ち着いたトーンで的確に語る。選手名や特徴にかけたダジャレを必ず入れる（例：「ドクの独特なドリブル」「ライスには朝飯前」のような言葉遊び）。' },
+  { name: '戸田和幸', style: '情熱的で熱い語り口。選手の闘志やメンタルに注目する。ストレートな物言い。' },
+  { name: 'ベン・メイブリー', style: '海外サッカーに精通した視点。ユーモアを交えつつ独自の切り口で語る。必ず「毎度、まいど！ ベン・メイブリーです」から始める。' }
+];
+
+/** LINE Messaging API エンドポイント */
+var LINE_PUSH_URL_ = 'https://api.line.me/v2/bot/message/push';
+
+/** 区切り線 */
+var SEPARATOR_ = '━━━━━━━━━━━━━━━';
+
+/** メダル絵文字 */
+var MEDALS_ = ['🥇', '🥈', '🥉'];
+
+/**
+ * ラウンド番号に基づいて解説者を選ぶ（同じラウンドでは別の解説者、連続ラウンドでも被らない）
+ * @param {number} roundNumber - ラウンド番号
+ * @param {number} offset - オフセット（0=チーム分け, 1=ラウンド結果）
+ * @return {Object} { name, style }
+ */
+function pickCommentatorByRound_(roundNumber, offset) {
+  // 手動で最適な順序を定義（3人の場合、連続しない全6組み合わせ）
+  // [チーム分け担当index, 結果担当index]
+  var pairs = [
+    [0, 1], // 林 → 戸田
+    [2, 0], // ベン → 林
+    [1, 2], // 戸田 → ベン
+    [0, 2], // 林 → ベン
+    [1, 0], // 戸田 → 林
+    [2, 1]  // ベン → 戸田
+  ];
+  var pairIndex = (roundNumber - 1) % pairs.length;
+  return COMMENTATORS_[pairs[pairIndex][offset]];
+}
 
 /**
  * イベントに紐づくLINEグループIDを取得する
@@ -39,7 +76,7 @@ function sendLineMessage_(groupId, message) {
     return false;
   }
 
-  var url = 'https://api.line.me/v2/bot/message/push';
+  var url = LINE_PUSH_URL_;
   var payload = {
     to: groupId,
     messages: [{ type: 'text', text: message }]
@@ -60,100 +97,10 @@ function sendLineMessage_(groupId, message) {
   }
 }
 
-/**
- * LINE Messaging API でFlex Messageを送信する
- * @param {string} groupId - 送信先のグループID
- * @param {string} altText - 代替テキスト（通知プレビュー用）
- * @param {Object} flexContent - Flex Messageのコンテンツ（bubble or carousel）
- * @return {boolean} 送信成功したかどうか
- */
-function sendLineFlexMessage_(groupId, altText, flexContent) {
-  var token = PropertiesService.getScriptProperties().getProperty('LINE_CHANNEL_ACCESS_TOKEN');
-
-  if (!token) {
-    Logger.log('LINE通知: LINE_CHANNEL_ACCESS_TOKEN が未設定です');
-    return false;
-  }
-  if (!groupId) {
-    Logger.log('LINE通知: グループIDが指定されていません');
-    return false;
-  }
-
-  var url = 'https://api.line.me/v2/bot/message/push';
-  var payload = {
-    to: groupId,
-    messages: [{
-      type: 'flex',
-      altText: altText,
-      contents: flexContent
-    }]
-  };
-
-  try {
-    var res = UrlFetchApp.fetch(url, {
-      method: 'post',
-      contentType: 'application/json',
-      headers: { 'Authorization': 'Bearer ' + token },
-      payload: JSON.stringify(payload),
-      muteHttpExceptions: true
-    });
-
-    var code = res.getResponseCode();
-    if (code === 200) {
-      return true;
-    }
-
-    Logger.log('LINE Flex通知エラー: ' + code + ' ' + res.getContentText());
-    return false;
-  } catch (e) {
-    Logger.log('LINE Flex通知失敗: ' + (e.message || e));
-    return false;
-  }
-}
-
 // ===================================
 // LINEグループ連携管理（コマンド送信方式）
 // グループ内で「連携:参加コード」と送信すると自動紐づけ
 // ===================================
-
-/**
- * Webhook リクエストの署名を検証する
- * 注意: GAS の doPost では HTTP ヘッダー（X-Line-Signature）を取得できないため、
- * 署名検証は行わない。GAS の Web アプリ URL 自体が推測困難であるためセキュリティ上問題なし。
- * @param {Object} e - POSTイベント
- * @return {boolean} 常に true を返す
- */
-function verifyLineSignature_(e) {
-  return true;
-}
-
-/**
- * LINE Messaging API の Reply API でメッセージを返信する
- * @param {string} replyToken - リプライトークン
- * @param {string} message - 返信メッセージ
- */
-function replyLineMessage_(replyToken, message) {
-  var token = PropertiesService.getScriptProperties().getProperty('LINE_CHANNEL_ACCESS_TOKEN');
-  if (!token || !replyToken) return;
-
-  var url = 'https://api.line.me/v2/bot/message/reply';
-  var payload = {
-    replyToken: replyToken,
-    messages: [{ type: 'text', text: message }]
-  };
-
-  try {
-    UrlFetchApp.fetch(url, {
-      method: 'post',
-      contentType: 'application/json',
-      headers: { 'Authorization': 'Bearer ' + token },
-      payload: JSON.stringify(payload),
-      muteHttpExceptions: true
-    });
-  } catch (e) {
-    Logger.log('LINE返信失敗: ' + (e.message || e));
-  }
-}
 
 /**
  * Webhook エンドポイント（doPost）
@@ -163,15 +110,15 @@ function replyLineMessage_(replyToken, message) {
  */
 function doPost(e) {
   try {
-    // 署名検証（GASではスキップ）
-    if (!verifyLineSignature_(e)) {
-      return ContentService.createTextOutput('OK');
-    }
-
     var json = JSON.parse(e.postData.contents);
     var events = json.events || [];
 
     events.forEach(function(ev) {
+      // 公式アカウントがグループに参加した時
+      if (ev.type === 'join' && ev.source && ev.source.type === 'group') {
+        handleJoinGroup_(ev.source.groupId);
+      }
+
       // グループ内のテキストメッセージを処理
       if (ev.type === 'message' && ev.message && ev.message.type === 'text'
           && ev.source && ev.source.type === 'group') {
@@ -183,6 +130,25 @@ function doPost(e) {
   }
 
   return ContentService.createTextOutput('OK');
+}
+
+/**
+ * グループ参加時の挨拶メッセージを送信する
+ * @param {string} groupId - グループID
+ */
+function handleJoinGroup_(groupId) {
+  var lines = [
+    'こんにちは！Salu-Rec です⚽',
+    '',
+    'イベントと連携するには、',
+    'チャットで以下のように送信してください：',
+    '',
+    '@Salu-Rec 連携:参加コード',
+    '',
+    '参加コードはイベント作成時に発行されたものです。'
+  ];
+
+  sendLineMessage_(groupId, lines.join('\n'));
 }
 
 /**
@@ -249,7 +215,7 @@ function handleGroupMessage_(ev) {
   var replyLines = [
     '✅ 連携完了！',
     '',
-    '📋 ' + event['名称'],
+    '⚽ ' + event['名称'],
     '📅 ' + event['日付'],
     '',
     'このグループにイベントの通知が届きます。'
@@ -309,21 +275,25 @@ function notifyEventStart(eventId) {
   var eventUrl = appUrl ? appUrl + '?code=' + encodeURIComponent(event['コード'] || '') : '';
 
   var lines = [
-    '⚽ イベント開始！',
+    SEPARATOR_,
+    '⚽ THE MATCH DAY ⚽',
+    SEPARATOR_,
     '',
-    '📋 ' + event['名称'],
-    '📅 ' + event['日付'],
-    '👥 参加者: ' + members.length + '名',
+    '🏟️ ' + event['名称'],
+    '',
+    '選ばれし' + members.length + '名の戦士たちが',
+    'ピッチに集結した。',
     ''
   ];
 
   if (memberNames.length > 0) {
-    lines.push('【参加メンバー】');
-    lines.push(memberNames.join('、'));
+    lines.push('📋 SQUAD LIST');
+    lines.push(memberNames.join(' / '));
     lines.push('');
   }
 
-  lines.push('今日も楽しくやりましょう！💪');
+  lines.push('栄光を掴むのは誰だ。');
+  lines.push('間もなくキックオフ⏱️');
 
   if (eventUrl) {
     lines.push('');
@@ -356,7 +326,9 @@ function notifyTeamSplit(eventId, teamNames, teams, roundNumber) {
   var memberMap = buildMap_(members, 'メンバーID');
 
   var lines = [
-    '🎲 チーム分け結果（ラウンド' + roundNumber + '）',
+    SEPARATOR_,
+    '📋 GROUP STAGE - ROUND ' + roundNumber,
+    SEPARATOR_,
     ''
   ];
 
@@ -365,23 +337,98 @@ function notifyTeamSplit(eventId, teamNames, teams, roundNumber) {
     var teamMembers = teams[i].map(function(id) {
       var m = memberMap[id];
       if (!m) return '不明';
-      var exp = m['サッカー経験'] === 'あり' ? '⭐' : '';
-      return m['名前'] + exp;
+      return m['名前'];
     });
 
-    lines.push('【' + teamName + '】(' + teamMembers.length + '人)');
-    lines.push(teamMembers.join('、'));
+    lines.push('🏴 ' + teamName + '（' + teamMembers.length + '名）');
+    lines.push('  ' + teamMembers.join(' / '));
     lines.push('');
   }
 
-  lines.push('⭐ = サッカー経験あり');
+  // 解説者コメントを生成してチーム分けの直後に追加
+  var commentary = generateTeamSplitCommentary_(members, memberMap, teams, teamNames, roundNumber);
+  if (commentary) {
+    lines.push('');
+    lines.push(commentary);
+  }
+
   lines.push('');
-  lines.push('さあ、試合開始だ！🔥');
+  lines.push('運命の組み合わせが決まった。');
+  lines.push('栄光を掴むのは誰だ⚔️');
+
+  var appUrl = ScriptApp.getService().getUrl() || '';
+  if (appUrl) {
+    var event = findEvent_(eventId);
+    var eventUrl = appUrl + '?code=' + encodeURIComponent((event && event['コード']) || '');
+    lines.push('');
+    lines.push('🔗 ' + eventUrl);
+  }
 
   var sent = sendLineMessage_(groupId, lines.join('\n'));
   return sent
     ? { success: true, message: 'チーム分け結果をLINEに送信しました' }
     : { success: false, message: 'LINE通知の送信に失敗しました' };
+}
+
+/**
+ * チーム分け時の解説者コメントをGemini AIで生成する
+ * ランダムに選手をピックアップし、ラウンドに応じた解説者がコメントする
+ * @param {Object[]} members - メンバー配列
+ * @param {Object} memberMap - メンバーIDマップ
+ * @param {string[][]} teams - チームごとのメンバーID配列
+ * @param {string[]} teamNames - チーム名配列
+ * @param {number} roundNumber - ラウンド番号
+ * @return {string|null} 解説コメント文字列、失敗時はnull
+ */
+function generateTeamSplitCommentary_(members, memberMap, teams, teamNames, roundNumber) {
+  var commentator = pickCommentatorByRound_(roundNumber, 0);
+
+  // ランダムに1〜2人の選手をピックアップ
+  var allMemberIds = [];
+  teams.forEach(function(team) { allMemberIds = allMemberIds.concat(team); });
+  shuffle_(allMemberIds);
+  var pickCount = Math.min(2, allMemberIds.length);
+  var pickedMembers = allMemberIds.slice(0, pickCount).map(function(id) {
+    var m = memberMap[id] || {};
+    var teamIndex = -1;
+    for (var t = 0; t < teams.length; t++) {
+      if (teams[t].indexOf(id) >= 0) { teamIndex = t; break; }
+    }
+    var tName = (teamNames && teamNames[teamIndex]) ? teamNames[teamIndex] : 'チーム' + (teamIndex + 1);
+    return {
+      name: m['名前'] || '不明',
+      team: tName,
+      experience: m['サッカー経験'] || 'なし',
+      years: m['年次'] || '不明',
+      note: m['備考'] || ''
+    };
+  });
+
+  var memberInfo = pickedMembers.map(function(p) {
+    return '- ' + p.name + '（' + p.team + '）: 経験=' + p.experience + ', 年次=' + p.years + (p.note ? ', 備考=' + p.note : '');
+  }).join('\n');
+
+  var prompt = '# 役割\n' +
+    'あなたはサッカー解説者「' + commentator.name + '」です。\n' +
+    'スタイル: ' + commentator.style + '\n\n' +
+    '# 指示\n' +
+    '社内フットサルのチーム分けが発表されました。以下のピックアップ選手について、試合前の解説コメントを書いてください。\n\n' +
+    '## ルール\n' +
+    '- 「' + commentator.name + '」の口調・キャラクターで書く\n' +
+    '- 2〜3文で簡潔に（80文字以内）\n' +
+    '- 社内フットサルなのでプロ扱いしすぎない。でも真剣に語る\n' +
+    '- 入力データにない情報を捏造しない\n' +
+    '- 経験「なし」の選手には成長や意外性に期待するコメント\n' +
+    '- 経験「あり」の選手にはキーマンとしての期待\n' +
+    '- 備考があればネタにしてOK\n' +
+    '- 出力は解説コメントのテキストのみ（JSON不要、名前の署名不要）\n\n' +
+    '## ピックアップ選手\n' + memberInfo;
+
+  var response = callGemini_(prompt);
+  if (!response) return null;
+
+  // 解説者名を付けて返す
+  return '🎙️ ' + commentator.name + '\n「' + response.trim().replace(/^「|」$/g, '') + '」';
 }
 
 // ===================================
@@ -415,7 +462,9 @@ function notifyRoundResult(roundId) {
   }
 
   var lines = [
-    '📊 ラウンド' + round['ラウンド番号'] + ' 結果',
+    SEPARATOR_,
+    '🏁 FULL TIME - ROUND ' + round['ラウンド番号'],
+    SEPARATOR_,
     ''
   ];
 
@@ -438,11 +487,15 @@ function notifyRoundResult(roundId) {
       }
     });
 
-    var teamADisplay = match['チームA名'] + (scoreA > scoreB ? ' 🏆' : '');
-    var teamBDisplay = match['チームB名'] + (scoreB > scoreA ? ' 🏆' : '');
-
-    lines.push('⚽ 第' + match['マッチ番号'] + '試合');
-    lines.push(teamADisplay + ' ' + scoreA + ' - ' + scoreB + ' ' + teamBDisplay);
+    lines.push('⚽ MATCH ' + match['マッチ番号']);
+    lines.push('  ' + match['チームA名'] + '  ' + scoreA + ' - ' + scoreB + '  ' + match['チームB名']);
+    if (scoreA > scoreB) {
+      lines.push('  👑 ' + match['チームA名'] + ' WIN');
+    } else if (scoreB > scoreA) {
+      lines.push('  👑 ' + match['チームB名'] + ' WIN');
+    } else {
+      lines.push('  🤝 DRAW');
+    }
     lines.push('');
   });
 
@@ -452,18 +505,82 @@ function notifyRoundResult(roundId) {
   }).sort(function(a, b) { return b.count - a.count; });
 
   if (scorerList.length > 0) {
-    lines.push('🎯 得点者');
+    lines.push('🎯 SCORERS');
     scorerList.forEach(function(s) {
       var goals = '';
       for (var i = 0; i < s.count; i++) goals += '⚽';
       lines.push('  ' + s.name + ' ' + goals);
     });
+    lines.push('');
+  }
+
+  // 解説者コメント（SCORERSの直後）
+  var commentary = generateRoundResultCommentary_(matches, allScorers, data, memberMap, eventId, round['ラウンド番号']);
+  if (commentary) {
+    lines.push(commentary);
+    lines.push('');
+  }
+
+  lines.push('激闘の幕が下りた。次の戦いへ続く。');
+
+  var appUrl = ScriptApp.getService().getUrl() || '';
+  if (appUrl) {
+    var event = data['イベント'].find(function(e) { return e['イベントID'] === eventId; });
+    var eventUrl = appUrl + '?code=' + encodeURIComponent((event && event['コード']) || '');
+    lines.push('');
+    lines.push('🔗 ' + eventUrl);
   }
 
   var sent = sendLineMessage_(groupId, lines.join('\n'));
   return sent
     ? { success: true, message: 'ラウンド結果をLINEに送信しました' }
     : { success: false, message: 'LINE通知の送信に失敗しました' };
+}
+
+/**
+ * ラウンド結果に対する解説者コメントをGemini AIで生成する
+ * @param {Object[]} matches - マッチデータ
+ * @param {Object} allScorers - 得点者マップ { 名前: 得点数 }
+ * @param {Object} data - getMultipleSheetData_の結果
+ * @param {Object} memberMap - メンバーIDマップ
+ * @param {string} eventId - イベントID
+ * @param {number} roundNumber - ラウンド番号
+ * @return {string|null} 解説コメント文字列、失敗時はnull
+ */
+function generateRoundResultCommentary_(matches, allScorers, data, memberMap, eventId, roundNumber) {
+  var commentator = pickCommentatorByRound_(roundNumber, 1);
+
+  // 試合結果サマリを作成
+  var matchSummary = matches.map(function(match) {
+    var matchGoals = data['得点'].filter(function(g) { return g['マッチID'] === match['マッチID']; });
+    var scoreA = matchGoals.filter(function(g) { return g['チーム'] === 'A'; }).length;
+    var scoreB = matchGoals.filter(function(g) { return g['チーム'] === 'B'; }).length;
+    return match['チームA名'] + ' ' + scoreA + '-' + scoreB + ' ' + match['チームB名'];
+  }).join('\n');
+
+  var scorerSummary = Object.keys(allScorers).map(function(name) {
+    return name + ': ' + allScorers[name] + '点';
+  }).join(', ');
+
+  var prompt = '# 役割\n' +
+    'あなたはサッカー解説者「' + commentator.name + '」です。\n' +
+    'スタイル: ' + commentator.style + '\n\n' +
+    '# 指示\n' +
+    '社内フットサルのラウンドが終了しました。試合結果を見て、一言感想を述べてください。\n\n' +
+    '## ルール\n' +
+    '- 「' + commentator.name + '」の口調・キャラクターで書く\n' +
+    '- 1〜2文で簡潔に（60文字以内）\n' +
+    '- 社内フットサルなのでプロ扱いしすぎない。でも真剣に語る\n' +
+    '- 結果に基づいた感想（捏造しない）\n' +
+    '- 得点者がいればその選手に触れてもOK\n' +
+    '- 出力は解説コメントのテキストのみ（JSON不要、名前の署名不要）\n\n' +
+    '## 試合結果\n' + matchSummary + '\n\n' +
+    '## 得点者\n' + (scorerSummary || 'なし');
+
+  var response = callGemini_(prompt);
+  if (!response) return null;
+
+  return '🎙️ ' + commentator.name + '\n「' + response.trim().replace(/^「|」$/g, '') + '」';
 }
 
 // ===================================
@@ -485,30 +602,19 @@ function notifySurveyReminder(eventId) {
     return { success: false, message: 'アンケートフォームが作成されていません' };
   }
 
-  var members = getEventMembers(eventId);
-  var voters = getSurveyVoters(eventId);
-  var remaining = members.length - voters.length;
-
   var lines = [
-    '📝 アンケートのお願い',
+    SEPARATOR_,
+    '🏅 MAN OF THE MATCH',
+    SEPARATOR_,
     '',
-    '「' + event['名称'] + '」お疲れさまでした！',
+    '全試合が終了した。',
     '',
-    'MVP選出のためのアンケートにご協力ください🙏',
-    '各メンバーへのコメントを自由に記入してください。',
-    ''
+    '今宵の最優秀選手は誰か──',
+    'その評価を託すのは、ピッチに立った君たちだ。',
+    '',
+    '📋 VOTE',
+    event['フォームURL']
   ];
-
-  if (voters.length > 0) {
-    lines.push('✅ 回答済み: ' + voters.length + '/' + members.length + '人');
-    if (remaining > 0) {
-      lines.push('⏳ 未回答: ' + remaining + '人');
-    }
-    lines.push('');
-  }
-
-  lines.push('📋 アンケートはこちら:');
-  lines.push(event['フォームURL']);
 
   var sent = sendLineMessage_(groupId, lines.join('\n'));
   return sent
@@ -537,6 +643,53 @@ function notifyMvpResult(eventId) {
     return { success: false, message: 'MVP結果がありません' };
   }
 
+  // 得点・勝ち点ランキング用データ取得
+  var data = getMultipleSheetData_(['ラウンド', 'マッチ', 'マッチメンバー', '得点', 'メンバー']);
+  var members = data['メンバー'].filter(function(m) { return m['イベントID'] === eventId; });
+  var memberMap = buildMap_(members, 'メンバーID');
+
+  var rounds = data['ラウンド'].filter(function(r) { return r['イベントID'] === eventId; });
+  var roundIds = rounds.map(function(r) { return r['ラウンドID']; });
+  var matches = data['マッチ'].filter(function(m) { return roundIds.indexOf(m['ラウンドID']) >= 0; });
+  var matchIds = matches.map(function(m) { return m['マッチID']; });
+
+  // マッチごとのスコア事前計算
+  var matchScores = {};
+  data['得点'].forEach(function(g) {
+    if (matchIds.indexOf(g['マッチID']) < 0) return;
+    if (!matchScores[g['マッチID']]) matchScores[g['マッチID']] = { A: 0, B: 0 };
+    if (g['チーム'] === 'A') matchScores[g['マッチID']].A++;
+    if (g['チーム'] === 'B') matchScores[g['マッチID']].B++;
+  });
+
+  // 得点ランキング集計
+  var goalCounts = {};
+  data['得点'].forEach(function(g) {
+    if (matchIds.indexOf(g['マッチID']) < 0) return;
+    if (g['種別'] === '通常' && g['メンバーID']) {
+      goalCounts[g['メンバーID']] = (goalCounts[g['メンバーID']] || 0) + 1;
+    }
+  });
+
+  // 勝ち点ランキング集計（勝ち=3, 引き分け=1, 負け=0）
+  var pointCounts = {};
+  data['マッチメンバー'].forEach(function(mm) {
+    if (matchIds.indexOf(mm['マッチID']) < 0) return;
+    var memberId = mm['メンバーID'];
+    if (!pointCounts[memberId]) pointCounts[memberId] = 0;
+
+    var match = matches.find(function(m) { return m['マッチID'] === mm['マッチID']; });
+    if (!match || match['ステータス'] !== '終了') return;
+
+    var sc = matchScores[mm['マッチID']] || { A: 0, B: 0 };
+    var myTeam = mm['チーム'];
+    var myScore = myTeam === 'A' ? sc.A : sc.B;
+    var oppScore = myTeam === 'A' ? sc.B : sc.A;
+
+    if (myScore > oppScore) pointCounts[memberId] += 3;
+    else if (myScore === oppScore) pointCounts[memberId] += 1;
+  });
+
   // スコア順にソート
   mvpResults.sort(function(a, b) { return (b['総合スコア'] || 0) - (a['総合スコア'] || 0); });
 
@@ -544,54 +697,74 @@ function notifyMvpResult(eventId) {
   var subMvps = mvpResults.filter(function(r) { return r['順位'] === '準MVP'; });
 
   var lines = [
-    '🏆 MVP発表！',
+    SEPARATOR_,
+    '👑 BEST PLAYER AWARD',
+    SEPARATOR_,
     '',
-    '「' + event['名称'] + '」のMVPが決定しました！',
+    'Congratulations.',
+    '私 Gianni Infantino は、FIFA会長の名において',
+    '本日の最優秀選手を発表する。',
+    '',
+    '厳正なる審査の結果──',
+    '以下の選手に栄誉を授ける。',
     ''
   ];
 
   // MVP
   if (mvps.length > 0) {
-    lines.push('👑 MVP');
+    lines.push('🏆 MVP');
     mvps.forEach(function(r) {
-      lines.push('  🥇 ' + r['名前'] + '【' + r['称号'] + '】');
-      if (r['理由']) {
-        // 理由は100文字に切り詰め（LINEの可読性のため）
-        var reason = String(r['理由']);
-        if (reason.length > 100) reason = reason.substring(0, 100) + '…';
-        lines.push('  ' + reason);
-      }
       lines.push('');
+      lines.push('  ' + r['名前']);
+      lines.push('  「' + r['称号'] + '」');
     });
+    lines.push('');
   }
 
   // 準MVP
   if (subMvps.length > 0) {
     lines.push('🥈 準MVP');
     subMvps.forEach(function(r) {
-      lines.push('  ' + r['名前'] + '【' + r['称号'] + '】');
-      lines.push('');
+      lines.push('  ' + r['名前'] + ' ─ ' + r['称号']);
     });
+    lines.push('');
   }
 
-  // 全員の称号一覧
-  lines.push('📜 全員の称号');
-  mvpResults.forEach(function(r) {
-    var medal = '';
-    if (r['順位'] === 'MVP') medal = '👑 ';
-    else if (r['順位'] === '準MVP') medal = '🥈 ';
-    lines.push('  ' + medal + r['名前'] + ' - ' + r['称号']);
-  });
+  // 得点ランキング TOP3
+  var goalRanking = Object.keys(goalCounts).map(function(id) {
+    return { name: (memberMap[id] || {})['名前'] || '不明', count: goalCounts[id] };
+  }).sort(function(a, b) { return b.count - a.count; }).slice(0, 3);
 
-  lines.push('');
-  lines.push('みんなお疲れさまでした！🎉');
+  if (goalRanking.length > 0) {
+    lines.push(SEPARATOR_);
+    lines.push('⚽ TOP SCORERS');
+    lines.push(SEPARATOR_);
+    goalRanking.forEach(function(r, i) {
+      lines.push(MEDALS_[i] + ' ' + r.name + '  ' + r.count + 'G');
+    });
+    lines.push('');
+  }
 
-  // アプリURLがあれば追加（詳細はアプリで確認）
+  // 勝ち点ランキング TOP3
+  var pointRanking = Object.keys(pointCounts).map(function(id) {
+    return { name: (memberMap[id] || {})['名前'] || '不明', points: pointCounts[id] };
+  }).sort(function(a, b) { return b.points - a.points; }).slice(0, 3);
+
+  if (pointRanking.length > 0) {
+    lines.push(SEPARATOR_);
+    lines.push('📊 WIN POINTS');
+    lines.push(SEPARATOR_);
+    pointRanking.forEach(function(r, i) {
+      lines.push(MEDALS_[i] + ' ' + r.name + '  ' + r.points + 'pts');
+    });
+    lines.push('');
+  }
+
+  // アプリURLがあれば追加
   var appUrl = ScriptApp.getService().getUrl() || '';
   if (appUrl) {
     var eventUrl = appUrl + '?code=' + encodeURIComponent(event['コード'] || '');
-    lines.push('');
-    lines.push('📱 詳細はアプリで確認:');
+    lines.push('📱 詳細はこちら');
     lines.push(eventUrl);
   }
 
