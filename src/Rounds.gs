@@ -347,13 +347,14 @@ function reopenMatch(matchId) {
 
 /**
  * 終了した試合のスコアと得点者を直接修正する（試合を再開せずに）
+ * スコアは得点テーブルから動的に計算されるため、goals の更新のみ行う
  * @param {string} matchId - マッチID
- * @param {number} scoreA - チームAの新スコア
- * @param {number} scoreB - チームBの新スコア
+ * @param {number} _scoreA - （未使用・後方互換のため残存）
+ * @param {number} _scoreB - （未使用・後方互換のため残存）
  * @param {Object[]} goals - 得点データ配列 [{ team, memberId, type }, ...]
  * @return {Object} 結果オブジェクト { success, message }
  */
-function correctMatchScore(matchId, scoreA, scoreB, goals) {
+function correctMatchScore(matchId, _scoreA, _scoreB, goals) {
   var ss = getSpreadsheet_();
   var matchSheet = ss.getSheetByName('マッチ');
   var matchRow = findRowIndex_(matchSheet, 0, matchId);
@@ -372,11 +373,7 @@ function correctMatchScore(matchId, scoreA, scoreB, goals) {
     return { success: false, message: 'イベント終了後は編集できません' };
   }
 
-  // スコアを更新（スコアA: 7列目, スコアB: 8列目）
-  matchSheet.getRange(matchRow, 7).setValue(Number(scoreA) || 0);
-  matchSheet.getRange(matchRow, 8).setValue(Number(scoreB) || 0);
-
-  // 得点データも更新（渡された場合）
+  // 得点データを更新（スコアは得点テーブルから動的に計算されるため直接保存は不要）
   if (goals) {
     deleteRowsByMatch_('得点', 1, matchId);
     if (goals.length > 0) {

@@ -470,14 +470,8 @@ function calcEventStats_(eventId) {
   var matches = data['マッチ'].filter(function(m) { return roundIds.indexOf(m['ラウンドID']) >= 0 && m['ステータス'] === '終了'; });
   var matchIds = matches.map(function(m) { return m['マッチID']; });
 
-  // マッチごとのスコア
-  var matchScores = {};
-  data['得点'].forEach(function(g) {
-    if (matchIds.indexOf(g['マッチID']) < 0) return;
-    if (!matchScores[g['マッチID']]) matchScores[g['マッチID']] = { A: 0, B: 0 };
-    if (g['チーム'] === 'A') matchScores[g['マッチID']].A++;
-    if (g['チーム'] === 'B') matchScores[g['マッチID']].B++;
-  });
+  // マッチごとのスコア（共通ヘルパーを使用）
+  var matchScores = buildMatchScores_(data['得点'], matchIds);
 
   // 得点ランキング
   var goalCounts = {};
@@ -820,52 +814,8 @@ function notifyMvpResult(eventId) {
     return { success: false, message: 'MVP結果がありません' };
   }
 
-  // 得点・勝ち点ランキング用データ取得
-  var data = getMultipleSheetData_(['ラウンド', 'マッチ', 'マッチメンバー', '得点', 'メンバー']);
-  var members = data['メンバー'].filter(function(m) { return m['イベントID'] === eventId; });
-  var memberMap = buildMap_(members, 'メンバーID');
-
-  var rounds = data['ラウンド'].filter(function(r) { return r['イベントID'] === eventId; });
-  var roundIds = rounds.map(function(r) { return r['ラウンドID']; });
-  var matches = data['マッチ'].filter(function(m) { return roundIds.indexOf(m['ラウンドID']) >= 0; });
-  var matchIds = matches.map(function(m) { return m['マッチID']; });
-
-  // マッチごとのスコア事前計算
-  var matchScores = {};
-  data['得点'].forEach(function(g) {
-    if (matchIds.indexOf(g['マッチID']) < 0) return;
-    if (!matchScores[g['マッチID']]) matchScores[g['マッチID']] = { A: 0, B: 0 };
-    if (g['チーム'] === 'A') matchScores[g['マッチID']].A++;
-    if (g['チーム'] === 'B') matchScores[g['マッチID']].B++;
-  });
-
-  // 得点ランキング集計
-  var goalCounts = {};
-  data['得点'].forEach(function(g) {
-    if (matchIds.indexOf(g['マッチID']) < 0) return;
-    if (g['種別'] === '通常' && g['メンバーID']) {
-      goalCounts[g['メンバーID']] = (goalCounts[g['メンバーID']] || 0) + 1;
-    }
-  });
-
-  // 勝ち点ランキング集計（勝ち=3, 引き分け=1, 負け=0）
-  var pointCounts = {};
-  data['マッチメンバー'].forEach(function(mm) {
-    if (matchIds.indexOf(mm['マッチID']) < 0) return;
-    var memberId = mm['メンバーID'];
-    if (!pointCounts[memberId]) pointCounts[memberId] = 0;
-
-    var match = matches.find(function(m) { return m['マッチID'] === mm['マッチID']; });
-    if (!match || match['ステータス'] !== '終了') return;
-
-    var sc = matchScores[mm['マッチID']] || { A: 0, B: 0 };
-    var myTeam = mm['チーム'];
-    var myScore = myTeam === 'A' ? sc.A : sc.B;
-    var oppScore = myTeam === 'A' ? sc.B : sc.A;
-
-    if (myScore > oppScore) pointCounts[memberId] += 3;
-    else if (myScore === oppScore) pointCounts[memberId] += 1;
-  });
+  // calcEventStats_ を再利用してランキングを取得
+  var stats = calcEventStats_(eventId);
 
   // スコア順にソート
   mvpResults.sort(function(a, b) { return (b['レーティング'] || 0) - (a['レーティング'] || 0); });
@@ -910,10 +860,7 @@ function notifyMvpResult(eventId) {
   }
 
   // 得点ランキング TOP3
-  var goalRanking = Object.keys(goalCounts).map(function(id) {
-    return { name: (memberMap[id] || {})['名前'] || '不明', count: goalCounts[id] };
-  }).sort(function(a, b) { return b.count - a.count; }).slice(0, 3);
-
+  var goalRanking = stats.goalRanking.slice(0, 3);
   if (goalRanking.length > 0) {
     lines.push(SEPARATOR_);
     lines.push('⚽ TOP SCORERS');
@@ -925,10 +872,7 @@ function notifyMvpResult(eventId) {
   }
 
   // 勝ち点ランキング TOP3
-  var pointRanking = Object.keys(pointCounts).map(function(id) {
-    return { name: (memberMap[id] || {})['名前'] || '不明', points: pointCounts[id] };
-  }).sort(function(a, b) { return b.points - a.points; }).slice(0, 3);
-
+  var pointRanking = stats.pointRanking.slice(0, 3);
   if (pointRanking.length > 0) {
     lines.push(SEPARATOR_);
     lines.push('📊 WIN POINTS');

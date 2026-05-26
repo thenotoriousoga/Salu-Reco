@@ -1,6 +1,5 @@
 // ===================================
 // MVP選出（Gemini AI 総合評価）
-// 詳細は docs/mvp-logic.md を参照
 // ===================================
 
 // ===================================
@@ -54,15 +53,16 @@ function getParticipantIds_(matchMembers, matchIds) {
 }
 
 /**
- * メンバーの試合統計を1パスで集計する
+ * メンバーの試合統計を集計する
  * @param {Object[]} matches - マッチデータ
  * @param {Object[]} matchMembers - マッチメンバーデータ
  * @param {Object[]} goals - 得点データ
  * @param {string[]} matchIds - 対象マッチIDの配列
  * @param {string} memberId - メンバーID
+ * @param {Object} matchScores - buildMatchScores_の戻り値（事前計算済みスコアマップ）
  * @return {Object} { goals: number, wins: number, played: number, subCount: number }
  */
-function calcMemberStats_(matches, matchMembers, goals, matchIds, memberId) {
+function calcMemberStats_(matches, matchMembers, goals, matchIds, memberId, matchScores) {
   var stats = { goals: 0, wins: 0, played: 0, subCount: 0 };
 
   // 得点集計
@@ -73,15 +73,6 @@ function calcMemberStats_(matches, matchMembers, goals, matchIds, memberId) {
   });
 
   // 出場・勝利集計
-  // まずマッチごとのスコアを事前計算
-  var matchScores = {};
-  goals.forEach(function(g) {
-    if (matchIds.indexOf(g['マッチID']) < 0) return;
-    if (!matchScores[g['マッチID']]) matchScores[g['マッチID']] = { A: 0, B: 0 };
-    if (g['チーム'] === 'A') matchScores[g['マッチID']].A++;
-    if (g['チーム'] === 'B') matchScores[g['マッチID']].B++;
-  });
-
   matchMembers.forEach(function(mm) {
     if (matchIds.indexOf(mm['マッチID']) < 0 || mm['メンバーID'] !== memberId) return;
     stats.played++;
@@ -112,9 +103,10 @@ function calcMemberStats_(matches, matchMembers, goals, matchIds, memberId) {
  * @return {string} プロンプト文字列
  */
 function buildMvpPrompt_(participantIds, mvpData, mvpCount, subMvpCount) {
+  var matchScores = buildMatchScores_(mvpData.goals, mvpData.matchIds);
   var memberLines = participantIds.map(function(mId) {
     var m = mvpData.memberMap[mId] || {};
-    var stats = calcMemberStats_(mvpData.matches, mvpData.matchMembers, mvpData.goals, mvpData.matchIds, mId);
+    var stats = calcMemberStats_(mvpData.matches, mvpData.matchMembers, mvpData.goals, mvpData.matchIds, mId, matchScores);
     var comments = mvpData.surveyComments
       .filter(function(c) { return c['対象メンバーID'] === mId; })
       .map(function(c) { return '「' + (c['コメント'] || '') + '」'; });

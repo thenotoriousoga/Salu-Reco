@@ -284,3 +284,21 @@ function appendRows_(sheet, rows) {
   var lastRow = sheet.getLastRow();
   sheet.getRange(lastRow + 1, 1, rows.length, rows[0].length).setValues(rows);
 }
+
+/**
+ * マッチごとのスコアを事前計算する
+ * 得点データからチームA/Bの得点数をマッチIDごとに集計する
+ * @param {Object[]} goals - 得点データ
+ * @param {string[]} matchIds - 対象マッチIDの配列
+ * @return {Object} マッチIDをキーにしたスコアマップ { matchId: { A: number, B: number } }
+ */
+function buildMatchScores_(goals, matchIds) {
+  var matchScores = {};
+  goals.forEach(function(g) {
+    if (matchIds.indexOf(g['マッチID']) < 0) return;
+    if (!matchScores[g['マッチID']]) matchScores[g['マッチID']] = { A: 0, B: 0 };
+    if (g['チーム'] === 'A') matchScores[g['マッチID']].A++;
+    if (g['チーム'] === 'B') matchScores[g['マッチID']].B++;
+  });
+  return matchScores;
+}
