@@ -362,8 +362,10 @@ function runMvp() {
   var mc = document.getElementById('mvp-count').value;
   var sc = document.getElementById('sub-mvp-count').value;
   showConfirm('MVP選出', 'いよいよMVP発表！準備はいいですか？', function() {
+    showLoading('MVP選出', 'リクエスト送信中…');
     google.script.run
       .withSuccessHandler(function(r) {
+        hideLoading();
         if (r.success) {
           showToast(r.message);
           // ボタンを選出中状態にする
@@ -376,6 +378,7 @@ function runMvp() {
         }
       })
       .withFailureHandler(function() {
+        hideLoading();
         showToast('MVP選出に失敗しました', true);
       })
       .selectMVP(currentEventId, mc, sc);
