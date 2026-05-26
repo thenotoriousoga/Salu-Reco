@@ -376,7 +376,7 @@ function selectMVP(eventId, mvpCount, subMvpCount) {
   // 非同期で実行をスケジュール
   scheduleMvpSelection_(eventId, mvpCount, subMvpCount);
 
-  return { success: true, message: 'MVP選出を開始しました。完了後にLINEで通知します。' };
+  return { success: true, message: 'MVP選出を開始しました。しばらくお待ちください。' };
 }
 
 /**
@@ -449,8 +449,7 @@ function executeMvpSelection_() {
     var result = selectMVP_(req.eventId, req.mvpCount, req.subMvpCount);
 
     if (result.success) {
-      // LINE通知をスケジュール
-      scheduleNotification_('notifyMvpResult', [req.eventId]);
+      Logger.log('MVP選出完了: ' + req.eventId);
     } else {
       Logger.log('MVP選出失敗: ' + result.message);
     }
