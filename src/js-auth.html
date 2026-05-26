@@ -92,6 +92,7 @@ function doLoginAdmin() {
 
 /**
  * URLパラメータの参加コードで自動ログインする
+ * セッションに同じイベント・メンバーが残っていればメンバー選択をスキップする
  * @param {string} code - 参加コード
  */
 function autoLoginWithCode_(code) {
@@ -103,6 +104,23 @@ function autoLoginWithCode_(code) {
       if (r.success) {
         setRole_('user');
         currentEventId = r.eventId;
+
+        // セッションに同じイベント・メンバーが残っていればスキップ
+        var session = loadSession_();
+        if (session && session.eventId === r.eventId && session.memberId) {
+          var found = (r.members || []).find(function(m) {
+            return String(m['メンバーID']) === String(session.memberId);
+          });
+          if (found) {
+            currentMemberId = session.memberId;
+            saveSession_();
+            document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+            document.getElementById('page-events').classList.add('active');
+            openEvent(r.eventId, null, true);
+            return;
+          }
+        }
+
         showMemberSelect_(r.members || []);
       } else {
         showToast(r.message, true);
