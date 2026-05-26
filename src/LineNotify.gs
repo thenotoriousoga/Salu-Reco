@@ -22,7 +22,8 @@ var COMMENTATORS_ = [
   { name: 'ベン・メイブリー', style: '海外サッカーに精通した視点。ユーモアを交えつつ独自の切り口で語る。必ず「毎度、まいど！ ベン・メイブリーです」から始める。' },
   { name: '粕谷秀樹', style: '辛口で歯に衣着せない物言い。プレミアリーグ的な視点で冷静にバッサリ切る。褒めるときも一言多い。' },
   { name: '倉敷保雄', style: '詩的で格調高い実況スタイル。情景描写が美しく、名フレーズを生み出す。文学的な表現を好む。' },
-  { name: '下田恒幸', style: 'テンポの良い実況で臨場感を伝える。選手の名前を叫ぶのが特徴。ゴールシーンでは感情が溢れる。「さぁ」から始めがち。' }
+  { name: '下田恒幸', style: 'テンポの良い実況で臨場感を伝える。選手の名前を叫ぶのが特徴。ゴールシーンでは感情が溢れる。「さぁ」から始めがち。' },
+  { name: '北川義隆', style: 'セリエA実況でおなじみのイタリア大好きおじさん。イタリア語を自然に混ぜて語る（例：「Bravo!」「Fantastico!」「Che bello!」）。感情が高ぶると私情が漏れる。' }
 ];
 
 /** LINE Messaging API エンドポイント */
@@ -126,21 +127,23 @@ function cleanupNotificationTriggers_() {
  * @return {Object} { name, style }
  */
 function pickCommentatorByRound_(roundNumber, offset) {
-  // 6人の解説者から、チーム分けと結果で被らないペアを選ぶ
+  // 7人の解説者から、チーム分けと結果で被らないペアを選ぶ
   // [チーム分け担当index, 結果担当index]
   var pairs = [
     [0, 3], // 林 → 粕谷
     [1, 4], // 戸田 → 倉敷
     [2, 5], // ベン → 下田
-    [3, 0], // 粕谷 → 林
-    [4, 1], // 倉敷 → 戸田
-    [5, 2], // 下田 → ベン
-    [0, 4], // 林 → 倉敷
-    [1, 5], // 戸田 → 下田
-    [2, 3], // ベン → 粕谷
-    [3, 2], // 粕谷 → ベン
+    [3, 6], // 粕谷 → 北川
     [4, 0], // 倉敷 → 林
-    [5, 1]  // 下田 → 戸田
+    [5, 1], // 下田 → 戸田
+    [6, 2], // 北川 → ベン
+    [0, 5], // 林 → 下田
+    [1, 6], // 戸田 → 北川
+    [2, 3], // ベン → 粕谷
+    [3, 4], // 粕谷 → 倉敷
+    [4, 2], // 倉敷 → ベン
+    [5, 0], // 下田 → 林
+    [6, 1]  // 北川 → 戸田
   ];
   var pairIndex = (roundNumber - 1) % pairs.length;
   return COMMENTATORS_[pairs[pairIndex][offset]];
@@ -612,18 +615,22 @@ function generateTeamSplitCommentary_(members, memberMap, teams, teamNames, roun
   });
 
   var memberInfo = pickedMembers.map(function(p) {
-    var info = '- ' + p.name + '（' + p.team + '）: 経験=' + p.experience + ', 年次=' + p.years;
-    if (p.note) info += ', 備考=' + p.note;
-    if (p.spirit) info += ', 意気込み=' + p.spirit;
-    if (p.goalRank) info += ', 得点ランキング=' + p.goalRank;
-    if (p.pointRank) info += ', 勝ち点ランキング=' + p.pointRank;
+    var info = '- ' + p.name + '（' + p.team + '）';
+    // 個性的な情報を先に出す（AIの注目を誘導）
+    if (p.goalRank) info += ' 得点ランキング=' + p.goalRank;
+    if (p.pointRank) info += ' 勝ち点ランキング=' + p.pointRank;
+    if (p.spirit) info += ' 意気込み:「' + p.spirit + '」';
+    if (p.note) info += ' 備考: ' + p.note;
+    // 年次・経験は補足（参考程度）
+    info += ' （' + p.years + '年目, 経験' + p.experience + '）';
     return info;
   }).join('\n');
 
   var prompt = 'あなたはサッカー解説者「' + commentator.name + '」。\n' +
     'スタイル: ' + commentator.style + '\n\n' +
     '社内フットサルのチーム分け発表。以下の選手について試合前コメントを一言（80文字以内）。\n' +
-    '入力データにない情報は書かない。ランキング情報があれば触れてOK。\n\n' +
+    '入力データにない情報は書かない。ランキング情報や意気込み・備考があればそちらを優先的にネタにする。\n' +
+    '注意: 「年次」「経験の有無」だけに言及するコメントは避ける。それらは補足情報であり、コメントの主題にしないこと。\n\n' +
     memberInfo;
 
   var response = callGeminiText_(prompt);
