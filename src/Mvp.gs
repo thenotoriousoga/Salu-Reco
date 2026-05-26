@@ -163,13 +163,13 @@ function buildMvpPrompt_(participantIds, mvpData, mvpCount, subMvpCount) {
     '- コメントが多い・ポジティブなメンバーは高評価\n' +
     '- 助っ人での出場（別チームの試合に参戦）はチームへの貢献としてプラス評価\n\n' +
     '## 幹事ルール\n' +
-    '幹事はMVP・準MVPから除外。ただしスコア・称号・コメントは普通に評価。\n\n' +
-    '## 採点基準（0〜100点）\n' +
-    '- 90〜100: 文句なしMVP！圧倒的貢献\n' +
-    '- 70〜89: MVP候補！目立つ活躍\n' +
-    '- 50〜69: ナイスプレー連発！\n' +
-    '- 30〜49: しっかり貢献！\n' +
-    '- 0〜29: 参加ありがとう！\n\n' +
+    '幹事はMVP・準MVPから除外。ただしレーティング・称号・コメントは普通に評価。\n\n' +
+    '## 採点基準（0.0〜10.0）\n' +
+    '- 9.0〜10.0: 文句なしMVP！圧倒的貢献\n' +
+    '- 7.0〜8.9: MVP候補！目立つ活躍\n' +
+    '- 5.0〜6.9: ナイスプレー連発！\n' +
+    '- 3.0〜4.9: しっかり貢献！\n' +
+    '- 0.0〜2.9: 参加ありがとう！\n\n' +
     '# 入力データ\n' + memberLines.join('\n\n') + '\n\n' +
     '# 出力仕様\n\n' +
     '## 順位\n' +
@@ -186,7 +186,6 @@ function buildMvpPrompt_(participantIds, mvpData, mvpCount, subMvpCount) {
     '| フィールド | 説明 |\n' +
     '|------------|------|\n' +
     '| memberId | 入力のmemberIdをそのまま |\n' +
-    '| score | 0〜100の整数 |\n' +
     '| rank | "MVP" / "準MVP" / "" |\n' +
     '| title | 全員に称号（例: ゴールハンター、縁の下の力持ち、成長株、ムードメーカー） |\n' +
     '| reason | MVP・準MVPのみ選出理由を書く。それ以外は空文字"" |\n' +
@@ -197,7 +196,7 @@ function buildMvpPrompt_(participantIds, mvpData, mvpCount, subMvpCount) {
     '## 出力形式\n' +
     'JSON配列のみ（他テキスト不要）。全メンバー分必須。\n' +
     '```json\n' +
-    '[{"memberId": "xxx", "score": 85, "rank": "MVP", "title": "ゴールハンター", "reason": "...", "rating": 8.5, "comment": "〇〇さんへ..."}, ...]\n' +
+    '[{"memberId": "xxx", "rank": "MVP", "title": "ゴールハンター", "reason": "...", "rating": 8.5, "comment": "〇〇さんへ..."}, ...]\n' +
     '```';
 }
 
@@ -216,7 +215,7 @@ function parseMvpResponse_(responseText, participantIds, memberMap) {
       var item = parsed.find(function(p) { return p.memberId === mId; });
 
       if (!item) {
-        return { memberId: mId, name: m['名前'] || '不明', rank: '', title: '', reason: '', totalScore: 0, rating: 0, comment: '' };
+        return { memberId: mId, name: m['名前'] || '不明', rank: '', title: '', reason: '', rating: 0, comment: '' };
       }
 
       return {
@@ -225,13 +224,12 @@ function parseMvpResponse_(responseText, participantIds, memberMap) {
         rank: item.rank || '',
         title: item.title || '',
         reason: item.reason || '',
-        totalScore: clamp_(Math.round(Number(item.score) || 0), 0, 100),
         rating: clamp_(Math.round((Number(item.rating) || 0) * 10) / 10, 0, 10),
         comment: item.comment || ''
       };
     });
 
-    results.sort(function(a, b) { return b.totalScore - a.totalScore; });
+    results.sort(function(a, b) { return b.rating - a.rating; });
     return results;
   } catch (e) {
     return { success: false, message: 'AI評価のレスポンス解析に失敗しました: ' + e.message };
@@ -264,7 +262,7 @@ function saveMvpResults_(eventId, results) {
   if (!results || results.length === 0) return;
 
   var rows = results.map(function(r) {
-    return [eventId, r.memberId, r.name, r.rank, r.title, r.reason, r.totalScore, r.rating, r.comment];
+    return [eventId, r.memberId, r.name, r.rank, r.title, r.reason, r.rating, r.comment];
   });
 
   var ss = getSpreadsheet_();

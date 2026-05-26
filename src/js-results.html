@@ -444,7 +444,7 @@ function renderMvpResults(results) {
     var name = r['名前'] || r.name || '';
     var title = r['称号'] || r.title || '';
     var reason = r['理由'] || r.reason || '';
-    var ts = r['総合スコア'] || r.totalScore || 0;
+    var rating = r['レーティング'] || r.rating || 0;
     if (!rank) return '';
     var cc = rank === 'MVP' ? 'rank-mvp' : 'rank-sub';
     var rb = rank === 'MVP'
@@ -454,7 +454,7 @@ function renderMvpResults(results) {
     return '<div class="mvp-result-card ' + cc + '"><div class="mvp-result-name">' + esc(name) + rb + '</div>' +
       titleHtml +
       '<div class="mvp-result-reason">' + esc(reason) + '</div>' +
-      '<div class="mvp-result-scores"><span>総合: ' + ts + 'pt</span></div></div>';
+      '<div class="mvp-result-scores"><span>⭐ ' + rating + '</span></div></div>';
   }).join('');
   c.innerHTML = h;
 }

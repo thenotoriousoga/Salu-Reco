@@ -868,7 +868,7 @@ function notifyMvpResult(eventId) {
   });
 
   // スコア順にソート
-  mvpResults.sort(function(a, b) { return (b['総合スコア'] || 0) - (a['総合スコア'] || 0); });
+  mvpResults.sort(function(a, b) { return (b['レーティング'] || 0) - (a['レーティング'] || 0); });
 
   var mvps = mvpResults.filter(function(r) { return r['順位'] === 'MVP'; });
   var subMvps = mvpResults.filter(function(r) { return r['順位'] === '準MVP'; });
