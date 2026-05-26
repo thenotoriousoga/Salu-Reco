@@ -95,43 +95,13 @@ function calcMemberStats_(matches, matchMembers, goals, matchIds, memberId, matc
 // ===================================
 
 /**
- * AI総合評価用のプロンプトを組み立てる
- * @param {string[]} participantIds - 参加メンバーIDの配列
- * @param {Object} mvpData - getMvpData_の戻り値
+ * AI総合評価用のシステムプロンプトを組み立てる（固定部分：ロール・ルール・出力仕様）
  * @param {number} mvpCount - MVP人数
  * @param {number} subMvpCount - 準MVP人数
- * @return {string} プロンプト文字列
+ * @param {number} totalMembers - 参加メンバー総数
+ * @return {string} システムプロンプト文字列
  */
-function buildMvpPrompt_(participantIds, mvpData, mvpCount, subMvpCount) {
-  var matchScores = buildMatchScores_(mvpData.goals, mvpData.matchIds);
-  var memberLines = participantIds.map(function(mId) {
-    var m = mvpData.memberMap[mId] || {};
-    var stats = calcMemberStats_(mvpData.matches, mvpData.matchMembers, mvpData.goals, mvpData.matchIds, mId, matchScores);
-    var MAX_COMMENTS_PER_MEMBER = 5;
-    var MAX_COMMENT_LENGTH = 80;
-    var comments = mvpData.surveyComments
-      .filter(function(c) { return c['対象メンバーID'] === mId && c['コメント']; })
-      .slice(0, MAX_COMMENTS_PER_MEMBER)
-      .map(function(c) {
-        var text = c['コメント'].length > MAX_COMMENT_LENGTH
-          ? c['コメント'].substring(0, MAX_COMMENT_LENGTH) + '…'
-          : c['コメント'];
-        return '「' + text + '」';
-      });
-
-    return '- memberId: "' + mId + '"\n' +
-      '  名前: ' + (m['名前'] || '不明') + '\n' +
-      '  サッカー経験: ' + (m['サッカー経験'] || '不明') + '\n' +
-      '  年次: ' + (m['年次'] || '不明') + '\n' +
-      '  備考: ' + (m['備考'] || 'なし') + '\n' +
-      '  幹事: ' + (m['幹事'] || 'いいえ') + '\n' +
-      '  出場試合数: ' + stats.played + '\n' +
-      '  うち助っ人での出場数: ' + stats.subCount + '\n' +
-      '  得点数: ' + stats.goals + '\n' +
-      '  勝利数: ' + stats.wins + '\n' +
-      '  チームメイトからのコメント: ' + (comments.length > 0 ? comments.join(', ') : 'なし');
-  });
-
+function buildMvpSystemPrompt_(mvpCount, subMvpCount, totalMembers) {
   return '# 役割\n' +
     'あなたはFIFA会長として、社内フットサル大会の表彰式に特別出席している。\n' +
     '世界のサッカーを統括する立場から、今日の激闘を振り返り、各選手に格式高くも愛のあるメッセージを贈ってください。\n\n' +
@@ -177,7 +147,6 @@ function buildMvpPrompt_(participantIds, mvpData, mvpCount, subMvpCount) {
     '- 同じスコアは最大2人まで\n' +
     '- MVP受賞者は必ず8.5以上\n' +
     '- 準MVP受賞者は必ず7.0以上\n\n' +
-    '# 入力データ\n' + memberLines.join('\n\n') + '\n\n' +
     '# 出力仕様\n\n' +
     '## 順位\n' +
     '- 上位' + mvpCount + '名 → rank: "MVP"\n' +
@@ -202,17 +171,50 @@ function buildMvpPrompt_(participantIds, mvpData, mvpCount, subMvpCount) {
     '## NGワード\n' +
     '人格否定、容姿いじり、差別的表現\n\n' +
     '## 出力形式\n' +
-    'JSON配列のみ（他テキスト不要）。全メンバー分必須。\n' +
-    '```json\n' +
-    '[{"memberId": "xxx", "rank": "MVP", "title": "ゴールハンター", "reason": "...", "rating": 8.5, "comment": "〇〇さんへ..."}, ...]\n' +
-    '```\n\n' +
+    'JSON配列のみ（他テキスト不要）。全メンバー分必須。\n\n' +
+    '## 出力例（1人分）\n' +
+    '{"memberId": "m001", "rank": "MVP", "title": "不屈のストライカー", "reason": "出場4試合で3得点という驚異的な決定力を見せた。チームメイトからも攻撃の柱として高く評価されている。勝利数3はチーム最多タイであり、勝負強さも光る。未経験ながらこの成績は特筆に値する。社内フットサル界に新たな伝説が生まれた瞬間である。FIFA会長として、この活躍を正式に記録に残したい。", "rating": 9.2, "comment": "田中選手へ。私はこれまで数多くのワールドカップを見てきたが、あなたのような選手に出会えたことを光栄に思う⚽ 3得点という数字もさることながら、チームメイトが口を揃えてあなたを称えていたことが印象的だ。未経験からのスタートでこの結果、FIFA会長として正式に認定する🏆 次回も期待している！"}\n\n' +
     '## 出力前の最終チェック（必ず確認してから出力）\n' +
     '- 入力データにない具体的プレー描写を書いていないか？\n' +
     '- 推測表現（〜に違いない、きっと〜、〜だったはず）を使っていないか？\n' +
-    '- 全員分（' + participantIds.length + '人）のデータが含まれているか？\n' +
+    '- 全員分（' + totalMembers + '人）のデータが含まれているか？\n' +
     '- reason は5〜7文、comment は4〜6文あるか？\n' +
     '- 最高スコアと最低スコアの差は3.0以上あるか？\n' +
     '- 幹事をMVP・準MVPに選んでいないか？';
+}
+
+/**
+ * AI総合評価用のユーザープロンプトを組み立てる（可変部分：入力データ）
+ * @param {string[]} participantIds - 参加メンバーIDの配列
+ * @param {Object} mvpData - getMvpData_の戻り値
+ * @return {string} ユーザープロンプト文字列
+ */
+function buildMvpUserPrompt_(participantIds, mvpData) {
+  var matchScores = buildMatchScores_(mvpData.goals, mvpData.matchIds);
+  var memberLines = participantIds.map(function(mId) {
+    var m = mvpData.memberMap[mId] || {};
+    var stats = calcMemberStats_(mvpData.matches, mvpData.matchMembers, mvpData.goals, mvpData.matchIds, mId, matchScores);
+    var MAX_COMMENTS_PER_MEMBER = 5;
+    var comments = mvpData.surveyComments
+      .filter(function(c) { return c['対象メンバーID'] === mId && c['コメント']; })
+      .slice(0, MAX_COMMENTS_PER_MEMBER)
+      .map(function(c) { return '「' + c['コメント'] + '」'; });
+
+    return '- memberId: "' + mId + '"\n' +
+      '  名前: ' + (m['名前'] || '不明') + '\n' +
+      '  サッカー経験: ' + (m['サッカー経験'] || '不明') + '\n' +
+      '  年次: ' + (m['年次'] || '不明') + '\n' +
+      '  備考: ' + (m['備考'] || 'なし') + '\n' +
+      '  幹事: ' + (m['幹事'] || 'いいえ') + '\n' +
+      '  出場試合数: ' + stats.played + '\n' +
+      '  うち助っ人での出場数: ' + stats.subCount + '\n' +
+      '  得点数: ' + stats.goals + '\n' +
+      '  勝利数: ' + stats.wins + '\n' +
+      '  チームメイトからのコメント: ' + (comments.length > 0 ? comments.join(', ') : 'なし');
+  });
+
+  return '以下の選手データに基づいて、全員分のMVP評価を行ってください。\n\n' +
+    '# 入力データ\n' + memberLines.join('\n\n');
 }
 
 /**
@@ -377,13 +379,14 @@ function selectMVP(eventId, mvpCount, subMvpCount) {
     return { success: false, message: '参加メンバーがいません' };
   }
 
-  var prompt = buildMvpPrompt_(participantIds, data, mvpCount, subMvpCount);
+  var systemPrompt = buildMvpSystemPrompt_(mvpCount, subMvpCount, participantIds.length);
+  var userPrompt = buildMvpUserPrompt_(participantIds, data);
 
   // バリデーション付きリトライループ（最大3回試行）
   var MAX_ATTEMPTS = 3;
   var lastError = '';
   for (var attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    var responseText = callGemini_(prompt);
+    var responseText = callGemini_(systemPrompt, userPrompt);
     if (!responseText) {
       lastError = 'AI評価に失敗しました。GEMINI_API_KEY の設定とAPIの状態を確認してください。';
       continue;
