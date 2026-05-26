@@ -104,9 +104,6 @@ function autoLoginWithCode_(code) {
     .withSuccessHandler(function(r) {
       hideLoading();
       if (r.success) {
-        // 幹事セッションが同じイベントに対して残っていればロールを維持
-        var keepAdmin = session && session.role === 'admin' && session.eventId === r.eventId;
-        setRole_(keepAdmin ? 'admin' : 'user');
         currentEventId = r.eventId;
 
         // セッションに同じイベント・メンバーが残っていればスキップ
@@ -115,6 +112,8 @@ function autoLoginWithCode_(code) {
             return String(m['メンバーID']) === String(session.memberId);
           });
           if (found) {
+            // ロールもセッションから復元（幹事ならadminを維持）
+            setRole_(session.role || 'user');
             currentMemberId = session.memberId;
             saveSession_();
             document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
@@ -124,6 +123,9 @@ function autoLoginWithCode_(code) {
           }
         }
 
+        // セッションで復元できなかった場合はメンバー選択へ
+        // ロールはメンバー選択時に決定するので、ここでは user にリセット
+        setRole_('user');
         showMemberSelect_(r.members || []);
       } else {
         showToast(r.message, true);

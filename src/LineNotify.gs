@@ -787,7 +787,7 @@ function notifySurveyReminder(eventId) {
     '全試合が終了した。',
     '',
     '今宵の最優秀選手は誰か──',
-    'その評価を託すのは、ピッチに立った君たちだ。',
+    'それを決めるのは、ピッチに立った君たちだ。',
     '',
     '📋 VOTE',
     event['フォームURL']
@@ -902,7 +902,9 @@ function notifyMvpResult(eventId) {
   if (subMvps.length > 0) {
     lines.push('🥈 準MVP');
     subMvps.forEach(function(r) {
-      lines.push('  ' + r['名前'] + ' ─ ' + r['称号']);
+      lines.push('');
+      lines.push('  ' + r['名前']);
+      lines.push('  「' + r['称号'] + '」');
     });
     lines.push('');
   }
