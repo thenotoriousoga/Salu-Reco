@@ -20,7 +20,7 @@ function callGemini_(prompt) {
  * @return {string|null} レスポンステキスト。失敗時は null
  */
 function callGeminiText_(prompt) {
-  return callGeminiWithMimeType_(prompt, 'text/plain', 'gemini-2.5-flash');
+  return callGeminiWithMimeType_(prompt, 'text/plain', 'gemini-2.5-flash-lite');
 }
 
 /**
