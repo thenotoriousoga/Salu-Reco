@@ -199,7 +199,8 @@ function doPost(e) {
 
 /**
  * グループ内メッセージを処理する
- * 「連携:参加コード」形式のメッセージでイベントとグループを紐づける
+ * 公式アカウントにメンションした上で「連携:参加コード」形式のメッセージでイベントとグループを紐づける
+ * 例: 「@Salu-Rec 連携:ABCD」
  * @param {Object} ev - LINEイベントオブジェクト
  */
 function handleGroupMessage_(ev) {
@@ -207,8 +208,24 @@ function handleGroupMessage_(ev) {
   var groupId = ev.source.groupId;
   var replyToken = ev.replyToken;
 
+  // メンションがあるか確認（公式アカウント宛のメンションが含まれているか）
+  var mention = ev.message.mention;
+  if (!mention || !mention.mentionees || mention.mentionees.length === 0) {
+    return; // メンションなしは無視
+  }
+
+  // メンション部分を除去してコマンドを抽出
+  // メンションのテキスト位置を使って、メンション以外の部分を取得
+  var commandText = text;
+  // mentionees を index の降順でソートして後ろから除去（位置ズレ防止）
+  var mentionees = mention.mentionees.slice().sort(function(a, b) { return b.index - a.index; });
+  mentionees.forEach(function(m) {
+    commandText = commandText.substring(0, m.index) + commandText.substring(m.index + m.length);
+  });
+  commandText = commandText.trim();
+
   // 「連携:XXXX」または「連携：XXXX」形式を検出
-  var match = text.match(/^連携[:：]\s*(.+)$/);
+  var match = commandText.match(/^連携[:：]\s*(.+)$/);
   if (!match) return;
 
   var code = match[1].trim().toUpperCase();
@@ -228,7 +245,7 @@ function handleGroupMessage_(ev) {
 
   // 既に別のグループが紐づいている場合
   if (event['LINEグループID'] && event['LINEグループID'] !== groupId) {
-    replyLineMessage_(replyToken, '⚠️ 「' + event['名称'] + '」は既に別のLINEグループと連携済みです。\n解除するには「解除:' + code + '」と送信してください。');
+    replyLineMessage_(replyToken, '⚠️ 「' + event['名称'] + '」は既に別のLINEグループと連携済みです。\n解除するには「@Salu-Rec 解除:' + code + '」と送信してください。');
     return;
   }
 
@@ -240,7 +257,25 @@ function handleGroupMessage_(ev) {
 
   // 紐づけ実行
   updateEventField_(eventId, 10, groupId);
-  replyLineMessage_(replyToken, '✅ 連携完了！\n\n📋 ' + event['名称'] + '\n📅 ' + event['日付'] + '\n\nこのグループにイベントの通知が届きます。');
+
+  var appUrl = ScriptApp.getService().getUrl() || '';
+  var eventUrl = appUrl ? appUrl + '?code=' + encodeURIComponent(code) : '';
+
+  var replyLines = [
+    '✅ 連携完了！',
+    '',
+    '📋 ' + event['名称'],
+    '📅 ' + event['日付'],
+    '',
+    'このグループにイベントの通知が届きます。'
+  ];
+
+  if (eventUrl) {
+    replyLines.push('');
+    replyLines.push('🔗 ' + eventUrl);
+  }
+
+  replyLineMessage_(replyToken, replyLines.join('\n'));
 }
 
 /**
