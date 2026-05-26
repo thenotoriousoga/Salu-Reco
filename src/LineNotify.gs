@@ -35,10 +35,7 @@ function getEventLineGroupId_(eventId) {
 function sendLineMessage_(groupId, message) {
   var token = PropertiesService.getScriptProperties().getProperty('LINE_CHANNEL_ACCESS_TOKEN');
 
-  if (!token) {
-    return false;
-  }
-  if (!groupId) {
+  if (!token || !groupId) {
     return false;
   }
 
@@ -57,17 +54,7 @@ function sendLineMessage_(groupId, message) {
       muteHttpExceptions: true
     });
 
-    var code = res.getResponseCode();
-    // デバッグ: 送信結果をスプレッドシートに記録
-    var ss = getSpreadsheet_();
-    var debugSheet = ensureSheet_(ss, 'デバッグログ');
-    debugSheet.appendRow([new Date(), 'sendLineMessage_', 'code=' + code, 'to=' + groupId, res.getContentText()]);
-
-    if (code === 200) {
-      return true;
-    }
-
-    return false;
+    return res.getResponseCode() === 200;
   } catch (e) {
     return false;
   }
@@ -205,23 +192,14 @@ function doPost(e) {
  * @param {Object} ev - LINEイベントオブジェクト
  */
 function handleGroupMessage_(ev) {
-  var ss = getSpreadsheet_();
-  var debugSheet = ensureSheet_(ss, 'デバッグログ');
-
   var text = (ev.message.text || '').trim();
   var groupId = ev.source.groupId;
-  var replyToken = ev.replyToken;
-
-  debugSheet.appendRow([new Date(), '1.handleGroupMessage_開始', text]);
 
   // メンションがあるか確認（公式アカウント宛のメンションが含まれているか）
   var mention = ev.message.mention;
   if (!mention || !mention.mentionees || mention.mentionees.length === 0) {
-    debugSheet.appendRow([new Date(), '2.メンションなし→終了', '']);
-    return;
+    return; // メンションなしは無視
   }
-
-  debugSheet.appendRow([new Date(), '3.メンションあり', JSON.stringify(mention)]);
 
   // メンション部分を除去してコマンドを抽出
   var commandText = text;
@@ -231,17 +209,11 @@ function handleGroupMessage_(ev) {
   });
   commandText = commandText.trim();
 
-  debugSheet.appendRow([new Date(), '4.コマンドテキスト', commandText]);
-
   // 「連携:XXXX」または「連携：XXXX」形式を検出
   var match = commandText.match(/^連携[:：]\s*(.+)$/);
-  if (!match) {
-    debugSheet.appendRow([new Date(), '5.連携コマンドではない→終了', '']);
-    return;
-  }
+  if (!match) return;
 
   var code = match[1].trim().toUpperCase();
-  debugSheet.appendRow([new Date(), '6.参加コード', code]);
 
   // 参加コードからイベントを検索
   var eventData = getSheetData_('イベント');
@@ -250,29 +222,23 @@ function handleGroupMessage_(ev) {
   });
 
   if (!event) {
-    debugSheet.appendRow([new Date(), '7.イベント見つからない', code]);
     sendLineMessage_(groupId, '❌ 参加コード「' + code + '」に該当するイベントが見つかりません。');
     return;
   }
 
   var eventId = event['イベントID'];
-  debugSheet.appendRow([new Date(), '8.イベント発見', eventId + ' / ' + event['名称']]);
 
   // 既に別のグループが紐づいている場合
   if (event['LINEグループID'] && event['LINEグループID'] !== groupId) {
-    debugSheet.appendRow([new Date(), '9.別グループ連携済み', event['LINEグループID']]);
     sendLineMessage_(groupId, '⚠️ 「' + event['名称'] + '」は既に別のLINEグループと連携済みです。');
     return;
   }
 
   // 既に同じグループが紐づいている場合
   if (event['LINEグループID'] === groupId) {
-    debugSheet.appendRow([new Date(), '10.同じグループ連携済み', groupId]);
     sendLineMessage_(groupId, 'ℹ️ このグループは既に「' + event['名称'] + '」と連携済みです。');
     return;
   }
-
-  debugSheet.appendRow([new Date(), '11.紐づけ実行', eventId + ' → ' + groupId]);
 
   // 紐づけ実行
   updateEventField_(eventId, 10, groupId);
@@ -294,9 +260,7 @@ function handleGroupMessage_(ev) {
     replyLines.push('🔗 ' + eventUrl);
   }
 
-  debugSheet.appendRow([new Date(), '12.sendLineMessage_呼び出し前', groupId]);
-  var result = sendLineMessage_(groupId, replyLines.join('\n'));
-  debugSheet.appendRow([new Date(), '13.sendLineMessage_結果', result]);
+  sendLineMessage_(groupId, replyLines.join('\n'));
 }
 
 /**
