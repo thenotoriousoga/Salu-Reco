@@ -36,11 +36,9 @@ function sendLineMessage_(groupId, message) {
   var token = PropertiesService.getScriptProperties().getProperty('LINE_CHANNEL_ACCESS_TOKEN');
 
   if (!token) {
-    Logger.log('LINE通知: LINE_CHANNEL_ACCESS_TOKEN が未設定です');
     return false;
   }
   if (!groupId) {
-    Logger.log('LINE通知: グループIDが指定されていません');
     return false;
   }
 
@@ -60,14 +58,17 @@ function sendLineMessage_(groupId, message) {
     });
 
     var code = res.getResponseCode();
+    // デバッグ: 送信結果をスプレッドシートに記録
+    var ss = getSpreadsheet_();
+    var debugSheet = ensureSheet_(ss, 'デバッグログ');
+    debugSheet.appendRow([new Date(), 'sendLineMessage_', 'code=' + code, 'to=' + groupId, res.getContentText()]);
+
     if (code === 200) {
       return true;
     }
 
-    Logger.log('LINE通知エラー: ' + code + ' ' + res.getContentText());
     return false;
   } catch (e) {
-    Logger.log('LINE通知失敗: ' + (e.message || e));
     return false;
   }
 }
