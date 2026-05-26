@@ -237,7 +237,7 @@ function handleGroupMessage_(ev) {
   });
 
   if (!event) {
-    replyLineMessage_(replyToken, '❌ 参加コード「' + code + '」に該当するイベントが見つかりません。');
+    sendLineMessage_(groupId, '❌ 参加コード「' + code + '」に該当するイベントが見つかりません。');
     return;
   }
 
@@ -245,13 +245,13 @@ function handleGroupMessage_(ev) {
 
   // 既に別のグループが紐づいている場合
   if (event['LINEグループID'] && event['LINEグループID'] !== groupId) {
-    replyLineMessage_(replyToken, '⚠️ 「' + event['名称'] + '」は既に別のLINEグループと連携済みです。\n解除するには「@Salu-Rec 解除:' + code + '」と送信してください。');
+    sendLineMessage_(groupId, '⚠️ 「' + event['名称'] + '」は既に別のLINEグループと連携済みです。\n解除するには「@Salu-Rec 解除:' + code + '」と送信してください。');
     return;
   }
 
   // 既に同じグループが紐づいている場合
   if (event['LINEグループID'] === groupId) {
-    replyLineMessage_(replyToken, 'ℹ️ このグループは既に「' + event['名称'] + '」と連携済みです。');
+    sendLineMessage_(groupId, 'ℹ️ このグループは既に「' + event['名称'] + '」と連携済みです。');
     return;
   }
 
@@ -275,7 +275,7 @@ function handleGroupMessage_(ev) {
     replyLines.push('🔗 ' + eventUrl);
   }
 
-  replyLineMessage_(replyToken, replyLines.join('\n'));
+  sendLineMessage_(groupId, replyLines.join('\n'));
 }
 
 /**
