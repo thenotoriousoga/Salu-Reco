@@ -771,21 +771,43 @@ function notifyRoundResult(roundId) {
   });
   lines.push('');
 
-  // 得点ランキング TOP3
+  // 得点ランキング（同率は同じメダル、1位or2位が3人以上ならそこまでで打ち切り）
   var scorerList = Object.keys(allScorers).map(function(name) {
     return { name: name, count: allScorers[name] };
-  }).sort(function(a, b) { return b.count - a.count; }).slice(0, 3);
+  }).sort(function(a, b) { return b.count - a.count; });
 
   if (scorerList.length > 0) {
-    lines.push('🎯 TOP SCORERS');
-    lines.push('━━━━━━━━━━━━━━━');
-    scorerList.forEach(function(s, i) {
-      var goals = '';
-      for (var j = 0; j < s.count; j++) goals += '⚽';
-      var prefix = i < 3 ? medals[i] : '　';
-      lines.push(prefix + ' ' + s.name + ' ' + goals);
-    });
-    lines.push('');
+    // 同率順位を計算
+    var scorerRanks = [];
+    for (var si = 0; si < scorerList.length; si++) {
+      if (si === 0) { scorerRanks.push(1); }
+      else if (scorerList[si].count === scorerList[si - 1].count) { scorerRanks.push(scorerRanks[si - 1]); }
+      else { scorerRanks.push(si + 1); }
+    }
+
+    // 表示対象を決定（1番目のグループが3人以上→1位のみ、2番目のグループが3人以上→2番目まで、それ以外→3位まで）
+    var firstPlaceCount = scorerRanks.filter(function(r) { return r === 1; }).length;
+    var secondGroupRank = scorerList.length > firstPlaceCount ? scorerRanks[firstPlaceCount] : null;
+    var secondGroupCount = secondGroupRank ? scorerRanks.filter(function(r) { return r === secondGroupRank; }).length : 0;
+    var maxRank;
+    if (firstPlaceCount >= 3) { maxRank = 1; }
+    else if (secondGroupCount >= 3) { maxRank = secondGroupRank; }
+    else { maxRank = 3; }
+
+    var displayScorers = scorerList.filter(function(_, idx) { return scorerRanks[idx] <= maxRank; });
+
+    if (displayScorers.length > 0) {
+      lines.push('🎯 TOP SCORERS');
+      lines.push('━━━━━━━━━━━━━━━');
+      displayScorers.forEach(function(s, i) {
+        var rank = scorerRanks[scorerList.indexOf(s)];
+        var goals = '';
+        for (var j = 0; j < s.count; j++) goals += '⚽';
+        var prefix = rank <= 3 ? medals[rank - 1] : '　';
+        lines.push(prefix + ' ' + s.name + ' ' + goals);
+      });
+      lines.push('');
+    }
   }
 
   // 解説者コメント
@@ -973,28 +995,68 @@ function notifyMvpResult(eventId) {
     lines.push('');
   }
 
-  // 得点ランキング TOP3
-  var goalRanking = stats.goalRanking.slice(0, 3);
+  // 得点ランキング（同率は同じメダル、1位or2位が3人以上ならそこまでで打ち切り）
+  var goalRanking = stats.goalRanking;
   if (goalRanking.length > 0) {
-    lines.push('━━━━━━━━━━━━━━━');
-    lines.push('⚽ TOP SCORERS');
-    lines.push('━━━━━━━━━━━━━━━');
-    goalRanking.forEach(function(r, i) {
-      lines.push(MEDALS_[i] + ' ' + r.name + '  ' + r.count + 'G');
-    });
-    lines.push('');
+    var goalRanks = [];
+    for (var gi = 0; gi < goalRanking.length; gi++) {
+      if (gi === 0) { goalRanks.push(1); }
+      else if (goalRanking[gi].count === goalRanking[gi - 1].count) { goalRanks.push(goalRanks[gi - 1]); }
+      else { goalRanks.push(gi + 1); }
+    }
+
+    var firstCount = goalRanks.filter(function(r) { return r === 1; }).length;
+    var secondGroupGoalRank = goalRanking.length > firstCount ? goalRanks[firstCount] : null;
+    var secondGroupGoalCount = secondGroupGoalRank ? goalRanks.filter(function(r) { return r === secondGroupGoalRank; }).length : 0;
+    var maxGoalRank;
+    if (firstCount >= 3) { maxGoalRank = 1; }
+    else if (secondGroupGoalCount >= 3) { maxGoalRank = secondGroupGoalRank; }
+    else { maxGoalRank = 3; }
+
+    var displayGoals = goalRanking.filter(function(_, idx) { return goalRanks[idx] <= maxGoalRank; });
+
+    if (displayGoals.length > 0) {
+      lines.push('━━━━━━━━━━━━━━━');
+      lines.push('⚽ TOP SCORERS');
+      lines.push('━━━━━━━━━━━━━━━');
+      displayGoals.forEach(function(r, i) {
+        var rank = goalRanks[goalRanking.indexOf(r)];
+        lines.push(MEDALS_[rank - 1] + ' ' + r.name + '  ' + r.count + 'G');
+      });
+      lines.push('');
+    }
   }
 
-  // 勝ち点ランキング TOP3
-  var pointRanking = stats.pointRanking.slice(0, 3);
+  // 勝ち点ランキング（同率は同じメダル、1位or2位が3人以上ならそこまでで打ち切り）
+  var pointRanking = stats.pointRanking;
   if (pointRanking.length > 0) {
-    lines.push('━━━━━━━━━━━━━━━');
-    lines.push('📊 WIN POINTS');
-    lines.push('━━━━━━━━━━━━━━━');
-    pointRanking.forEach(function(r, i) {
-      lines.push(MEDALS_[i] + ' ' + r.name + '  ' + r.points + 'pts');
-    });
-    lines.push('');
+    var ptRanks = [];
+    for (var pi = 0; pi < pointRanking.length; pi++) {
+      if (pi === 0) { ptRanks.push(1); }
+      else if (pointRanking[pi].points === pointRanking[pi - 1].points) { ptRanks.push(ptRanks[pi - 1]); }
+      else { ptRanks.push(pi + 1); }
+    }
+
+    var ptFirstCount = ptRanks.filter(function(r) { return r === 1; }).length;
+    var secondGroupPtRank = pointRanking.length > ptFirstCount ? ptRanks[ptFirstCount] : null;
+    var secondGroupPtCount = secondGroupPtRank ? ptRanks.filter(function(r) { return r === secondGroupPtRank; }).length : 0;
+    var maxPtRank;
+    if (ptFirstCount >= 3) { maxPtRank = 1; }
+    else if (secondGroupPtCount >= 3) { maxPtRank = secondGroupPtRank; }
+    else { maxPtRank = 3; }
+
+    var displayPoints = pointRanking.filter(function(_, idx) { return ptRanks[idx] <= maxPtRank; });
+
+    if (displayPoints.length > 0) {
+      lines.push('━━━━━━━━━━━━━━━');
+      lines.push('📊 WIN POINTS');
+      lines.push('━━━━━━━━━━━━━━━');
+      displayPoints.forEach(function(r, i) {
+        var rank = ptRanks[pointRanking.indexOf(r)];
+        lines.push(MEDALS_[rank - 1] + ' ' + r.name + '  ' + r.points + 'pts');
+      });
+      lines.push('');
+    }
   }
 
   lines.push('CONGRATULATIONS. 🎉');
