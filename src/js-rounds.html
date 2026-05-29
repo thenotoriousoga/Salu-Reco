@@ -508,7 +508,7 @@ function buildRoundRankingHtml_(round, mm) {
     '</div></div>' +
     '<div class="round-ranking-panel" id="ranking-player-' + roundId + '">' +
     '<table class="round-ranking-table">' +
-    '<thead><tr><th>#</th><th>名前</th><th>Pts</th><th>P</th><th>W</th><th>D</th><th>L</th><th>⚽</th></tr></thead>' +
+    '<thead><tr><th>#</th><th>名前</th><th>⚽</th><th>P</th><th>W</th><th>D</th><th>L</th><th>Pts</th></tr></thead>' +
     '<tbody>' + playerRows + '</tbody></table></div>' +
     '<div class="round-ranking-panel active" id="ranking-team-' + roundId + '">' +
     '<table class="round-ranking-table round-ranking-table-team">' +
@@ -574,14 +574,14 @@ function buildPlayerRankingRows_(endedMatches) {
   });
 
   rankings.sort(function(a, b) {
-    if (b.points !== a.points) return b.points - a.points;
-    return b.personalGoals - a.personalGoals;
+    if (b.personalGoals !== a.personalGoals) return b.personalGoals - a.personalGoals;
+    return b.points - a.points;
   });
 
   if (rankings.length === 0) return '';
 
   var ranks = calcTiedRanks_(rankings, function(a, b) {
-    return a.points === b.points && a.personalGoals === b.personalGoals;
+    return a.personalGoals === b.personalGoals && a.points === b.points;
   });
 
   return rankings.map(function(s, i) {
@@ -590,12 +590,12 @@ function buildPlayerRankingRows_(endedMatches) {
     return '<tr>' +
       '<td>' + rankDisplay + '</td>' +
       '<td>' + esc(s.name) + '</td>' +
-      '<td class="round-ranking-pts">' + s.points + '</td>' +
+      '<td class="round-ranking-goals">' + s.personalGoals + '</td>' +
       '<td>' + s.played + '</td>' +
       '<td>' + s.wins + '</td>' +
       '<td>' + s.draws + '</td>' +
       '<td>' + s.losses + '</td>' +
-      '<td class="round-ranking-goals">' + s.personalGoals + '</td>' +
+      '<td class="round-ranking-pts">' + s.points + '</td>' +
       '</tr>';
   }).join('');
 }
