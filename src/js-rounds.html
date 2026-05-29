@@ -295,24 +295,26 @@ function doCreateRound() {
 // ラウンド一覧 → マッチ管理
 // ===================================
 
-function renderTeamBoxHtml(team, idx, names, mm) {
+function renderTeamBoxHtml(team, idx, names, mm, captains) {
   var cls = TEAM_CLASSES_[idx] || 'a';
   var name = (names || [])[idx] || ('チーム' + String.fromCharCode(65 + idx));
+  var captainId = (captains && captains[idx]) ? captains[idx] : null;
   return '<div class="team-box-compact team-' + cls + '">' +
     '<span class="team-box-compact-label team-' + cls + '-badge">' + esc(name) + ' <span class="team-box-compact-count">' + team.length + '</span></span>' +
     '<div class="team-box-compact-members">' +
-    team.map(function(id) { var m = mm[id] || {}; return '<span class="team-box-compact-chip">' + esc(m['名前'] || '?') + '</span>'; }).join('') +
+    team.map(function(id) { var m = mm[id] || {}; var n = esc(m['名前'] || '?'); return '<span class="team-box-compact-chip">' + (id === captainId ? '<span class="captain-badge">Ⓒ</span>' : '') + n + '</span>'; }).join('') +
     '</div></div>';
 }
 
 function renderRoundTeamsHtml(sd, mm) {
   if (!sd.teams || sd.teams.length === 0) return '';
+  var captains = sd.captains || [];
   var h = '<div class="teams-compact-wrap">' +
     '<div class="teams-compact-toggle" onclick="toggleTeamsCompact(this)" role="button" tabindex="0" aria-expanded="false">' +
     '<span class="teams-compact-toggle-label">' + svg('<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>', 14) + ' チーム編成</span>' +
     '<svg class="teams-compact-chevron" viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></div>' +
     '<div class="teams-compact-body teams-compact-body-collapsed">' +
-    sd.teams.map(function(team, idx) { return renderTeamBoxHtml(team, idx, sd.names, mm); }).join('');
+    sd.teams.map(function(team, idx) { return renderTeamBoxHtml(team, idx, sd.names, mm, captains); }).join('');
 
   // 未参加者を表示
   var assignedIds = {};

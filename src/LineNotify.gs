@@ -436,9 +436,10 @@ function notifyEventStart(eventId) {
  * @param {string[]} teamNames - チーム名の配列
  * @param {string[][]} teams - チームごとのメンバーID配列
  * @param {number} roundNumber - ラウンド番号
+ * @param {string[]} [captains] - 各チームのキャプテンID配列
  * @return {Object} 結果オブジェクト { success, message }
  */
-function notifyTeamSplit(eventId, teamNames, teams, roundNumber) {
+function notifyTeamSplit(eventId, teamNames, teams, roundNumber, captains) {
   var groupId = getEventLineGroupId_(eventId);
   if (!groupId) return { success: false, message: 'LINEグループが紐づけられていません' };
 
@@ -461,10 +462,22 @@ function notifyTeamSplit(eventId, teamNames, teams, roundNumber) {
   for (var i = 0; i < teams.length; i++) {
     var teamName = (teamNames && teamNames[i]) ? teamNames[i] : 'チーム' + (i + 1);
     var emblem = teamEmblems[i % teamEmblems.length];
-    var teamMembers = teams[i].map(function(id) {
+    var captainId = (captains && captains[i]) ? captains[i] : null;
+    // キャプテンを先頭に並べ替え
+    var sortedIds = teams[i].slice();
+    if (captainId) {
+      sortedIds.sort(function(a, b) {
+        if (a === captainId) return -1;
+        if (b === captainId) return 1;
+        return 0;
+      });
+    }
+    var teamMembers = sortedIds.map(function(id) {
       var m = memberMap[id];
       if (!m) return '不明';
-      return m['名前'];
+      var name = m['名前'];
+      if (id === captainId) return 'Ⓒ' + name;
+      return name;
     });
 
     lines.push('━━━━━━━━━━━━━━━');

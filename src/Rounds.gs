@@ -22,12 +22,13 @@ function createRound(eventId, teamNames, teams) {
 
   var existing = getSheetData_('ラウンド').filter(function(r) { return r['イベントID'] === eventId; });
   var roundNumber = existing.length + 1;
-  var splitJson = JSON.stringify({ names: teamNames, teams: teams });
+  var captains = pickCaptains_(teams);
+  var splitJson = JSON.stringify({ names: teamNames, teams: teams, captains: captains });
 
   roundSheet.appendRow([roundId, eventId, roundNumber, splitJson, '進行中']);
 
   // LINE通知: チーム分け結果（非同期で実行）
-  scheduleNotification_('notifyTeamSplit', [eventId, teamNames, teams, roundNumber]);
+  scheduleNotification_('notifyTeamSplit', [eventId, teamNames, teams, roundNumber, captains]);
 
   return {
     success: true,

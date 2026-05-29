@@ -67,6 +67,19 @@ function validateSplitInput_(memberIds, teamCount) {
  * @param {string[][]} [existingTeams] - 既存のチーム配置（省略可）
  * @return {Object} { success, teams: string[][] }
  */
+/**
+ * 各チームからランダムに1名をキャプテンとして選出する
+ * @param {string[][]} teams - チームごとのメンバーID配列
+ * @return {string[]} 各チームのキャプテンのメンバーID配列
+ */
+function pickCaptains_(teams) {
+  return teams.map(function(team) {
+    if (team.length === 0) return null;
+    var idx = Math.floor(Math.random() * team.length);
+    return team[idx];
+  });
+}
+
 function autoSplitTeams(eventId, memberIds, teamCount, existingTeams) {
   teamCount = Number(teamCount) || 2;
 
