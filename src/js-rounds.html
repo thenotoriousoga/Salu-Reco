@@ -392,7 +392,8 @@ function renderRoundsList(rounds) {
         // チームカラーストライプ用クラス
         var clsA = (teamColorMap && teamColorMap[m.teamAName]) || 'a';
         var clsB = (teamColorMap && teamColorMap[m.teamBName]) || 'b';
-        var stripeClass = ' match-card-striped stripe-' + clsA + '-' + clsB;
+        var stripePair = clsA < clsB ? clsA + '-' + clsB : clsB + '-' + clsA;
+        var stripeClass = ' match-card-striped stripe-' + stripePair;
 
         if (ongoing && canEditMatch) {
           return '<div class="round-card' + stripeClass + '" style="margin-left:0;">' +
