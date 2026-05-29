@@ -11,7 +11,7 @@
  * @return {string|null} レスポンステキスト。失敗時は null
  */
 function callGemini_(systemPrompt, userPrompt) {
-  return callGeminiWithMimeType_(systemPrompt, userPrompt, 'application/json', 'gemini-2.5-pro');
+  return callGeminiWithMimeType_(systemPrompt, userPrompt, 'application/json', 'gemini-2.5-pro', 0.9);
 }
 
 /**
@@ -21,7 +21,7 @@ function callGemini_(systemPrompt, userPrompt) {
  * @return {string|null} レスポンステキスト。失敗時は null
  */
 function callGeminiText_(prompt) {
-  return callGeminiWithMimeType_(null, prompt, 'text/plain', 'gemini-2.5-flash-lite');
+  return callGeminiWithMimeType_(null, prompt, 'text/plain', 'gemini-2.5-flash-lite', 0.7);
 }
 
 /**
@@ -30,20 +30,22 @@ function callGeminiText_(prompt) {
  * @param {string} userPrompt - ユーザーメッセージ
  * @param {string} mimeType - レスポンスのMIMEタイプ
  * @param {string} model - モデル名
+ * @param {number} [temperature] - 温度パラメータ（省略時は0.7）
  * @return {string|null} レスポンステキスト。失敗時は null
  */
-function callGeminiWithMimeType_(systemPrompt, userPrompt, mimeType, model) {
+function callGeminiWithMimeType_(systemPrompt, userPrompt, mimeType, model, temperature) {
   var apiKey = PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY');
   if (!apiKey) {
     Logger.log('GEMINI_API_KEY が設定されていません');
     return null;
   }
 
+  var temp = (typeof temperature === 'number') ? temperature : 0.7;
   var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + apiKey;
   var payload = {
     contents: [{ parts: [{ text: userPrompt }] }],
     generationConfig: {
-      temperature: 0.7,
+      temperature: temp,
       responseMimeType: mimeType,
       maxOutputTokens: 65536
     }
