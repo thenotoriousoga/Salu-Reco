@@ -454,8 +454,13 @@ function notifyTeamSplit(eventId, teamNames, teams, roundNumber) {
     ''
   ];
 
+  // UIのチームカラー（team-a〜e）に対応した絵文字
+  // a=青, b=ピンク, c=緑, d=オレンジ, e=紫
+  var teamEmblems = ['🔵', '🔴', '🟢', '🟠', '🟣'];
+
   for (var i = 0; i < teams.length; i++) {
     var teamName = (teamNames && teamNames[i]) ? teamNames[i] : 'チーム' + (i + 1);
+    var emblem = teamEmblems[i % teamEmblems.length];
     var teamMembers = teams[i].map(function(id) {
       var m = memberMap[id];
       if (!m) return '不明';
@@ -463,7 +468,7 @@ function notifyTeamSplit(eventId, teamNames, teams, roundNumber) {
     });
 
     lines.push('━━━━━━━━━━━━━━━');
-    lines.push('🏴 ' + teamName + '（' + teamMembers.length + '名）');
+    lines.push(emblem + ' ' + teamName + '（' + teamMembers.length + '名）');
     lines.push('━━━━━━━━━━━━━━━');
     lines.push(teamMembers.join(' / '));
     lines.push('');
