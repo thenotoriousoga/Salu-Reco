@@ -73,23 +73,33 @@ var LOADING_MESSAGES_ = [
   '目に見える成果が出なくても、やったぶんだけ、人は成長する。 ― 長友佑都',
   '才能は花開くとは限らない。だから努力するんだ。 ― 中村俊輔',
   '僕はまだ何も成し遂げていない。 ― 久保建英',
-  'すべてはチームのために。 ― メッシ',
+  'すべてはチームのために。 ― リオネル・メッシ',
   '僕はゴールを決めるために生まれてきた。 ― クリスティアーノ・ロナウド',
-  '美しく勝利せよ。 ― クライフ',
-  '勝ちたいという気持ちが、勝敗を分ける。 ― ジダン',
+  '美しく勝利せよ。 ― ヨハン・クライフ',
+  '勝ちたいという気持ちが、勝敗を分ける。 ― ジネディーヌ・ジダン',
   '僕は特別な存在じゃない。ただ特別な夢を持っているだけだ。 ― ロナウジーニョ',
   '成功は決して偶然ではない。 ― ペレ',
-  'サッカーとは喜びだ。仲間と走り、勝利を分かち合う喜びだ。 ― マラドーナ',
+  'サッカーとは喜びだ。仲間と走り、勝利を分かち合う喜びだ。 ― ディエゴ・マラドーナ',
   '限界を決めるのは自分自身だ。 ― ネイマール',
-  'ハードワークに勝る才能はない。 ― ルーニー',
-  '毎日が新しい挑戦だ。昨日の自分を超えろ。 ― イブラヒモビッチ',
-  'チームが勝てば、個人の栄光は後からついてくる。 ― ベッカム',
+  'ハードワークに勝る才能はない。 ― ウェイン・ルーニー',
+  '毎日が新しい挑戦だ。昨日の自分を超えろ。 ― ズラタン・イブラヒモビッチ',
+  'チームが勝てば、個人の栄光は後からついてくる。 ― デビッド・ベッカム',
   '失敗を恐れるな。失敗しない唯一の方法は何もしないことだ。 ― ロベルト・バッジョ',
   'ピッチに立ったら、楽しむことを忘れるな。 ― ロナウド',
-  '強い者が勝つのではない。勝った者が強いのだ。 ― ベッケンバウアー',
-  '一瞬の判断が試合を変える。常に準備しておけ。 ― デル・ピエロ',
-  '厳しさの中に偽漫才はある。 - 川北茂澄'
+  '強い者が勝つのではない。勝った者が強いのだ。 ― フランツ・ベッケンバウアー',
+  '一瞬の判断が試合を変える。常に準備しておけ。 ― アレッサンドロ・デル・ピエロ',
+  '厳しさの中に偽漫才はある。 ― 川北茂澄',
+  'なぜいつも僕なんだ？ ― マリオ・バロテッリ',
+  '僕がボールを蹴るんじゃない。ボールが僕に蹴られたがるんだ。 ― エリック・カントナ',
+  '稼いだ金の大半は酒と女に使った。残りは無駄遣いした。 ― ジョージ・ベスト',
+  '100点は無理かもしれん。でもMAXなら出せるやろ。 ― 松本人志',
+  'お前もスカしたな？ ― 粗品'
 ];
+
+/** ローディングメッセージ切り替え用タイマーID */
+var loadingRotateTimer_ = null;
+/** 前回表示したメッセージのインデックス（重複防止用） */
+var lastLoadingIdx_ = -1;
 
 /**
  * ローディング表示
@@ -99,23 +109,71 @@ var LOADING_MESSAGES_ = [
 function showLoading(msg, sub) {
   var el = document.getElementById('loading');
   var content = el.querySelector('.loading-content');
+  clearLoadingTimer_();
   if (msg) {
     content.innerHTML = '<div class="spinner"></div><p>' + esc(msg) + '</p>' +
       (sub ? '<p class="loading-sub">' + esc(sub) + '</p>' : '');
   } else {
-    var randomMsg = LOADING_MESSAGES_[Math.floor(Math.random() * LOADING_MESSAGES_.length)];
-    var parts = randomMsg.split(' ― ');
-    var quote = parts[0] || '';
-    var author = parts[1] || '';
-    var msgHtml = '<p class="loading-sub">' + esc(quote) + '</p>';
-    if (author) msgHtml += '<p class="loading-author">- ' + esc(author) + '</p>';
-    content.innerHTML = '<div class="spinner"></div>' + msgHtml;
+    renderRandomLoadingMessage_(content);
+    startLoadingRotation_(content);
   }
   el.style.display = 'flex';
 }
 
+/**
+ * ランダムな名言をローディングコンテンツに描画する（前回と重複しない）
+ * @param {Element} content - .loading-content要素
+ */
+function renderRandomLoadingMessage_(content) {
+  var idx;
+  do {
+    idx = Math.floor(Math.random() * LOADING_MESSAGES_.length);
+  } while (LOADING_MESSAGES_.length > 1 && idx === lastLoadingIdx_);
+  lastLoadingIdx_ = idx;
+  var randomMsg = LOADING_MESSAGES_[idx];
+  var parts = randomMsg.split(' ― ');
+  var quote = parts[0] || '';
+  var author = parts[1] || '';
+  var msgHtml = '<p class="loading-sub">' + esc(quote) + '</p>';
+  if (author) msgHtml += '<p class="loading-author">- ' + esc(author) + '</p>';
+  content.innerHTML = '<div class="spinner"></div>' + msgHtml;
+}
+
+/**
+ * 一定間隔でローディングメッセージを切り替えるタイマーを開始する
+ * @param {Element} content - .loading-content要素
+ */
+function startLoadingRotation_(content) {
+  loadingRotateTimer_ = setInterval(function() {
+    renderRandomLoadingMessage_(content);
+  }, 3000);
+}
+
+/** ローディングメッセージ切り替えタイマーをクリアする */
+function clearLoadingTimer_() {
+  if (loadingRotateTimer_) {
+    clearInterval(loadingRotateTimer_);
+    loadingRotateTimer_ = null;
+  }
+}
+
+/**
+ * ローディング画面タップで名言を切り替える
+ */
+function onLoadingTap_() {
+  var el = document.getElementById('loading');
+  var content = el.querySelector('.loading-content');
+  if (el.style.display === 'flex' && content) {
+    renderRandomLoadingMessage_(content);
+    // タイマーもリセットして次の自動切り替えまで3秒確保
+    clearLoadingTimer_();
+    startLoadingRotation_(content);
+  }
+}
+
 /** ローディング非表示 */
 function hideLoading() {
+  clearLoadingTimer_();
   var el = document.getElementById('loading');
   el.style.display = 'none';
   var content = el.querySelector('.loading-content');
@@ -428,6 +486,12 @@ function navigateToRoute_(route) {
 document.addEventListener('DOMContentLoaded', function() {
   // data-info付きラベルに情報アイコンを自動展開
   hydrateInfoTips_();
+
+  // ローディング画面タップで名言切り替え
+  var loadingEl = document.getElementById('loading');
+  if (loadingEl) {
+    loadingEl.addEventListener('click', onLoadingTap_);
+  }
 
   // メンバー名入力でEnterキー対応
   var nameInput = document.getElementById('m-name');
