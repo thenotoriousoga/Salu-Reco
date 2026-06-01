@@ -482,24 +482,27 @@ Phase 1〜4 で実装したコードが、最新の設計ドキュメント（`d
 - [ ] **hypersistence-utils (Hibernate 7対応版) を追加** して JSONB カラムに対応
 - [ ] Round 集約
 - [ ] Match 集約 (独立)
-- [ ] TeamSplitService
+- [ ] TeamSplitService（キャプテン選出含む）
 - [ ] 集約またぎ整合性: `FinishRoundUseCase`, `ReopenMatchUseCase`
 - [ ] `StubRoundStatusAdapter` → 実実装 `RoundStatusAdapter` に差し替え
 - [ ] SecurityConfig に Round / Match エンドポイント追加
-- [ ] チーム分け UI
+- [ ] チーム分け UI（キャプテンⒸバッジ表示含む）
 - [ ] 対戦カード選択 UI (3チーム以上)
 - [ ] 得点記録 UI
 - [ ] タイマー UI
+- [ ] ラウンドランキング UI（チーム順位表 + 個人ランキング、得点数優先ソート）
+- [ ] メンバーサマリーバー（参加人数・経験者比率・アンケート回答率）
 - [ ] テスト: Round/Match Domain 単体 + UseCase 単体 + 結合テスト + ArchUnit 更新
 - [ ] Frontend: Route Handlers + 型生成
 
 ### Phase 5 完了条件
-- [ ] 2〜Nチームのチーム分けが動く
+- [ ] 2〜Nチームのチーム分けが動く（キャプテン選出含む）
 - [ ] マッチ作成・得点記録・終了・再開が動く
 - [ ] Round 終了時の整合性チェックが効く
 - [ ] Event 終了時に進行中 Round があればエラーになる（Stub 差し替え済み）
 - [ ] ArchUnit テスト + 全テストがグリーン
 - [ ] フロントエンドからチーム分け → 試合 → 得点記録の一連フローが動く
+- [ ] ラウンドランキング（チーム・個人）が表示される
 
 ---
 
@@ -507,15 +510,19 @@ Phase 1〜4 で実装したコードが、最新の設計ドキュメント（`d
 
 ### 概要タスク
 - [ ] Flyway V4: mvp_evaluations, mvp_player_ratings
-- [ ] GeminiClient 実装
-- [ ] SelectMvpUseCase
+- [ ] GeminiClient 実装（gemini-2.5-pro, temperature=0.9, リトライ付き）
+- [ ] MvpPromptBuilder（システムプロンプト/ユーザープロンプト分離）
+- [ ] SelectMvpUseCase（非同期実行、バリデーション付き最大4回リトライ）
 - [ ] MatchQueryPort / MemberQueryPort / SurveyQueryPort
-- [ ] Frontend: MVP選出UI
-- [ ] Frontend: MVP結果表示
+- [ ] MVP選出ステータス管理（NotStarted / InProgress / Completed / Failed）
+- [ ] Frontend: MVP選出UI（非同期ポーリング、ローディング名言表示）
+- [ ] Frontend: MVP結果表示（レーティング・称号・コメント）
 
 ### Phase 6 完了条件
 - [ ] イベント終了状態で MVP 選出が実行できる
+- [ ] 非同期実行でUIがブロックされない（ポーリングで完了確認）
 - [ ] 幹事が MVP/準MVP から除外されている
+- [ ] バリデーション（スコア分布・人数チェック）が効いている
 - [ ] レーティング・称号・コメントが全員分表示される
 
 ---
@@ -543,6 +550,15 @@ Phase 1〜4 で実装したコードが、最新の設計ドキュメント（`d
 
 ### 概要タスク
 - [ ] 機能パリティ検証 (AS IS 機能を全カバー確認)
+- [ ] Notification コンテキスト実装（LINE Messaging API 統合）
+  - [ ] LINE Messaging API クライアント
+  - [ ] Webhook エンドポイント（グループ連携コマンド処理）
+  - [ ] 通知種別実装（イベント開始・チーム分け・ラウンド結果・アンケートリマインド・MVP結果）
+  - [ ] コメンテーター機能（Gemini API で AI 解説コメント生成）
+  - [ ] 非同期通知（Spring @Async + ドメインイベントリスナー）
+  - [ ] events テーブルに line_group_id カラム追加（Flyway マイグレーション）
+- [ ] 認証改善（参加コード自動ログイン時のセッション復元・管理者ロール保持）
+- [ ] ローディング画面の名言表示
 - [ ] スタッツ表示統合
 - [ ] ハイライト生成 (TO BE で追加する場合)
 - [ ] 本番用 `docker-compose.prod.yml`
@@ -553,6 +569,7 @@ Phase 1〜4 で実装したコードが、最新の設計ドキュメント（`d
 
 ### Phase 8 完了条件
 - [ ] 本番環境で全機能が動作する
+- [ ] LINE通知が全種別動作する
 - [ ] デプロイが GitHub Actions で自動化されている
 
 ---

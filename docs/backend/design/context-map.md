@@ -10,11 +10,13 @@
 | 4 | **Match Operation** | ラウンド・マッチ・チーム分け・得点記録 | **コア** |
 | 5 | **MVP Evaluation** | Gemini AI 評価、レーティング、MVP/準MVP選出 | **コア** |
 | 6 | **Survey** | アンケートフォーム管理、回答取得 | サポート |
+| 7 | **Notification** | LINE Messaging API 通知、AI解説コメント生成 | サポート |
 
 ### コア vs サポート の判断理由
 
 - **Match Operation がコア**: チーム分けロジックと助っ人管理はこのアプリ独自の価値
 - **MVP Evaluation がコア**: Gemini AIによる質的評価がサービスの差別化要素
+- **Notification はサポート**: LINE通知は付加価値だが、通知なしでもアプリは動作する
 - それ以外は汎用的な CRUD/認証
 
 ### 設計上のポイント
@@ -22,7 +24,7 @@
 - **Match は独立集約** として Round と分離して管理する
 - **Survey は Webフォームを自前実装**(Google Forms 依存なし)
 - **SurveyResponse は独立集約** として Survey から分離
-- コンテキスト境界の粒度は 6 つを維持
+- コンテキスト境界の粒度は 7 つを維持
 
 ## コンテキスト間の関係
 
@@ -39,6 +41,7 @@ graph TD
         EVENT[Event]
         MEMBER[Member]
         SURVEY[Survey]
+        NOTIFICATION[Notification]
     end
 
     subgraph "Generic"
@@ -63,6 +66,9 @@ graph TD
     MATCH ==試合データ提供==> MVP
     SURVEY ==コメント提供==> MVP
 
+    EVENT -.EventStartedイベント.-> NOTIFICATION
+    MATCH -.RoundCreated/Finishedイベント.-> NOTIFICATION
+    MVP -.MvpEvaluationCompletedイベント.-> NOTIFICATION
     EVENT -.EventFinishedイベント.-> MVP
 ```
 
@@ -75,7 +81,10 @@ graph TD
 | Event | Match Operation | **Customer/Supplier** | 同上 |
 | Event | Survey | **Customer/Supplier** | 同上 |
 | Event | MVP Evaluation | **Customer/Supplier** + ドメインイベント | `EventFinished` イベントでMVP選出可能状態を伝える |
+| Event | Notification | ドメインイベント | `EventStarted` でイベント開始通知をトリガー |
 | Match Operation | MVP Evaluation | **Open Host Service** | 試合データ取得用の公開クエリインターフェースを提供 |
+| Match Operation | Notification | ドメインイベント | `RoundCreated` / `RoundFinished` で通知をトリガー |
+| MVP Evaluation | Notification | ドメインイベント | `MvpEvaluationCompleted` で結果通知をトリガー |
 | Survey | MVP Evaluation | **Open Host Service** | アンケートコメント取得用の公開クエリインターフェースを提供 |
 
 ### 設計ルール
@@ -117,7 +126,12 @@ com.salurec
 ├── member
 ├── match
 ├── mvp
-└── survey
+├── survey
+└── notification                   ← Bounded Context (LINE通知)
+    ├── domain/                    Commentator, LineMessagingPort
+    ├── application/               NotifyTeamSplitUseCase, ...
+    ├── infrastructure/            LineMessagingClient, GeminiCommentaryGenerator
+    └── presentation/              NotificationController (手動トリガー用)
 ```
 
 ### 循環依存の防止
@@ -137,6 +151,7 @@ RDBテーブルも同様にコンテキスト境界を尊重する。
 | Match Operation | `rounds`, `matches`, `match_participants`, `goals` |
 | MVP Evaluation | `mvp_evaluations`, `mvp_player_ratings` |
 | Survey | `surveys`, `survey_responses`, `survey_comments` |
+| Notification | (DBテーブル持たず。`events.line_group_id` は Event テーブルのカラムとして管理) |
 | Identity & Access | (DBテーブル持たず。管理者パスワードは環境変数、参加トークンはJWTステートレス) |
 
 **ルール**: 他コンテキストのテーブルに直接 JOIN してはいけない。

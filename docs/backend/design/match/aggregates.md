@@ -30,7 +30,8 @@ TeamAssignment (ValueObject)
 
 Team (ValueObject)
 ├── name: TeamName
-└── memberIds: List<MemberId>
+├── memberIds: List<MemberId>
+└── captainId: MemberId?                     キャプテン（各チーム1名、ランダム選出）
 ```
 
 ### Round の不変条件

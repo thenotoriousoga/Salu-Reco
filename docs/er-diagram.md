@@ -15,6 +15,7 @@ erDiagram
         date event_date
         text status "Preparing / InProgress / Finished"
         varchar join_code UK
+        text line_group_id "NULL可"
         timestamptz created_at
         timestamptz updated_at
     }
@@ -37,7 +38,7 @@ erDiagram
         uuid event_id FK
         int round_number
         text status "InProgress / Finished"
-        jsonb team_assignment
+        jsonb team_assignment "{ teams, names, captains }"
         timestamptz created_at
         timestamptz updated_at
     }
@@ -91,6 +92,7 @@ erDiagram
         date event_date
         text status "Preparing / InProgress / Finished"
         varchar join_code UK
+        text line_group_id "NULL可"
         timestamptz created_at
         timestamptz updated_at
     }
@@ -124,7 +126,6 @@ erDiagram
         text rank "MVP / RunnerUp / None"
         text title
         text reason
-        int total_score "0〜100"
         numeric rating "0.0〜10.0"
         text comment
     }
@@ -196,6 +197,7 @@ events
 | event_date | DATE | NOT NULL | 開催日 |
 | status | TEXT | NOT NULL | Preparing / InProgress / Finished |
 | join_code | VARCHAR(5) | NOT NULL, UNIQUE | 参加コード |
+| line_group_id | TEXT | NULL | LINE Messaging API のグループID |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 | updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 
@@ -222,9 +224,25 @@ events
 | event_id | UUID | NOT NULL, FK → events(id) CASCADE | 所属イベント |
 | round_number | INT | NOT NULL, UNIQUE(event_id, round_number) | イベント内連番 |
 | status | TEXT | NOT NULL | InProgress / Finished |
-| team_assignment | JSONB | NOT NULL | チーム分け情報 |
+| team_assignment | JSONB | NOT NULL | チーム分け情報（構造は後述） |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
 | updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT now() | |
+
+#### team_assignment JSONB 構造
+
+```json
+{
+  "names": ["チームA", "チームB"],
+  "teams": [["memberId1", "memberId2"], ["memberId3", "memberId4"]],
+  "captains": ["memberId1", "memberId3"]
+}
+```
+
+| フィールド | 型 | 説明 |
+|---|---|---|
+| names | string[] | チーム名の配列 |
+| teams | string[][] | チームごとのメンバーID配列 |
+| captains | string[] | 各チームのキャプテンのメンバーID配列 |
 
 ### matches
 
@@ -281,8 +299,7 @@ events
 | member_name_snapshot | TEXT | NOT NULL | 選出時点の名前 |
 | rank | TEXT | NOT NULL | MVP / RunnerUp / None |
 | title | TEXT | NOT NULL, DEFAULT '' | 称号 |
-| reason | TEXT | NOT NULL, DEFAULT '' | 選出理由 |
-| total_score | INT | NOT NULL, 0〜100 | AI総合評価スコア |
+| reason | TEXT | NOT NULL, DEFAULT '' | 選出理由（MVP/準MVPのみ） |
 | rating | NUMERIC(3,1) | NOT NULL, 0.0〜10.0 | 10段階評価 |
 | comment | TEXT | NOT NULL, DEFAULT '' | 本人へのメッセージ |
 
