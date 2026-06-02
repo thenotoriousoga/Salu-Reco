@@ -477,15 +477,55 @@ Phase 1〜4 で実装したコードが、最新の設計ドキュメント（`d
 
 ## Phase 5: Match Operation (Round + Match 独立集約)
 
+### 現在の作業状態メモ（2026-06-02）
+
+**ブランチ**: `feature/phase5-match-operation`（master から分岐、未コミット）
+
+**完了済み（未コミット）**:
+- ✅ OpenAPI 仕様更新（`TeamResponse` に `captainId` 追加）
+- ✅ Domain + Application 層（`match/domain/`, `match/application/`）— 全モデル・UseCase 実装済み
+- ✅ Infrastructure + Presentation 層 — 全ファイル実装済み
+  - JPA Entity: `RoundJpaEntity`, `MatchJpaEntity`, `MatchParticipantJpaEntity`, `MatchParticipantId`, `GoalJpaEntity`
+  - Mapper: `RoundEntityMapper`, `MatchEntityMapper`, `MatchParticipantEntityMapper`, `GoalEntityMapper`
+  - Repository: `RoundJpaRepository`, `RoundRepositoryImpl`, `MatchJpaRepository`, `MatchRepositoryImpl`
+  - Query Service: `RoundQueryServiceImpl`, `MatchQueryServiceImpl`
+  - Adapter: `MemberQueryAdapter`, `MatchQueryPortAdapter`(空実装), `RoundStatusAdapter`
+  - Config: `MatchConfig`（`TeamSplitService` を `@Bean` 登録）
+  - Controller: `RoundCommandController`, `RoundQueryController`, `MatchCommandController`, `MatchQueryController`
+- ✅ Flyway V3 マイグレーション（`V3__init_rounds_matches.sql`）
+- ✅ SecurityConfig に Round/Match エンドポイントの認可ルール追加
+- ✅ `StubRoundStatusAdapter` 削除 → `RoundStatusAdapter` に差し替え
+- ✅ ビルド成功（`compileKotlin` 通過）
+
+**修正済み（セッション中に対応）**:
+- Controller のメソッドシグネチャ不一致を修正（`@AuthenticationPrincipal` パラメータ → `SecurityContextHolder` パターンに統一）
+- `RoundQueryServiceImpl` の未使用 `matchCount` 変数と不要な `MatchJpaRepository` 依存を削除
+- ArchUnit 違反修正: `FinishRoundUseCase` が `MatchQueryService`（Query）に直接依存 → `MatchRepository.existsOngoingByRoundId`（Domain Port）経由に変更
+- `AuthControllerIntegrationTest`: ハードコードされた join_code をランダム生成に変更（Testcontainers reuse でのデータ残留対策）+ `@Transactional` 追加
+- `EventControllerIntegrationTest`: `StubRoundStatusAdapter` 削除により「ラウンドなしで finish 不可」の制約が適用されるため、テスト内で API 経由でラウンドを作成するよう修正中
+
+**テスト状況（57件）**:
+- ✅ 全テスト通過（2026-06-02 確認済み）
+
+**次にやること**:
+1. **Phase 5 の残りタスク（フロントエンド）** に着手
+   - `openapi-typescript` で型再生成
+   - Route Handlers 作成
+   - チーム分け UI → 試合 → 得点記録の画面実装
+
+**注意点**:
+- hypersistence-utils は使わず、`@Column(columnDefinition = "jsonb")` + Jackson ObjectMapper で手動変換する方針に変更済み
+- `MatchRepositoryImpl.save` で `matchNumber == 1` の条件で連番再計算するロジックがある。UseCase 側が常に `matchNumber = 1` で渡す前提。動作確認時に注意
+
 ### 概要タスク
-- [ ] Flyway V3: rounds, matches, match_participants, goals
-- [ ] **hypersistence-utils (Hibernate 7対応版) を追加** して JSONB カラムに対応
-- [ ] Round 集約
-- [ ] Match 集約 (独立)
-- [ ] TeamSplitService（キャプテン選出含む）
-- [ ] 集約またぎ整合性: `FinishRoundUseCase`, `ReopenMatchUseCase`
-- [ ] `StubRoundStatusAdapter` → 実実装 `RoundStatusAdapter` に差し替え
-- [ ] SecurityConfig に Round / Match エンドポイント追加
+- [x] Flyway V3: rounds, matches, match_participants, goals
+- [ ] ~~**hypersistence-utils (Hibernate 7対応版) を追加** して JSONB カラムに対応~~ → Jackson 手動変換に変更
+- [x] Round 集約
+- [x] Match 集約 (独立)
+- [x] TeamSplitService（キャプテン選出含む）
+- [x] 集約またぎ整合性: `FinishRoundUseCase`, `ReopenMatchUseCase`
+- [x] `StubRoundStatusAdapter` → 実実装 `RoundStatusAdapter` に差し替え
+- [x] SecurityConfig に Round / Match エンドポイント追加
 - [ ] チーム分け UI（キャプテンⒸバッジ表示含む）
 - [ ] 対戦カード選択 UI (3チーム以上)
 - [ ] 得点記録 UI
