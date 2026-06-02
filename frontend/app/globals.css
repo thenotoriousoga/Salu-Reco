@@ -871,3 +871,171 @@ body:not(.role-user):not(.role-admin) .user-only {
   color: var(--text-muted);
   margin-left: 8px;
 }
+
+
+/* ─── 試合タブ ─────────────────────────────── */
+.round-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.team-card {
+  border-radius: var(--radius);
+  padding: 12px;
+  border-left: 4px solid;
+}
+.team-card:nth-child(1) { border-color: var(--team-a); background: var(--team-a-bg); }
+.team-card:nth-child(2) { border-color: var(--team-b); background: var(--team-b-bg); }
+.team-card:nth-child(3) { border-color: var(--team-c, #22c55e); background: var(--team-c-bg, #f0fdf4); }
+.team-card:nth-child(4) { border-color: var(--team-d, #f59e0b); background: var(--team-d-bg, #fffbeb); }
+.team-card:nth-child(5) { border-color: var(--team-e, #8b5cf6); background: var(--team-e-bg, #faf5ff); }
+
+.team-card h4 {
+  margin: 0 0 8px;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.team-member {
+  font-size: 0.85rem;
+  padding: 2px 0;
+}
+.team-member .captain-badge {
+  color: var(--accent);
+  font-weight: 700;
+  margin-left: 4px;
+}
+
+.scoreboard {
+  text-align: center;
+  padding: 16px 0;
+}
+.scoreboard .score-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin: 12px 0;
+}
+.scoreboard .score-display .team-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  min-width: 80px;
+}
+.scoreboard .score-display .score {
+  font-size: 2.5rem;
+  font-weight: 700;
+  font-family: var(--font-fira-code);
+}
+.scoreboard .score-display .score-separator {
+  font-size: 1.5rem;
+  color: var(--text-muted);
+}
+
+.match-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--surface, var(--bg-surface));
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.match-item:hover { background: var(--hover-bg, #fef2f2); }
+.match-item .match-teams {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+.match-item .match-score {
+  font-family: var(--font-fira-code);
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.goal-list {
+  margin: 12px 0;
+  font-size: 0.85rem;
+}
+.goal-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-light, #fecaca33);
+}
+.goal-item .goal-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.goal-recorder {
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--surface, var(--bg-surface));
+  border-radius: var(--radius);
+}
+.goal-recorder .recorder-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.team-selector button {
+  padding: 6px 16px;
+  border-radius: var(--radius);
+  border: 2px solid var(--border);
+  background: white;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.15s;
+}
+.team-selector button.selected-a {
+  border-color: var(--team-a);
+  background: var(--team-a-bg);
+  color: var(--team-a);
+}
+.team-selector button.selected-b {
+  border-color: var(--team-b);
+  background: var(--team-b-bg);
+  color: var(--team-b);
+}
+
+.match-creator {
+  margin: 12px 0;
+}
+.match-creator .team-pick {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+}
+.match-creator .team-pick-btn {
+  padding: 12px;
+  border-radius: var(--radius);
+  border: 2px solid var(--border);
+  background: white;
+  cursor: pointer;
+  text-align: center;
+  font-weight: 600;
+  transition: all 0.15s;
+}
+.match-creator .team-pick-btn.picked {
+  border-color: var(--primary);
+  background: var(--primary-bg, #fef2f2);
+}

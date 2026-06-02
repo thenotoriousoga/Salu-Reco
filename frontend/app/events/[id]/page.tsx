@@ -9,6 +9,7 @@ import { EventStatusControls } from "@/features/event/components/EventStatusCont
 import { EventDetailTabs } from "@/features/event/components/EventDetailTabs";
 import { JoinCodeBlock } from "@/features/event/components/JoinCodeBlock";
 import { MembersPanel } from "@/features/member/components/MembersPanel";
+import { MatchesPanel } from "@/features/round/components/MatchesPanel";
 
 type EventStatus = "Preparing" | "InProgress" | "Finished";
 
@@ -88,6 +89,7 @@ export default async function EventDetailPage({
       <EventDetailTabs
         eventId={event.id}
         membersPanel={<MembersPanel eventId={event.id} />}
+        matchesPanel={<MatchesPanel eventId={event.id} />}
       />
     </>
   );
