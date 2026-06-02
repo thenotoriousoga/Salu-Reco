@@ -923,6 +923,10 @@ components:
           type: array
           items:
             type: string
+        captainId:
+          type: string
+          nullable: true
+          description: キャプテンのメンバーID
 
     RoundListResponse:
       type: object

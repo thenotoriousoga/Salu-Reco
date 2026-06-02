@@ -17,6 +17,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
 import java.util.UUID
 
@@ -25,6 +26,7 @@ import java.util.UUID
  * SecurityConfig の URL ベース認可も含めて、実エンドポイントに対して検証する。
  */
 @AutoConfigureMockMvc
+@Transactional
 class AuthControllerIntegrationTest : AbstractIntegrationTest() {
 
     @Autowired
@@ -77,16 +79,17 @@ class AuthControllerIntegrationTest : AbstractIntegrationTest() {
 
     @Test
     fun `参加コードログインすると USER トークンが返る`() {
-        // 事前にイベントを1件作る
+        // 事前にイベントを1件作る(ランダムコードで重複回避)
+        val code = generateRandomCode()
         val event = Event.create(
             id = EventId(UUID.randomUUID().toString()),
             name = EventName("参加コードテスト"),
             date = LocalDate.of(2026, 6, 1),
-            joinCode = JoinCode("TESTC"),
+            joinCode = JoinCode(code),
         )
         eventRepository.save(event)
 
-        val body = mapOf("joinCode" to "TESTC")
+        val body = mapOf("joinCode" to code)
         mockMvc.perform(
             post("/api/auth/login-with-code")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -109,19 +112,20 @@ class AuthControllerIntegrationTest : AbstractIntegrationTest() {
 
     @Test
     fun `USER トークンでは管理者限定の POST api events を叩けず 403 を返す`() {
-        // USER トークンを取得
+        // USER トークンを取得(ランダムコードで重複回避)
+        val code = generateRandomCode()
         val event = Event.create(
             id = EventId(UUID.randomUUID().toString()),
             name = EventName("403テスト"),
             date = LocalDate.of(2026, 6, 1),
-            joinCode = JoinCode("FRBDN"),
+            joinCode = JoinCode(code),
         )
         eventRepository.save(event)
 
         val loginResponse = mockMvc.perform(
             post("/api/auth/login-with-code")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(mapOf("joinCode" to "FRBDN"))),
+                .content(objectMapper.writeValueAsString(mapOf("joinCode" to code))),
         ).andReturn().response.contentAsString
         val userToken = objectMapper.readTree(loginResponse)["token"].asText()
 
@@ -132,5 +136,12 @@ class AuthControllerIntegrationTest : AbstractIntegrationTest() {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(body)),
         ).andExpect(status().isForbidden)
+    }
+
+    private fun generateRandomCode(): String {
+        val chars = JoinCode.ALLOWED_CHARS
+        return buildString(5) {
+            repeat(5) { append(chars.random()) }
+        }
     }
 }

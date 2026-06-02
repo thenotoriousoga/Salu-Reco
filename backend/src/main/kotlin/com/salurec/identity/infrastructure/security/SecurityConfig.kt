@@ -83,6 +83,27 @@ class SecurityConfig(
                     // --- Member コンテキスト: 一覧は ADMIN もしくは当該イベント USER ---
                     .requestMatchers(HttpMethod.GET, "/api/events/*/members").hasAnyRole("ADMIN", "USER")
 
+                    // --- Round コンテキスト: 作成/終了/再開は管理者のみ ---
+                    .requestMatchers(HttpMethod.POST, "/api/events/*/rounds").hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.POST, "/api/events/*/rounds/*/finish").hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.POST, "/api/events/*/rounds/*/reopen").hasRole("ADMIN")
+
+                    // --- Round コンテキスト: 一覧/詳細は ADMIN + USER ---
+                    .requestMatchers(HttpMethod.GET, "/api/events/*/rounds").hasAnyRole("ADMIN", "USER")
+                    .requestMatchers(HttpMethod.GET, "/api/events/*/rounds/*").hasAnyRole("ADMIN", "USER")
+
+                    // --- Match コンテキスト: 作成/得点/助っ人/終了/再開は管理者のみ ---
+                    .requestMatchers(HttpMethod.POST, "/api/events/*/rounds/*/matches").hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.POST, "/api/events/*/rounds/*/matches/*/goals").hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.DELETE, "/api/events/*/rounds/*/matches/*/goals/*").hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.POST, "/api/events/*/rounds/*/matches/*/substitutes").hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.POST, "/api/events/*/rounds/*/matches/*/finish").hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.POST, "/api/events/*/rounds/*/matches/*/reopen").hasRole("ADMIN")
+
+                    // --- Match コンテキスト: 一覧/詳細は ADMIN + USER ---
+                    .requestMatchers(HttpMethod.GET, "/api/events/*/rounds/*/matches").hasAnyRole("ADMIN", "USER")
+                    .requestMatchers(HttpMethod.GET, "/api/events/*/rounds/*/matches/*").hasAnyRole("ADMIN", "USER")
+
                     // --- デフォルト: 認証必須(追加エンドポイント増やしたときに意図しない公開を防ぐ) ---
                     .anyRequest().authenticated()
             }

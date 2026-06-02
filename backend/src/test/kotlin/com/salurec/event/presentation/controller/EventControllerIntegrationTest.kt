@@ -106,17 +106,50 @@ class EventControllerIntegrationTest : AbstractIntegrationTest() {
                 ),
             ),
         )
-        mockMvc.perform(
+        val member2Res = mockMvc.perform(
             post("/api/events/$eventId/members")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(memberBody)),
-        ).andExpect(status().isCreated)
+        ).andExpect(status().isCreated).andReturn().response.contentAsString
+        val member2Id = objectMapper.readTree(member2Res)["memberIds"][0].asText()
 
         // start: Preparing -> InProgress
         mockMvc.perform(post("/api/events/$eventId/start"))
             .andExpect(status().isNoContent)
         mockMvc.perform(get("/api/events/$eventId"))
             .andExpect(jsonPath("$.status").value("InProgress"))
+
+        // finish にはラウンドが1つ以上必要。
+        // メンバーを追加してラウンドを作成する(2チーム×3人=最低6人必要)
+        val organizerMemberId = objectMapper.readTree(createRes)["organizerMemberId"].asText()
+        // 追加メンバー4名を登録(合計6人: 幹事 + 選手2 + 選手3〜6)
+        val moreMembers = mapOf(
+            "members" to listOf(
+                mapOf("name" to "選手3", "seniorityYear" to 2, "soccerExperience" to "Experienced"),
+                mapOf("name" to "選手4", "seniorityYear" to 3, "soccerExperience" to "Inexperienced"),
+                mapOf("name" to "選手5", "seniorityYear" to 1, "soccerExperience" to "Experienced"),
+                mapOf("name" to "選手6", "seniorityYear" to 2, "soccerExperience" to "Inexperienced"),
+            ),
+        )
+        val moreRes = mockMvc.perform(
+            post("/api/events/$eventId/members")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(moreMembers)),
+        ).andExpect(status().isCreated).andReturn().response.contentAsString
+        val additionalIds = objectMapper.readTree(moreRes)["memberIds"].map { it.asText() }
+
+        val allMemberIds = listOf(organizerMemberId, member2Id) + additionalIds
+        val roundBody = mapOf("teamCount" to 2, "memberIds" to allMemberIds)
+        val roundRes = mockMvc.perform(
+            post("/api/events/$eventId/rounds")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(roundBody)),
+        ).andExpect(status().isCreated).andReturn().response.contentAsString
+        val roundId = objectMapper.readTree(roundRes)["roundId"].asText()
+
+        // ラウンドを終了(配下に試合がないので直接 finish 可能)
+        mockMvc.perform(post("/api/events/$eventId/rounds/$roundId/finish"))
+            .andExpect(status().isNoContent)
 
         // finish: InProgress -> Finished
         mockMvc.perform(post("/api/events/$eventId/finish"))
