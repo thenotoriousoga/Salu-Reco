@@ -194,6 +194,195 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/events/{eventId}/rounds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** ラウンド一覧取得 */
+        get: operations["listRounds"];
+        put?: never;
+        /** ラウンド作成（チーム分け実行） */
+        post: operations["createRound"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}/rounds/{roundId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** ラウンド詳細取得 */
+        get: operations["getRoundDetail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}/rounds/{roundId}/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** ラウンドを終了する */
+        post: operations["finishRound"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}/rounds/{roundId}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** ラウンドを再開する */
+        post: operations["reopenRound"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}/rounds/{roundId}/matches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** マッチ一覧取得 */
+        get: operations["listMatches"];
+        put?: never;
+        /** マッチ作成 */
+        post: operations["createMatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}/rounds/{roundId}/matches/{matchId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** マッチ詳細取得 */
+        get: operations["getMatchDetail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}/rounds/{roundId}/matches/{matchId}/goals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 得点記録 */
+        post: operations["recordGoal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}/rounds/{roundId}/matches/{matchId}/goals/{goalId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** 得点取り消し */
+        delete: operations["removeGoal"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}/rounds/{roundId}/matches/{matchId}/substitutes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 助っ人追加 */
+        post: operations["addSubstitute"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}/rounds/{roundId}/matches/{matchId}/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** マッチを終了する */
+        post: operations["finishMatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events/{eventId}/rounds/{roundId}/matches/{matchId}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** マッチを再開する（必要に応じてラウンドも再開） */
+        post: operations["reopenMatch"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -300,6 +489,117 @@ export interface components {
         MemberListResponse: {
             members: components["schemas"]["MemberResponse"][];
         };
+        CreateRoundRequest: {
+            /** @description チーム数（2〜人数÷3） */
+            teamCount: number;
+            /** @description チーム分け対象メンバーID一覧 */
+            memberIds: string[];
+        };
+        CreateRoundResponse: {
+            roundId: string;
+            roundNumber: number;
+            teamAssignment: components["schemas"]["TeamAssignment"];
+        };
+        TeamAssignment: {
+            teams: components["schemas"]["TeamResponse"][];
+        };
+        TeamResponse: {
+            name: string;
+            memberIds: string[];
+            /** @description キャプテンのメンバーID */
+            captainId?: string | null;
+        };
+        RoundListResponse: {
+            rounds: components["schemas"]["RoundListItemResponse"][];
+        };
+        RoundListItemResponse: {
+            id: string;
+            roundNumber: number;
+            /** @enum {string} */
+            status: "InProgress" | "Finished";
+            teamCount: number;
+            matchCount: number;
+        };
+        RoundDetailResponse: {
+            id: string;
+            eventId: string;
+            roundNumber: number;
+            /** @enum {string} */
+            status: "InProgress" | "Finished";
+            teamAssignment: components["schemas"]["TeamAssignment"];
+        };
+        CreateMatchRequest: {
+            teamAName: string;
+            teamBName: string;
+            participants: components["schemas"]["MatchParticipantInput"][];
+        };
+        MatchParticipantInput: {
+            memberId: string;
+            /** @enum {string} */
+            team: "A" | "B";
+        };
+        CreateMatchResponse: {
+            matchId: string;
+            matchNumber: number;
+        };
+        MatchListResponse: {
+            matches: components["schemas"]["MatchListItemResponse"][];
+        };
+        MatchListItemResponse: {
+            id: string;
+            matchNumber: number;
+            teamAName: string;
+            teamBName: string;
+            /** @enum {string} */
+            status: "InProgress" | "Finished";
+            scoreA: number;
+            scoreB: number;
+        };
+        MatchDetailResponse: {
+            id: string;
+            roundId: string;
+            matchNumber: number;
+            teamAName: string;
+            teamBName: string;
+            /** @enum {string} */
+            status: "InProgress" | "Finished";
+            scoreA: number;
+            scoreB: number;
+            participants: components["schemas"]["MatchParticipantResponse"][];
+            goals: components["schemas"]["GoalResponse"][];
+        };
+        MatchParticipantResponse: {
+            memberId: string;
+            memberName: string;
+            /** @enum {string} */
+            team: "A" | "B";
+            isSubstitute: boolean;
+        };
+        GoalResponse: {
+            id: string;
+            /** @enum {string} */
+            team: "A" | "B";
+            scorerMemberId?: string | null;
+            scorerName?: string | null;
+            /** @enum {string} */
+            type: "Normal" | "OwnGoal" | "Unknown";
+        };
+        RecordGoalRequest: {
+            /** @enum {string} */
+            team: "A" | "B";
+            /** @description Normal の場合は必須、OwnGoal/Unknown の場合は null */
+            scorerMemberId?: string | null;
+            /** @enum {string} */
+            type: "Normal" | "OwnGoal" | "Unknown";
+        };
+        RecordGoalResponse: {
+            goalId: string;
+        };
+        AddSubstituteRequest: {
+            memberId: string;
+            /** @enum {string} */
+            team: "A" | "B";
+        };
     };
     responses: never;
     parameters: {
@@ -307,6 +607,12 @@ export interface components {
         EventId: string;
         /** @description メンバーID */
         MemberId: string;
+        /** @description ラウンドID */
+        RoundId: string;
+        /** @description マッチID */
+        MatchId: string;
+        /** @description ゴールID */
+        GoalId: string;
     };
     requestBodies: never;
     headers: never;
@@ -737,6 +1043,444 @@ export interface operations {
                 content?: never;
             };
             /** @description バリデーションエラー */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    listRounds: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description イベントID */
+                eventId: components["parameters"]["EventId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoundListResponse"];
+                };
+            };
+        };
+    };
+    createRound: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description イベントID */
+                eventId: components["parameters"]["EventId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateRoundRequest"];
+            };
+        };
+        responses: {
+            /** @description 作成成功 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateRoundResponse"];
+                };
+            };
+            /** @description バリデーションエラー（メンバー不足、イベント未進行中など） */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    getRoundDetail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description イベントID */
+                eventId: components["parameters"]["EventId"];
+                /** @description ラウンドID */
+                roundId: components["parameters"]["RoundId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoundDetailResponse"];
+                };
+            };
+            /** @description ラウンドが見つからない */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    finishRound: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description イベントID */
+                eventId: components["parameters"]["EventId"];
+                /** @description ラウンドID */
+                roundId: components["parameters"]["RoundId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 遷移条件を満たさない（進行中マッチあり等） */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    reopenRound: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description イベントID */
+                eventId: components["parameters"]["EventId"];
+                /** @description ラウンドID */
+                roundId: components["parameters"]["RoundId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 遷移条件を満たさない */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    listMatches: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description イベントID */
+                eventId: components["parameters"]["EventId"];
+                /** @description ラウンドID */
+                roundId: components["parameters"]["RoundId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MatchListResponse"];
+                };
+            };
+        };
+    };
+    createMatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description イベントID */
+                eventId: components["parameters"]["EventId"];
+                /** @description ラウンドID */
+                roundId: components["parameters"]["RoundId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateMatchRequest"];
+            };
+        };
+        responses: {
+            /** @description 作成成功 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateMatchResponse"];
+                };
+            };
+            /** @description バリデーションエラー（ラウンド未進行中等） */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    getMatchDetail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description イベントID */
+                eventId: components["parameters"]["EventId"];
+                /** @description ラウンドID */
+                roundId: components["parameters"]["RoundId"];
+                /** @description マッチID */
+                matchId: components["parameters"]["MatchId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MatchDetailResponse"];
+                };
+            };
+            /** @description マッチが見つからない */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    recordGoal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description イベントID */
+                eventId: components["parameters"]["EventId"];
+                /** @description ラウンドID */
+                roundId: components["parameters"]["RoundId"];
+                /** @description マッチID */
+                matchId: components["parameters"]["MatchId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordGoalRequest"];
+            };
+        };
+        responses: {
+            /** @description 記録成功 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordGoalResponse"];
+                };
+            };
+            /** @description バリデーションエラー（マッチ未進行中等） */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    removeGoal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description イベントID */
+                eventId: components["parameters"]["EventId"];
+                /** @description ラウンドID */
+                roundId: components["parameters"]["RoundId"];
+                /** @description マッチID */
+                matchId: components["parameters"]["MatchId"];
+                /** @description ゴールID */
+                goalId: components["parameters"]["GoalId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 削除成功 */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description マッチ未進行中 */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    addSubstitute: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description イベントID */
+                eventId: components["parameters"]["EventId"];
+                /** @description ラウンドID */
+                roundId: components["parameters"]["RoundId"];
+                /** @description マッチID */
+                matchId: components["parameters"]["MatchId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddSubstituteRequest"];
+            };
+        };
+        responses: {
+            /** @description 追加成功 */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description バリデーションエラー（既に出場中等） */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    finishMatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description イベントID */
+                eventId: components["parameters"]["EventId"];
+                /** @description ラウンドID */
+                roundId: components["parameters"]["RoundId"];
+                /** @description マッチID */
+                matchId: components["parameters"]["MatchId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 遷移条件を満たさない */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorResponse"];
+                };
+            };
+        };
+    };
+    reopenMatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description イベントID */
+                eventId: components["parameters"]["EventId"];
+                /** @description ラウンドID */
+                roundId: components["parameters"]["RoundId"];
+                /** @description マッチID */
+                matchId: components["parameters"]["MatchId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description 遷移条件を満たさない */
             400: {
                 headers: {
                     [name: string]: unknown;
